@@ -20,7 +20,7 @@ AREAS = {
     "work": "일하는-방식.md",
 }
 NOT_STANDARD_FILES = {"INDEX.md", "CHANGELOG.md", "용어.md", "기준-작성-원칙.md", "README.md"}
-REQUIRED = ["제목", "값", "이유", "적용 범위", "근거", "항상 적용", "상태", "버전"]
+REQUIRED = ["제목", "값", "이유", "항상 적용", "상태", "버전"]
 ID_RE = re.compile(r"^[a-z]+\.[a-z0-9-]+\.[a-z0-9-]+$")
 SCOPE_KINDS = ("코드:", "API:", "화면:", "문서:")
 VAGUE = ["적절히", "적당히", "가능하면", "필요시", "필요 시", "등등"]
