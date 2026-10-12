@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>맞춰야 할 용어</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --card: #fff;
+        --fg: #1f2328;
+        --muted: #656d76;
+        --line: #d8dee4;
+        --big: #fff1e6;
+        --bigb: #e8590c;
+        --mid: #fff9db;
+        --midb: #e0a100;
+        --small: #f1f3f5;
+        --smallb: #868e96;
+        --ok: #ebfbee;
+        --okb: #2f9e44;
+        --code: #eef1f4;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16181c;
+          --card: #1f2226;
+          --fg: #e6e8eb;
+          --muted: #9aa3ad;
+          --line: #33383e;
+          --big: #3a2414;
+          --bigb: #ff922b;
+          --mid: #3a3216;
+          --midb: #fcc419;
+          --small: #262a2f;
+          --smallb: #adb5bd;
+          --ok: #16301d;
+          --okb: #51cf66;
+          --code: #2b3036;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          14px/1.55 -apple-system,
+          'Apple SD Gothic Neo',
+          sans-serif;
+        padding: 24px 16px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        color: var(--muted);
+        margin: 0 0 16px;
+      }
+      .wrap {
+        overflow-x: auto;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      table {
+        border-collapse: collapse;
+        min-width: 1280px;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 10px 12px;
+        vertical-align: top;
+        text-align: left;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: var(--card);
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      td.n {
+        font-weight: 700;
+        width: 28px;
+        text-align: center;
+      }
+      td.t {
+        font-weight: 700;
+        width: 130px;
+      }
+      td.who {
+        white-space: nowrap;
+        font-weight: 600;
+      }
+      tr.big td.n {
+        border-left: 4px solid var(--bigb);
+      }
+      tr.mid td.n {
+        border-left: 4px solid var(--midb);
+      }
+      tr.small td.n,
+      tr.check td.n {
+        border-left: 4px solid var(--smallb);
+      }
+      tr.ok td.n {
+        border-left: 4px solid var(--okb);
+      }
+      tr.big {
+        background: var(--big);
+      }
+      tr.ok {
+        background: var(--ok);
+      }
+      .chip {
+        display: inline-block;
+        margin-top: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 1px 8px;
+        border-radius: 99px;
+        border: 1px solid var(--line);
+        color: var(--muted);
+      }
+      .m {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      code {
+        background: var(--code);
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 12.5px;
+        font-family: 'D2Coding', 'SF Mono', Menlo, monospace;
+      }
+      .order {
+        margin-top: 16px;
+        padding: 12px 14px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>SIL-68 터미널 알림 · 맞춰야 할 용어</h1>
+    <p class="sub">
+      2026-10-12 · 팀 위키, 착수 문서, Linear SIL-69·71·73·74, 정민님 시험 문서,
+      지금 터미널 시안을 대조했어요. "제안"은 Claude 의견이에요. 1번은 "결정
+      사항", 2번은 "확인할 변경"으로 10/12 정했고(위키는 나중에), 나머지는
+      미정이에요. 근거는 SIL-68-맞춰야-할-용어.md에 있어요.
+    </p>
+    <div class="wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>무엇을 부르는 말</th>
+            <th>팀 위키</th>
+            <th>착수 문서 · Linear</th>
+            <th>지금 터미널 시안</th>
+            <th>무엇이 문제인가</th>
+            <th>제안 (Claude)</th>
+            <th>누구와</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="big">
+            <td class="n">1</td>
+            <td class="t">
+              팀 위키 항목 하나
+              <div class="chip">가장 커요</div>
+            </td>
+            <td>
+              <b>기준</b><br /><span class="m">"결정 사항"은 쓰지 않음</span>
+            </td>
+            <td>
+              <b>결정 사항</b><br /><span class="m"
+                >착수 문서, SIL-69·71·73·74</span
+              >
+            </td>
+            <td>기준<br />상세 맨 위만 <b>규칙</b></td>
+            <td>
+              세 가지 말이 섞여 있어요. SIL-71은 "결정 사항"으로 바꾸라고 해요
+            </td>
+            <td>둘 중 하나로 정해요. "규칙"은 어느 자료에도 없어서 빼요</td>
+            <td class="who">신지님, 호윤님</td>
+          </tr>
+          <tr class="big">
+            <td class="n">2</td>
+            <td class="t">
+              답해야 하는 바뀐 항목
+              <div class="chip">가장 커요</div>
+            </td>
+            <td>
+              <b>확인할 변경</b><br /><span class="m"
+                >"확인 대기"는 쓰지 않음</span
+              >
+            </td>
+            <td>확인할 변경, 답할 변경,<br />나에게 온 변경 (T2·A2)</td>
+            <td>
+              확인할 규칙 변경 사항<br />답하지 않은 기준 변경<br />확인할
+              변경<br />나에게 온 변경
+            </td>
+            <td>한 흐름 안에서 네 가지로 불러요</td>
+            <td>
+              문장은 "확인할 변경"으로. "나에게 온 변경"은 앱 화면 이름으로만
+            </td>
+            <td class="who">신지님</td>
+          </tr>
+          <tr class="mid">
+            <td class="n">3</td>
+            <td class="t">
+              이슈 번호
+              <div class="chip">중간</div>
+            </td>
+            <td>
+              <code>SIL-12</code><br /><span class="m"
+                >data.issue.linear-id</span
+              >
+            </td>
+            <td>
+              <code>#5</code><br /><span class="m">착수 문서, SIL-73</span>
+            </td>
+            <td>데모 <code>#5</code><br />SIL-64 예시 <code>SIL-34</code></td>
+            <td>위키와 착수 문서가 달라요</td>
+            <td>화면은 <code>#5</code>로. 위키를 고칠지만 확인</td>
+            <td class="who">호윤님</td>
+          </tr>
+          <tr class="mid">
+            <td class="n">4</td>
+            <td class="t">
+              바뀐 곳을 알려 주는 칸
+              <div class="chip">중간</div>
+            </td>
+            <td><b>근거</b><br /><span class="m">"출처"는 쓰지 않음</span></td>
+            <td>
+              <b>출처</b> (AI 대화 / 코드)<br /><span class="m"
+                >근거는 화면에서 뺌</span
+              >
+            </td>
+            <td>이름표 <code>출처</code></td>
+            <td>위키 용어집과 정반대예요</td>
+            <td>화면은 "출처"로. 위키 용어집은 SIL-64에서 함께 고치기</td>
+            <td class="who">호윤님</td>
+          </tr>
+          <tr class="mid">
+            <td class="n">5</td>
+            <td class="t">
+              새로 생긴 항목
+              <div class="chip">중간</div>
+            </td>
+            <td>—</td>
+            <td>
+              새 결정 사항 (착수 문서)<br />새로 생긴 결정 사항 (SIL-69·74)
+            </td>
+            <td>
+              태그 <code>(신규)</code><br /><code>새로 생긴 기준이에요</code>
+            </td>
+            <td>앱과 말이 달라요</td>
+            <td>1번이 정해지면 같이. 태그는 한 단어 필요</td>
+            <td class="who">신지님</td>
+          </tr>
+          <tr class="small">
+            <td class="n">6</td>
+            <td class="t">
+              값 이름
+              <div class="chip">작아요</div>
+            </td>
+            <td>이전 값, 지금 값</td>
+            <td>T3·A3: 이전 값·지금 값<br /><b>T1: 지금 값·바꿀 값</b></td>
+            <td><code>변경</code> <code>지금</code> <code>이전</code></td>
+            <td>
+              T1의 "지금"은 바꾸기 <b>전</b>, T3의 "지금"은 바뀐 <b>뒤</b>
+            </td>
+            <td>T1을 그릴 때 "지금"이 겹치지 않는 말로</td>
+            <td class="who">경하님</td>
+          </tr>
+          <tr class="small">
+            <td class="n">7</td>
+            <td class="t">
+              바꾼 사람
+              <div class="chip">작아요</div>
+            </td>
+            <td>—</td>
+            <td>이름만 (부건)</td>
+            <td><code>부건님이 … 변경했어요.</code></td>
+            <td>"님"이 곳마다 달라질 수 있어요</td>
+            <td>문장 안에서는 "님", 칸 안에서는 이름만</td>
+            <td class="who">신지님</td>
+          </tr>
+          <tr class="small">
+            <td class="n">8</td>
+            <td class="t">
+              세는 단위
+              <div class="chip">작아요</div>
+            </td>
+            <td>—</td>
+            <td>개수, "3개" (정민님 문서)</td>
+            <td><code>2건</code></td>
+            <td>건과 개가 섞여요</td>
+            <td>"건"</td>
+            <td class="who">신지님</td>
+          </tr>
+          <tr class="small">
+            <td class="n">9</td>
+            <td class="t">
+              출처 값
+              <div class="chip">작아요</div>
+            </td>
+            <td>—</td>
+            <td>
+              AI 대화에서 바꿈 / 코드에서 바꿈 / PR에서 찾음<br /><span
+                class="m"
+                >CHANGELOG에는 "회의"도</span
+              >
+            </td>
+            <td>
+              <code>AI 대화</code> <code>PR · AI가 찾음</code> <code>코드</code>
+            </td>
+            <td>값 종류와 말이 둘 다 미정</td>
+            <td>종류는 경하님 답 뒤에. 말은 "~에서 바꿈" 쪽으로</td>
+            <td class="who">경하님, 신지님</td>
+          </tr>
+          <tr class="check">
+            <td class="n">10</td>
+            <td class="t">
+              "작업"
+              <div class="chip">확인만</div>
+            </td>
+            <td>이슈를 "작업"이라 부르지 않음</td>
+            <td>정민님 문서는 이슈를 "작업(T-21)"이라 부름</td>
+            <td>
+              Claude Code에서 하는 일<br /><code>작업 전에</code>
+              <code>원래 작업</code>
+            </td>
+            <td>
+              위키와 부딪히지는 않지만 예전 목업을 본 사람은 헷갈릴 수 있어요
+            </td>
+            <td>그대로 두고 테스트에서 확인</td>
+            <td class="who">확인만</td>
+          </tr>
+          <tr class="check">
+            <td class="n">11</td>
+            <td class="t">
+              서비스 이름
+              <div class="chip">확인만</div>
+            </td>
+            <td>"이 도구"</td>
+            <td>
+              이름 자리 비움 (착수 문서)<br />"HARIBO로 바꿈" (정민님 문서)
+            </td>
+            <td>이름 없음</td>
+            <td>HARIBO가 서비스 이름으로 정해졌는지 몰라요</td>
+            <td>정해지면 다시 부르는 말을 슬래시 명령으로</td>
+            <td class="who">호윤님 (호윤-8)</td>
+          </tr>
+          <tr class="ok">
+            <td class="n">✓</td>
+            <td class="t">
+              답 이름
+              <div class="chip">일치</div>
+            </td>
+            <td>관계있다/관계없다<br />알았다/몰랐다</td>
+            <td>같음</td>
+            <td>같음</td>
+            <td>없음</td>
+            <td>그대로</td>
+            <td class="who">—</td>
+          </tr>
+          <tr class="ok">
+            <td class="n">✓</td>
+            <td class="t">
+              폐기 · 되돌림 · 대체됨
+              <div class="chip">일치</div>
+            </td>
+            <td>같음</td>
+            <td>같음</td>
+            <td><code>(폐기)</code> <code>(되돌림)</code></td>
+            <td>없음</td>
+            <td>그대로</td>
+            <td class="who">—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="order">
+      <b>정하는 순서:</b> 1 → 2 → 3·4(위키를 고칠지만 확인) → 5~9는 앱 화면과
+      나란히 놓고 한 번에 맞춰요.
+    </div>
+  </body>
+</html>
