@@ -2,12 +2,23 @@
   "name": "@sil/core",
   "version": "0.0.0",
   "private": true,
-  "description": "세 기능(기준 저장소, 바뀐 기준 찾기, 알리기)이 함께 쓰는 타입. 설명은 docs/타입명세서.md",
+  "description": "모든 패키지가 함께 쓰는 타입, 에러, 예시 데이터, 데이터베이스 접근",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./data": "./src/data/index.ts",
+    "./node": "./src/node/index.ts",
+    "./testing": "./src/node/fake-db.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.117.2",
+    "picomatch": "^4.0.7",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/picomatch": "^4.0.3"
   }
 }

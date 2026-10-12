@@ -1,3 +1,13 @@
+# 이 저장소 안의 패키지 목록이에요. 폴더 하나가 패키지 하나예요 (팀 저장소 PR #3과 같은 구조, D49).
+# apps/ 는 직접 실행하는 프로그램(MCP 서버, 명령어, 화면, 바뀐 기준 찾기), packages/ 는 가져다 쓰는 코드(core)예요.
 packages:
   - apps/*
   - packages/*
+
+# pnpm 11은 설치 스크립트를 미리 허락한 패키지만 실행하고, 나머지는 설치를 에러로 멈춰요.
+# 여기 없는 패키지가 스크립트를 요구하면 `pnpm approve-builds`로 추가하고 이유를 주석으로 남겨 주세요.
+allowBuilds:
+  # Vite(웹 앱 빌드)와 Vitest가 쓰는 번역기의 운영체제별 실행 파일을 확인해요.
+  esbuild: true
+  # Supabase CLI(로컬 DB, 스키마 올리기)의 운영체제별 실행 파일을 GitHub Releases에서 받아요 (SIL-14).
+  supabase: true
