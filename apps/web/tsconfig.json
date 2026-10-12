@@ -1,0 +1,12 @@
+{
+  "//": "웹 앱 화면용. 브라우저에서 돌아서 Node 타입을 빼고 DOM 타입을 넣어요. Vite가 번들로 묶으니 번들러 방식으로 읽어요 (D48 예외).",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2024", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["vite/client"],
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}
