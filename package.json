@@ -1,6 +1,8 @@
 {
   "name": "haribo",
+  "version": "0.0.0",
   "private": true,
+  "description": "MVP 사일로 모노레포: 팀 기준 위키(MCP 서버) · 명령어 · 웹 앱(PWA) · 바뀐 기준 찾기",
   "type": "module",
   "packageManager": "pnpm@11.18.0",
   "engines": {
@@ -20,9 +22,11 @@
     "app:preview": "pnpm --filter @sil/app run preview",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest run && pnpm --filter @sil/notify test"
+    "test": "vitest run && pnpm --filter @sil/notify test",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
