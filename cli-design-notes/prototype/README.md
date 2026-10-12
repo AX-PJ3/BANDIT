@@ -19,6 +19,17 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 건수 숫자 색 바꿔 보기: `NOTICE_COUNT_COLOR=36 claude` (기본 33 노랑, 36 청록)
 - 색·강조 비교 미리보기: `count-color-preview.html`(건수 글자색 후보), `emphasis-preview.html`(다시 부르는 말 강조 후보, 당시 문구 "기준 변경 확인")
 
+## 사내 테스트 (자동 진행)
+
+```
+cd cli-design-notes/prototype/notify-prototype && ./test_run.py
+```
+
+- 진행자가 참가자 이름·직군·사일로 여부·테마를 입력하면, 예시 시안 3건(`changes-test.json`)으로 Claude Code가 테스트 모드로 켜져요.
+- 변경마다 답한 뒤 상세를 화면 위로 밀어내고 이해도 3문항(직접 쓰기 → 무엇이 → 왜)을 물어요.
+- 마지막 변경까지 답하면 Claude Code가 자동으로 닫히고(중간에 그만하려면 `/exit`) 수고 설문 5개를 묻고, `results/`에 참가자별 JSON과 `summary.csv`를 남겨요. `results/`는 GitHub에 올라가지 않아요.
+- 설계: [../SIL-68-사내테스트-자동화-설계.md](../SIL-68-사내테스트-자동화-설계.md)
+
 ## 구성
 
 | 파일                                              | 하는 일                                                                                    |
@@ -28,6 +39,9 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 | `notify-prototype/proto/changes.json`             | 샘플 데이터. Linear SIL-64의 실제 변경 + `samples/data/issue-links.csv` (받는 사람: 부건)  |
 | `notify-prototype/proto/changes-demo.json`        | 착수 문서 데모 예시 (알림 제목 길이 40자 → 32자, 받는 사람 민수 #5)                        |
 | `notify-prototype/proto/changes-sample.json`      | 예전 샘플 (40자 → 32자, 리뷰 규칙 폐기)                                                    |
+| `notify-prototype/proto/changes-test.json`        | 사내 테스트용 예시 시안 3건 (숫자·신규·관계없음) + 관계 정답과 이해도 문제                 |
+| `notify-prototype/test_run.py`                    | 사내 테스트 진행: 참가자 입력 → 테스트 모드 시안 → 설문 → `results/` 저장                  |
+| `notify-prototype/.claude/hooks/after_quiz.py`    | 테스트 모드에서 이해도 기록 뒤 다음 변경 상세                                              |
 | `notify-prototype/.claude/hooks/session_start.py` | ① 켤 때 알림                                                                               |
 | `notify-prototype/.claude/hooks/prompt_submit.py` | ② 작업 입력 때 첫 변경 상세 + Claude에게 질문 순서 안내                                    |
 | `notify-prototype/.claude/hooks/after_respond.py` | 답 기록 뒤 "✓ 기록했어요" + 다음 변경 상세                                                 |
