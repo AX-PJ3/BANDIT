@@ -27,7 +27,7 @@ VAGUE = ["적절히", "적당히", "가능하면", "필요시", "필요 시", "�
 SOURCES = {"코드", "AI 대화", "Figma", "회의", "Slack", "문서"}
 MAX_ALWAYS_ON = 10
 MAX_TITLE = 40
-MAX_PER_AREA = 25
+MAX_PER_AREA = 50  # wiki.area.max-standards
 
 errors, warnings = [], []
 
