@@ -45,6 +45,7 @@ const result = await listPending(store, { recipient: '민수' });
 - 항목마다 제목, 지금 값, 이전 값, 이유, 바꾼 사람과 시각, 출처, 이슈 번호·제목·상태를 붙여서 돌려줘요. 화면이 `get_standard`를 다시 부르지 않아도 돼요.
 - 이전 값은 바로 앞 버전이 아니라 **받는 사람이 마지막으로 본 버전의 값**이에요. 새로 생긴 기준이면 비어 있어요.
 - 기본은 대기만 돌려줘요. `includeClosed: true`면 답함과 대체됨도 답과 함께 돌려줘요. 자동 닫힘은 돌려주지 않아요.
+- 답함과 대체됨은 닫힌 지 7일이 지나면 목록에서 빠져요 (notify.list.closed-7-days). 기록은 지우지 않아요 (data.answer.keep-records). 대기는 오래돼도 계속 보여요.
 - 최신 것이 먼저 와요.
 - 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요 (notify.error.not-empty).
 

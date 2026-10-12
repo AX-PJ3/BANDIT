@@ -4,6 +4,7 @@ import type {
   IsoDateTime,
   IssueKey,
   IssueStatus,
+  PendingCheck,
   PendingCheckStatus,
   StandardId,
   StandardSource,
@@ -14,9 +15,20 @@ export interface ListPendingInput {
   recipient: string;
   /**
    * true면 답함과 대체됨도 함께 돌려줘요. 웹 앱 목록(A2)처럼 답한 변경도 보여 줄 때 써요.
+   * 답하거나 대체된 지 7일이 지난 것은 돌려주지 않아요 (notify.list.closed-7-days). 기록은 지우지 않아요.
    * 자동 닫힘은 화면에 보이지 않아서 어느 경우에도 돌려주지 않아요 (notify.pending.hide-auto-closed).
    */
   includeClosed?: boolean;
+}
+
+/** 답한 변경(답함, 대체됨)을 목록에 보여 주는 기간 (notify.list.closed-7-days) */
+export const CLOSED_VISIBLE_DAYS = 7;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+export interface ListPendingOptions {
+  /** 지금 시각. 7일 기간을 잴 때 써요. 안 주면 실제 시각 */
+  now?: IsoDateTime;
 }
 
 export interface ListPendingResult {
@@ -82,18 +94,22 @@ export interface PendingItemAnswer {
 export async function listPending(
   store: NotifyStore,
   input: ListPendingInput,
+  options: ListPendingOptions = {},
 ): Promise<ListPendingResult> {
   const data = await store.read();
-  const visibleStatuses: PendingCheckStatus[] = input.includeClosed
-    ? ['pending', 'answered', 'superseded']
-    : ['pending'];
+  const now = Date.parse(options.now ?? new Date().toISOString());
+  const closedCutoff = now - CLOSED_VISIBLE_DAYS * DAY_MS;
+
+  const isVisible = (check: PendingCheck): boolean => {
+    if (check.status === 'pending') return true;
+    if (!input.includeClosed) return false;
+    if (check.status === 'auto_closed') return false;
+    // 닫힌 시각이 없으면 언제 닫혔는지 몰라서 보여 줘요
+    return check.closedAt === null || Date.parse(check.closedAt) > closedCutoff;
+  };
 
   const checks = data.pendingChecks
-    .filter(
-      (check) =>
-        check.recipient === input.recipient &&
-        visibleStatuses.includes(check.status),
-    )
+    .filter((check) => check.recipient === input.recipient && isVisible(check))
     .sort(
       (a, b) =>
         Date.parse(b.createdAt) - Date.parse(a.createdAt) ||

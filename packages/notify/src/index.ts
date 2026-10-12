@@ -8,9 +8,10 @@ export type {
   SkipReason,
   SkippedIssue,
 } from './createPendingChecks.js';
-export { listPending } from './listPending.js';
+export { CLOSED_VISIBLE_DAYS, listPending } from './listPending.js';
 export type {
   ListPendingInput,
+  ListPendingOptions,
   ListPendingResult,
   PendingItem,
   PendingItemAnswer,

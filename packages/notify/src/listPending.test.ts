@@ -120,10 +120,11 @@ describe('listPending', () => {
       0,
     );
 
-    const withClosed = await listPending(store, {
-      recipient: '민수',
-      includeClosed: true,
-    });
+    const withClosed = await listPending(
+      store,
+      { recipient: '민수', includeClosed: true },
+      { now: LATER },
+    );
     assert.equal(withClosed.pendingCount, 0);
     assert.deepEqual(withClosed.items[0]?.answer, {
       affected: true,
@@ -158,10 +159,11 @@ describe('listPending', () => {
       { now: LATER, makeId: createIdMaker('v3') },
     );
 
-    const result = await listPending(store, {
-      recipient: '민수',
-      includeClosed: true,
-    });
+    const result = await listPending(
+      store,
+      { recipient: '민수', includeClosed: true },
+      { now: LATER },
+    );
     assert.deepEqual(
       result.items.map((i) => [i.standard.version, i.status]),
       [
@@ -183,5 +185,58 @@ describe('listPending', () => {
       listPending(store, { recipient: '민수' }),
       /기준 버전\(app.notify.title-length v2\)을 찾지 못했어요/,
     );
+  });
+
+  describe('답한 변경은 닫힌 지 7일이 지나면 내린다 (notify.list.closed-7-days)', () => {
+    async function storeWithAnswerAt(answeredAt: string): Promise<MemoryStore> {
+      const store = await storeAfterV2();
+      await respond(
+        store,
+        {
+          pendingCheckId: 'c-1',
+          answeredBy: '민수',
+          affected: true,
+          known: true,
+          channel: 'app',
+        },
+        { now: answeredAt },
+      );
+      return store;
+    }
+    const ANSWERED = '2026-10-13T14:20:00+09:00';
+
+    it('답한 지 7일이 안 됐으면 보여 준다', async () => {
+      const store = await storeWithAnswerAt(ANSWERED);
+      const result = await listPending(
+        store,
+        { recipient: '민수', includeClosed: true },
+        { now: '2026-10-20T14:19:00+09:00' },
+      );
+      assert.equal(result.items.length, 1);
+    });
+
+    it('답한 지 7일이 지나면 목록에서 빠지지만 기록은 남는다 (data.answer.keep-records)', async () => {
+      const store = await storeWithAnswerAt(ANSWERED);
+      const result = await listPending(
+        store,
+        { recipient: '민수', includeClosed: true },
+        { now: '2026-10-20T14:21:00+09:00' },
+      );
+      assert.deepEqual(result.items, []);
+
+      const data = await store.read();
+      assert.equal(data.pendingChecks.length, 2);
+      assert.equal(data.answers.length, 1);
+    });
+
+    it('대기는 오래돼도 계속 보여 준다', async () => {
+      const store = await storeAfterV2();
+      const result = await listPending(
+        store,
+        { recipient: '민수' },
+        { now: '2026-12-31T00:00:00+09:00' },
+      );
+      assert.equal(result.pendingCount, 1);
+    });
   });
 });
