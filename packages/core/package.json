@@ -1,0 +1,13 @@
+{
+  "name": "@sil/core",
+  "version": "0.0.0",
+  "private": true,
+  "description": "세 기능(기준 저장소, 바뀐 기준 찾기, 알리기)이 함께 쓰는 타입. 설명은 docs/타입명세서.md",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

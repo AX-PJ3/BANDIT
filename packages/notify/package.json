@@ -1,0 +1,16 @@
+{
+  "name": "@sil/notify",
+  "version": "0.0.0",
+  "private": true,
+  "description": "담당자에게 알리기. 새 버전이 저장되면 확인할 변경을 만들고, 답을 기록해요 (SIL-67)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm build && node --test \"dist/**/*.test.js\"",
+    "demo": "pnpm build && node dist/demo.js"
+  }
+}
