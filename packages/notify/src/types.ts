@@ -16,7 +16,7 @@ export type IsoDateTime = string;
 
 /**
  * 새 버전 저장 신호 — save_standard나 revert가 새 버전을 저장한 직후 알리기 기능에 넘기는 값이에요.
- * 확인할 변경을 만드는 데 필요한 칸만 담아요. 제목, 이유 같은 나머지 칸은 화면이 get_standard로 읽어요.
+ * 확인할 변경을 만드는 데 필요한 칸만 담아요. 제목, 이유 같은 나머지 칸은 기준 버전(StandardVersionRecord)에 있어요.
  */
 export interface SavedVersion {
   standardId: StandardId;
@@ -73,4 +73,57 @@ export interface PendingCheck {
   lastSeenVersion: number | null;
   createdAt: IsoDateTime;
   closedAt: IsoDateTime | null;
+  /** 담당자가 반영했다고 표시했는지 (notify.check.reflected, data.pending.reflected) */
+  reflected: boolean;
+  /** 반영했다고 표시한 시각. 표시하지 않았으면 null */
+  reflectedAt: IsoDateTime | null;
+}
+
+/**
+ * 출처: AI 대화 / 코드 / 팀 위키 파일.
+ * 화면에는 "AI 대화에서 바꿈", "코드에서 바꿈" 두 가지만 나와요. wiki는 예전 위키에서 가져온 버전이에요.
+ */
+export type StandardSource = 'ai_chat' | 'code' | 'wiki';
+
+/**
+ * 기준 버전 하나 — 착수 안내 v2 "결정 사항" 표의 한 줄이에요.
+ * 정민님 저장소(SIL-73)에 붙기 전까지 알리기 쪽 임시 저장소가 이 모양으로 들고 있어요.
+ */
+export interface StandardVersionRecord {
+  standardId: StandardId;
+  version: number;
+  /** 제목. 버전마다 다를 수 있어요 (최대 40자) */
+  title: string;
+  /** 값 (최대 120자) */
+  value: string;
+  /** 이유 (최대 120자) */
+  reason: string;
+  /** 바꾼 사람 이름. AI가 찾았으면 PR을 만든 사람 */
+  changedBy: string | null;
+  /** 저장한 시각 */
+  changedAt: IsoDateTime;
+  source: StandardSource;
+  /** AI가 PR을 읽고 찾아낸 변경이면 true. 화면에 "PR에서 찾음"으로 보여요 */
+  aiDetected: boolean;
+  /** 예전 버전 값으로 되돌린 버전이면 true */
+  isRevert: boolean;
+}
+
+/** 답한 곳: 터미널 / 앱 (착수 안내 v2. Slack은 만들지 않아요) */
+export type AnswerChannel = 'terminal' | 'app';
+
+/** 답 — 착수 안내 v2 "답" 표의 다섯 칸과 어느 확인할 변경에 대한 답인지 */
+export interface Answer {
+  id: string;
+  pendingCheckId: string;
+  /** 답한 사람 이름 (확인할 변경의 받는 사람) */
+  answeredBy: string;
+  /** 관계있다(true) / 관계없다(false) */
+  affected: boolean;
+  /** 알았다(true) / 몰랐다(false). 관계있다일 때만 값이 있어요 */
+  known: boolean | null;
+  /** 관계없는 이유 (최대 100자). 관계없다일 때만 값이 있어요 */
+  unaffectedReason: string | null;
+  channel: AnswerChannel;
+  answeredAt: IsoDateTime;
 }
