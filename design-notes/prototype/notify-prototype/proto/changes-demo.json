@@ -1,0 +1,24 @@
+{
+  "me": "민수",
+  "_출처": "착수 안내 문서 1장 '데모 예시: 알림 제목 길이'와 5장 짧은 예시. 부건님 에이전트가 app.notify.title-length를 40자 이하에서 32자 이하로 바꾸고, 이어진 이슈 #5(민수)와 #7(신지) 중 민수님이 받는 경우. 시각은 착수 문서 예시(10/13 14:13)를 오늘로 본 것",
+  "changes": [
+    {
+      "id": "demo-title-length-5",
+      "kind": "change",
+      "area": "app",
+      "who": "부건",
+      "standard_id": "app.notify.title-length",
+      "version": 2,
+      "title": "앱 알림 제목은 32자 이하로 쓴다",
+      "old": "공백 포함 40자 이하",
+      "new": "공백 포함 32자 이하",
+      "reason": "Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림",
+      "when": "오후 2:13",
+      "source": "AI 대화에서 바꿈",
+      "found_by_ai": false,
+      "issue": "#5",
+      "issue_title": "담당자에게 알리고 답 기록하기",
+      "issue_status": "진행 중"
+    }
+  ]
+}

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>한 줄 알림 강조</title>
+    <style>
+      body {
+        background: #e9ebee;
+        font-family: -apple-system, sans-serif;
+        margin: 0;
+        padding: 24px 16px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(640px, 1fr));
+        gap: 16px;
+      }
+      .step {
+        color: #555;
+        font-size: 12px;
+        margin: 12px 0 6px;
+      }
+      .col {
+        font-weight: 600;
+      }
+      pre {
+        margin: 0;
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid #c9ced4;
+        font:
+          14px/1.6 'D2Coding',
+          'SF Mono',
+          Menlo,
+          monospace;
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>닫고 넘어간 뒤 한 줄 알림 · "기준 변경 확인" 강조 비교</h3>
+    <div class="grid">
+      <div>
+        <div class="col">어두운 터미널 (맥 기본 터미널 근사)</div>
+        <div class="step">지금</div>
+        <pre
+          style="background: #1e2227"
+        ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● 답하지 않은 기준 변경 </span><span style="color:#000000;background:#c7c400;">2건</span><span style="color:#f2f2f2;"> · &quot;기준 변경 확인&quot;을 입력해 주세요.</span></pre>
+        <div class="step">A. 반전 칩</div>
+        <pre
+          style="background: #1e2227"
+        ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● 답하지 않은 기준 변경 </span><span style="color:#000000;background:#c7c400;">2</span><span style="color:#f2f2f2;">건 · </span><span style="color:#1e2227;background:#f2f2f2;"> 기준 변경 확인 </span><span style="color:#f2f2f2;">을 입력해 주세요.</span></pre>
+        <div class="step">B. 굵게</div>
+        <pre
+          style="background: #1e2227"
+        ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● 답하지 않은 기준 변경 </span><span style="color:#000000;background:#c7c400;">2</span><span style="color:#f2f2f2;">건 · </span><span style="color:#f2f2f2;font-weight:700;">&quot;기준 변경 확인&quot;</span><span style="color:#f2f2f2;">을 입력해 주세요.</span></pre>
+        <div class="step">C. 굵게 + 밑줄</div>
+        <pre
+          style="background: #1e2227"
+        ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● 답하지 않은 기준 변경 </span><span style="color:#000000;background:#c7c400;">2</span><span style="color:#f2f2f2;">건 · </span><span style="color:#f2f2f2;font-weight:700;"><u>기준 변경 확인</u></span><span style="color:#f2f2f2;">을 입력해 주세요.</span></pre>
+        <div class="step">켤 때 알림 (숫자만)</div>
+        <pre
+          style="background: #1e2227"
+        ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● [notify] 기준이 총 </span><span style="color:#000000;background:#c7c400;">2</span><span style="color:#f2f2f2;">건 변경되었어요.</span>
+<span style="color:#9da3ad;">  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.</span></pre>
+      </div>
+      <div>
+        <div class="col">밝은 터미널 (Orca Tango Light 근사)</div>
+        <div class="step">지금</div>
+        <pre
+          style="background: #ffffff"
+        ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● 답하지 않은 기준 변경 </span><span style="color:#2e3436;background:#c4a000;">2건</span><span style="color:#2e3436;"> · &quot;기준 변경 확인&quot;을 입력해 주세요.</span></pre>
+        <div class="step">A. 반전 칩</div>
+        <pre
+          style="background: #ffffff"
+        ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● 답하지 않은 기준 변경 </span><span style="color:#2e3436;background:#c4a000;">2</span><span style="color:#2e3436;">건 · </span><span style="color:#ffffff;background:#2e3436;"> 기준 변경 확인 </span><span style="color:#2e3436;">을 입력해 주세요.</span></pre>
+        <div class="step">B. 굵게</div>
+        <pre
+          style="background: #ffffff"
+        ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● 답하지 않은 기준 변경 </span><span style="color:#2e3436;background:#c4a000;">2</span><span style="color:#2e3436;">건 · </span><span style="color:#2e3436;font-weight:700;">&quot;기준 변경 확인&quot;</span><span style="color:#2e3436;">을 입력해 주세요.</span></pre>
+        <div class="step">C. 굵게 + 밑줄</div>
+        <pre
+          style="background: #ffffff"
+        ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● 답하지 않은 기준 변경 </span><span style="color:#2e3436;background:#c4a000;">2</span><span style="color:#2e3436;">건 · </span><span style="color:#2e3436;font-weight:700;"><u>기준 변경 확인</u></span><span style="color:#2e3436;">을 입력해 주세요.</span></pre>
+        <div class="step">켤 때 알림 (숫자만)</div>
+        <pre
+          style="background: #ffffff"
+        ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● [notify] 기준이 총 </span><span style="color:#2e3436;background:#c4a000;">2</span><span style="color:#2e3436;">건 변경되었어요.</span>
+<span style="color:#6b6f76;">  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.</span></pre>
+      </div>
+    </div>
+  </body>
+</html>

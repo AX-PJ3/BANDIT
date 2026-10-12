@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>테마별 미리보기</title>
+    <style>
+      body {
+        background: #e9ebee;
+        color: #222;
+        font-family: -apple-system, sans-serif;
+        margin: 0;
+        padding: 24px 16px;
+      }
+      main {
+        max-width: 1500px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        color: #666;
+        font-size: 13px;
+        margin: 0 0 8px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(680px, 1fr));
+        gap: 16px;
+      }
+      .step {
+        color: #555;
+        font-size: 12px;
+        margin: 12px 0 6px;
+      }
+      .col {
+        font-weight: 600;
+        font-size: 14px;
+        margin: 8px 0 0;
+      }
+      pre {
+        margin: 0 0 10px;
+        padding: 14px 16px;
+        border-radius: 8px;
+        border: 1px solid #c9ced4;
+        font:
+          14px/1.6 'D2Coding',
+          'SF Mono',
+          Menlo,
+          monospace;
+        white-space: pre;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>질문과 답 · 테마별 미리보기</h1>
+      <p class="sub">
+        hooks가 실제로 내보내는 글을 그대로 그렸어요. 회색과 팔레트는 스크린샷
+        기준 근사값이에요. 선택 화면(근사)은 Claude Code가 직접 그려서 실제
+        모양과 다를 수 있어요. 글만 우리가 넘겨요.
+      </p>
+      <div class="grid">
+        <div>
+          <div class="col">어두운 터미널 (맥 기본 터미널 근사)</div>
+          <div class="step">① 켤 때</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ SessionStart:startup says:</span>
+<span style="color:#f2f2f2;">● [notify] 결정 사항이 총 </span><span style="color:#d7ba5c;font-weight:700;">2</span><span style="color:#f2f2f2;">건 변경되었어요.</span>
+<span style="color:#9da3ad;">  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.</span></pre>
+          <div class="step">② 첫 작업 입력: 상세</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#9da3ad;font-weight:700;">작업 전에 확인할 변경이 2건 있어요.</span>
+
+<span style="color:#1e2227;background:#f2f2f2;"> 1/2 </span>
+<span style="color:#f2f2f2;">[notify] </span><span style="color:#f2f2f2;font-weight:700;">알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다</span>
+<span style="color:#9da3ad;">         </span><span style="color:#9da3ad;">호윤님이 오후 6:00에 변경했어요.</span>
+<span style="color:#9da3ad;">  변경  &quot;</span><span style="color:#9da3ad;font-weight:700;">근거,</span><span style="color:#9da3ad;">&quot; 삭제</span>
+
+<span style="color:#9da3ad;">  이유  v2에서는 근거를 화면에 보여 주지 않기로 함</span>
+<span style="color:#9da3ad;">  이슈  SIL-34 [알리기] 터미널 알림 첫 시안 (v0용) </span><span style="color:#5fb36b;">[완료]</span>
+<span style="color:#9da3ad;">  출처  PR · AI가 찾음</span></pre>
+          <div class="step">②-1 관계 질문 (선택 화면 근사)</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#1e2227;background:#9da3ad;"> SIL-34 </span>
+
+<span style="color:#9da3ad;font-weight:700;">이 변경이 내 이슈와 관계가 있나요?</span>
+
+<span style="color:#9da3ad;">❯ 1. 관계있다</span>
+<span style="color:#9da3ad;">     내 이슈 결과물이 이 변경에 맞춰 바뀌어야 해요</span>
+<span style="color:#9da3ad;">  2. 관계없다</span>
+<span style="color:#9da3ad;">     내 이슈와는 상관없는 변경이에요</span>
+<span style="color:#9da3ad;">  3. Type something.</span>
+
+<span style="color:#9da3ad;">  Chat about this</span></pre>
+          <div class="step">②-2 관계있다 → 알았나 (선택 화면 근사)</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#1e2227;background:#9da3ad;"> SIL-34 </span>
+
+<span style="color:#9da3ad;font-weight:700;">이 변경을 이미 알고 있었나요?</span>
+
+<span style="color:#9da3ad;">❯ 1. 알았다</span>
+<span style="color:#9da3ad;">     오늘 알림을 보기 전에 알고 있었어요</span>
+<span style="color:#9da3ad;">  2. 몰랐다</span>
+<span style="color:#9da3ad;">     오늘 알림으로 처음 알았어요</span>
+<span style="color:#9da3ad;">  3. Type something.</span>
+
+<span style="color:#9da3ad;">  Chat about this</span></pre>
+          <div class="step">③ 기록 뒤: 내가 한 답 + 다음 상세</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ PostToolUse:mcp__notice__respond says:</span>
+<span style="color:#5fb36b;">✓</span><span style="color:#9da3ad;"> 기록했어요  </span><span style="color:#f2f2f2;">SIL-34 · 관계있다 · 몰랐다</span>
+<span style="color:#9da3ad;">  다음 작업부터 바뀐 결정 사항을 따라요.</span>
+
+<span style="color:#9da3ad;font-weight:700;">확인할 변경이 1건 남았어요.</span>
+
+<span style="color:#1e2227;background:#f2f2f2;"> 2/2 </span>
+<span style="color:#f2f2f2;">[notify] </span><span style="color:#f2f2f2;font-weight:700;">알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다</span>
+<span style="color:#9da3ad;">         </span><span style="color:#9da3ad;">호윤님이 오후 6:00에 변경했어요.</span>
+<span style="color:#9da3ad;">  변경  &quot;</span><span style="color:#9da3ad;font-weight:700;">근거,</span><span style="color:#9da3ad;">&quot; 삭제</span>
+
+<span style="color:#9da3ad;">  이유  v2에서는 근거를 화면에 보여 주지 않기로 함</span>
+<span style="color:#9da3ad;">  이슈  SIL-35 [알리기] 터미널 알림의 정보 순서와 줄 수</span>
+<span style="color:#9da3ad;">  출처  PR · AI가 찾음</span></pre>
+          <div class="step">③-1 관계없다 → 이유 (선택 화면 근사)</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#1e2227;background:#9da3ad;"> SIL-35 </span>
+
+<span style="color:#9da3ad;font-weight:700;">왜 관계없나요?</span>
+
+<span style="color:#9da3ad;">❯ 1. 내 작업 범위가 아니에요</span>
+<span style="color:#9da3ad;">     이 결정 사항이 다루는 화면·기능을 내가 맡고 있지 않아요</span>
+<span style="color:#9da3ad;">  2. 내 이슈와 연결이 잘못됐어요</span>
+<span style="color:#9da3ad;">     이 결정 사항이 내 이슈에 잘못 이어져 있어요</span>
+<span style="color:#9da3ad;">  3. 바뀐 부분은 내 작업에 안 쓰여요</span>
+<span style="color:#9da3ad;">     결정 사항은 내 작업과 이어져 있지만, 이번에 바뀐 부분은 영향이 없어요</span>
+<span style="color:#9da3ad;">  4. Type something.</span>
+
+<span style="color:#9da3ad;">  Chat about this</span></pre>
+          <div class="step">④ 마지막 기록 뒤</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ PostToolUse:mcp__notice__respond says:</span>
+<span style="color:#5fb36b;">✓</span><span style="color:#9da3ad;"> 기록했어요  </span><span style="color:#f2f2f2;">SIL-35 · 관계없다 · 내 작업 범위가 아니에요</span>
+
+<span style="color:#9da3ad;font-weight:700;">확인할 변경 2건을 모두 답했어요. 이제 작업을 시작할게요.</span></pre>
+          <div class="step">⑤ 닫고 넘어간 뒤 작업마다</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#f2f2f2;">● 확인할 변경 </span><span style="color:#d7ba5c;font-weight:700;">2</span><span style="color:#f2f2f2;">건 · </span><span style="color:#f2f2f2;font-weight:700;">&quot;결정 사항 확인&quot;</span><span style="color:#f2f2f2;">을 입력하면 변경 내역을 볼 수 있어요.</span></pre>
+          <div class="step">⑥ "기준 변경 확인"인데 0건</div>
+          <pre
+            style="background: #1e2227"
+          ><span style="color:#9da3ad">⎿ UserPromptSubmit says:</span>
+<span style="color:#5fb36b;">✓</span><span style="color:#9da3ad;"> 확인할 변경이 없어요.</span></pre>
+        </div>
+        <div>
+          <div class="col">밝은 터미널 (Orca Tango Light 근사)</div>
+          <div class="step">① 켤 때</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ SessionStart:startup says:</span>
+<span style="color:#2e3436;">● [notify] 결정 사항이 총 </span><span style="color:#c4a000;font-weight:700;">2</span><span style="color:#2e3436;">건 변경되었어요.</span>
+<span style="color:#6b6f76;">  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.</span></pre>
+          <div class="step">② 첫 작업 입력: 상세</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#6b6f76;font-weight:700;">작업 전에 확인할 변경이 2건 있어요.</span>
+
+<span style="color:#ffffff;background:#2e3436;"> 1/2 </span>
+<span style="color:#2e3436;">[notify] </span><span style="color:#2e3436;font-weight:700;">알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다</span>
+<span style="color:#6b6f76;">         </span><span style="color:#6b6f76;">호윤님이 오후 6:00에 변경했어요.</span>
+<span style="color:#6b6f76;">  변경  &quot;</span><span style="color:#6b6f76;font-weight:700;">근거,</span><span style="color:#6b6f76;">&quot; 삭제</span>
+
+<span style="color:#6b6f76;">  이유  v2에서는 근거를 화면에 보여 주지 않기로 함</span>
+<span style="color:#6b6f76;">  이슈  SIL-34 [알리기] 터미널 알림 첫 시안 (v0용) </span><span style="color:#4e9a06;">[완료]</span>
+<span style="color:#6b6f76;">  출처  PR · AI가 찾음</span></pre>
+          <div class="step">②-1 관계 질문 (선택 화면 근사)</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#ffffff;background:#6b6f76;"> SIL-34 </span>
+
+<span style="color:#6b6f76;font-weight:700;">이 변경이 내 이슈와 관계가 있나요?</span>
+
+<span style="color:#6b6f76;">❯ 1. 관계있다</span>
+<span style="color:#6b6f76;">     내 이슈 결과물이 이 변경에 맞춰 바뀌어야 해요</span>
+<span style="color:#6b6f76;">  2. 관계없다</span>
+<span style="color:#6b6f76;">     내 이슈와는 상관없는 변경이에요</span>
+<span style="color:#6b6f76;">  3. Type something.</span>
+
+<span style="color:#6b6f76;">  Chat about this</span></pre>
+          <div class="step">②-2 관계있다 → 알았나 (선택 화면 근사)</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#ffffff;background:#6b6f76;"> SIL-34 </span>
+
+<span style="color:#6b6f76;font-weight:700;">이 변경을 이미 알고 있었나요?</span>
+
+<span style="color:#6b6f76;">❯ 1. 알았다</span>
+<span style="color:#6b6f76;">     오늘 알림을 보기 전에 알고 있었어요</span>
+<span style="color:#6b6f76;">  2. 몰랐다</span>
+<span style="color:#6b6f76;">     오늘 알림으로 처음 알았어요</span>
+<span style="color:#6b6f76;">  3. Type something.</span>
+
+<span style="color:#6b6f76;">  Chat about this</span></pre>
+          <div class="step">③ 기록 뒤: 내가 한 답 + 다음 상세</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ PostToolUse:mcp__notice__respond says:</span>
+<span style="color:#4e9a06;">✓</span><span style="color:#6b6f76;"> 기록했어요  </span><span style="color:#2e3436;">SIL-34 · 관계있다 · 몰랐다</span>
+<span style="color:#6b6f76;">  다음 작업부터 바뀐 결정 사항을 따라요.</span>
+
+<span style="color:#6b6f76;font-weight:700;">확인할 변경이 1건 남았어요.</span>
+
+<span style="color:#ffffff;background:#2e3436;"> 2/2 </span>
+<span style="color:#2e3436;">[notify] </span><span style="color:#2e3436;font-weight:700;">알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다</span>
+<span style="color:#6b6f76;">         </span><span style="color:#6b6f76;">호윤님이 오후 6:00에 변경했어요.</span>
+<span style="color:#6b6f76;">  변경  &quot;</span><span style="color:#6b6f76;font-weight:700;">근거,</span><span style="color:#6b6f76;">&quot; 삭제</span>
+
+<span style="color:#6b6f76;">  이유  v2에서는 근거를 화면에 보여 주지 않기로 함</span>
+<span style="color:#6b6f76;">  이슈  SIL-35 [알리기] 터미널 알림의 정보 순서와 줄 수</span>
+<span style="color:#6b6f76;">  출처  PR · AI가 찾음</span></pre>
+          <div class="step">③-1 관계없다 → 이유 (선택 화면 근사)</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#ffffff;background:#6b6f76;"> SIL-35 </span>
+
+<span style="color:#6b6f76;font-weight:700;">왜 관계없나요?</span>
+
+<span style="color:#6b6f76;">❯ 1. 내 작업 범위가 아니에요</span>
+<span style="color:#6b6f76;">     이 결정 사항이 다루는 화면·기능을 내가 맡고 있지 않아요</span>
+<span style="color:#6b6f76;">  2. 내 이슈와 연결이 잘못됐어요</span>
+<span style="color:#6b6f76;">     이 결정 사항이 내 이슈에 잘못 이어져 있어요</span>
+<span style="color:#6b6f76;">  3. 바뀐 부분은 내 작업에 안 쓰여요</span>
+<span style="color:#6b6f76;">     결정 사항은 내 작업과 이어져 있지만, 이번에 바뀐 부분은 영향이 없어요</span>
+<span style="color:#6b6f76;">  4. Type something.</span>
+
+<span style="color:#6b6f76;">  Chat about this</span></pre>
+          <div class="step">④ 마지막 기록 뒤</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ PostToolUse:mcp__notice__respond says:</span>
+<span style="color:#4e9a06;">✓</span><span style="color:#6b6f76;"> 기록했어요  </span><span style="color:#2e3436;">SIL-35 · 관계없다 · 내 작업 범위가 아니에요</span>
+
+<span style="color:#6b6f76;font-weight:700;">확인할 변경 2건을 모두 답했어요. 이제 작업을 시작할게요.</span></pre>
+          <div class="step">⑤ 닫고 넘어간 뒤 작업마다</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#2e3436;">● 확인할 변경 </span><span style="color:#c4a000;font-weight:700;">2</span><span style="color:#2e3436;">건 · </span><span style="color:#2e3436;font-weight:700;">&quot;결정 사항 확인&quot;</span><span style="color:#2e3436;">을 입력하면 변경 내역을 볼 수 있어요.</span></pre>
+          <div class="step">⑥ "기준 변경 확인"인데 0건</div>
+          <pre
+            style="background: #ffffff"
+          ><span style="color:#6b6f76">⎿ UserPromptSubmit says:</span>
+<span style="color:#4e9a06;">✓</span><span style="color:#6b6f76;"> 확인할 변경이 없어요.</span></pre>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

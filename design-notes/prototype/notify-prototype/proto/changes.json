@@ -1,0 +1,42 @@
+{
+  "me": "부건",
+  "_출처": "Linear SIL-64 '고칠 결정 사항' 표 + samples/data/issue-links.csv. SIL-64는 아직 반영 전(Backlog)이라 시각은 가정, 지금 값은 '고칠 방향'을 문장으로 옮긴 것",
+  "changes": [
+    {
+      "id": "sil64-show-fields-sil34",
+      "kind": "change",
+      "area": "notify",
+      "who": "호윤",
+      "standard_id": "notify.terminal.show-fields",
+      "version": 2,
+      "title": "알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다",
+      "old": "변경마다 기준 제목, 이전 값, 지금 값, 이유, 근거, 바꾼 사람과 시간, 영향받는 이슈를 보여 준다",
+      "new": "변경마다 기준 제목, 이전 값, 지금 값, 이유, 바꾼 사람과 시간, 영향받는 이슈를 보여 준다",
+      "reason": "v2에서는 근거를 화면에 보여 주지 않기로 함",
+      "when": "오후 6:00",
+      "source": "코드에서 바꿈",
+      "found_by_ai": true,
+      "issue": "SIL-34",
+      "issue_title": "[알리기] 터미널 알림 첫 시안 (v0용)",
+      "issue_status": "완료"
+    },
+    {
+      "id": "sil64-show-fields-sil35",
+      "kind": "change",
+      "area": "notify",
+      "who": "호윤",
+      "standard_id": "notify.terminal.show-fields",
+      "version": 2,
+      "title": "알림에는 이전 값, 지금 값, 이유, 영향받는 이슈를 보여 준다",
+      "old": "변경마다 기준 제목, 이전 값, 지금 값, 이유, 근거, 바꾼 사람과 시간, 영향받는 이슈를 보여 준다",
+      "new": "변경마다 기준 제목, 이전 값, 지금 값, 이유, 바꾼 사람과 시간, 영향받는 이슈를 보여 준다",
+      "reason": "v2에서는 근거를 화면에 보여 주지 않기로 함",
+      "when": "오후 6:00",
+      "source": "코드에서 바꿈",
+      "found_by_ai": true,
+      "issue": "SIL-35",
+      "issue_title": "[알리기] 터미널 알림의 정보 순서와 줄 수",
+      "issue_status": "진행 중"
+    }
+  ]
+}

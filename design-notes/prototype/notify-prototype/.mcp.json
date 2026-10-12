@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "notice": {
+      "command": "python3",
+      "args": ["proto/mcp_server.py"]
+    }
+  }
+}

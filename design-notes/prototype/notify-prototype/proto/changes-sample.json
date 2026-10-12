@@ -1,0 +1,39 @@
+{
+  "me": "민수",
+  "changes": [
+    {
+      "id": "c1",
+      "kind": "change",
+      "area": "app",
+      "who": "부건",
+      "standard_id": "app.notify.title-length",
+      "version": 2,
+      "title": "앱 알림 제목은 32자 이하로 쓴다",
+      "old": "공백 포함 40자 이하",
+      "new": "공백 포함 32자 이하",
+      "reason": "Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림",
+      "when": "오후 2:13",
+      "source": "AI 대화에서 바꿈",
+      "found_by_ai": false,
+      "issue": "SIL-67",
+      "issue_title": "담당자에게 알리고 답 기록하기"
+    },
+    {
+      "id": "c2",
+      "kind": "deprecated",
+      "area": "work",
+      "who": "경하",
+      "standard_id": "work.review.within-4h",
+      "version": 2,
+      "title": "리뷰 요청은 4시간 안에 본다",
+      "old": "코드 리뷰 요청은 4시간 안에 보고, 못 보면 못 본다고 남긴다",
+      "new": null,
+      "reason": "매일 저녁 통합을 하지 않기로 해서 필요 없어짐",
+      "when": "오전 11:02",
+      "source": "코드에서 바꿈",
+      "found_by_ai": true,
+      "issue": "SIL-67",
+      "issue_title": "담당자에게 알리고 답 기록하기"
+    }
+  ]
+}
