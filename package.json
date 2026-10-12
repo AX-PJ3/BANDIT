@@ -7,6 +7,11 @@
     "node": "24.x"
   },
   "scripts": {
+    "mcp:check": "pnpm --filter @sil/mcp run check",
+    "mcp:serve": "pnpm --filter @sil/mcp run start",
+    "mcp:dev": "pnpm --filter @sil/mcp run dev",
+    "mcp:register": "pnpm --filter @sil/mcp run register",
+    "mcp:token": "pnpm --filter @sil/mcp run token",
     "db:push": "supabase db push",
     "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
