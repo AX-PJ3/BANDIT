@@ -14,7 +14,7 @@ export interface ListPendingInput {
   /** 받는 사람 이름 */
   recipient: string;
   /**
-   * true면 답함과 대체됨도 함께 돌려줘요. 웹 앱 목록(A2)처럼 답한 변경도 보여 줄 때 써요.
+   * true면 답함과 대체됨도 함께 돌려줘요. 웹 앱 목록(A2)은 이 옵션으로 한 번 불러서 화면이 상태별로 나눠요 (notify.list.one-call).
    * 답하거나 대체된 지 7일이 지난 것은 돌려주지 않아요 (notify.list.closed-7-days). 기록은 지우지 않아요.
    * 자동 닫힘은 화면에 보이지 않아서 어느 경우에도 돌려주지 않아요 (notify.pending.hide-auto-closed).
    */
