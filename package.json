@@ -7,6 +7,8 @@
     "node": "24.x"
   },
   "scripts": {
+    "onboard": "node apps/cli/bin/sil.mjs doctor",
+    "sil": "node apps/cli/bin/sil.mjs",
     "mcp:check": "pnpm --filter @sil/mcp run check",
     "mcp:serve": "pnpm --filter @sil/mcp run start",
     "mcp:dev": "pnpm --filter @sil/mcp run dev",
