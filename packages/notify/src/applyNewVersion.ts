@@ -1,9 +1,9 @@
 import {
   createPendingChecks,
   type CreatePendingChecksResult,
-} from './createPendingChecks.js';
-import type { NotifyStore } from './store.js';
-import type { IsoDateTime, StandardVersionRecord } from './types.js';
+} from './createPendingChecks.ts';
+import type { NotifyStore } from './store.ts';
+import type { IsoDateTime, StandardVersionRecord } from './types.ts';
 
 export interface ApplyNewVersionOptions {
   /** 지금 시각. 안 주면 실제 시각 */

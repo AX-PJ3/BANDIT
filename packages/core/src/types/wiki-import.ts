@@ -1,6 +1,6 @@
-import type { StandardId } from './common.js';
-import type { Issue } from './notify.js';
-import type { StandardScope, StandardStatus } from './standard.js';
+import type { StandardId } from './common.ts';
+import type { Issue } from './notify.ts';
+import type { StandardScope, StandardStatus } from './standard.ts';
 
 /**
  * 레포의 team-wiki/ 파일에서 읽은 기준 하나예요 (`sil import`, SIL-65).

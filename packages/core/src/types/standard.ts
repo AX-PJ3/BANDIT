@@ -1,4 +1,4 @@
-import type { Actor, IsoDateTime, PersonRef, StandardId } from './common.js';
+import type { Actor, IsoDateTime, PersonRef, StandardId } from './common.ts';
 
 /**
  * 기준 — 기준 하나의 "바뀌지 않는 부분"이에요. 값은 기준 버전에 쌓여요.

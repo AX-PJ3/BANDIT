@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 
-import { JsonFileStore, MemoryStore, createEmptyData } from './store.js';
-import { createDemoData } from './demoData.js';
+import { JsonFileStore, MemoryStore, createEmptyData } from './store.ts';
+import { createDemoData } from './demoData.ts';
 
 describe('JsonFileStore', () => {
   const dirs: string[] = [];

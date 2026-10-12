@@ -78,7 +78,7 @@ pnpm --filter @sil/notify demo              # 데모 예시를 처음부터 끝�
 pnpm --filter @sil/notify demo ./demo.json  # 결과를 이 파일에 남겨요
 ```
 
-테스트는 Node에 들어 있는 `node:test`를 써요. 따로 설치할 것은 없어요.
+테스트는 Node에 들어 있는 `node:test`를 써요. 따로 설치할 것은 없어요. 빌드하지 않고 Node 24.18이 `src`의 `.ts` 파일을 바로 실행해요. 저장소 루트의 `pnpm test`도 이 테스트를 함께 돌려요.
 
 ## 아직 없는 것
 

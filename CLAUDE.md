@@ -39,7 +39,10 @@
 ## 패키지 규칙
 
 - 모든 패키지의 `package.json`에 `"type": "module"`을 넣습니다.
-- 상대 경로 import에는 `.js` 확장자를 붙입니다. (예: `import { foo } from './foo.js'`, 실제 파일은 `foo.ts`)
+- 상대 경로 import에는 `.ts` 확장자를 붙입니다. (예: `import { foo } from './foo.ts'`, 화면 컴포넌트는 `.tsx`)
+  - 빌드하지 않고 Node 24.18이 `.ts` 파일을 바로 실행합니다. 그래서 `dist/`를 만들지 않고, 패키지의 `exports`는 `src/*.ts`를 가리킵니다.
+  - Node가 지울 수 없는 문법(`enum`, `namespace`, 생성자 매개변수 속성)은 쓰지 않습니다. `tsconfig.base.json`의 `erasableSyntaxOnly`가 막습니다.
+  - `.js`로 쓰면 타입 검사와 테스트는 통과해도 Node로 실행할 때 파일을 찾지 못합니다.
 - 타입만 가져올 때는 `import type`을 씁니다.
 - 각 패키지의 `tsconfig.json`은 루트의 `tsconfig.base.json`을 `extends` 합니다.
 

@@ -1,14 +1,14 @@
-export { applyNewVersion } from './applyNewVersion.js';
-export type { ApplyNewVersionOptions } from './applyNewVersion.js';
-export { createPendingChecks } from './createPendingChecks.js';
+export { applyNewVersion } from './applyNewVersion.ts';
+export type { ApplyNewVersionOptions } from './applyNewVersion.ts';
+export { createPendingChecks } from './createPendingChecks.ts';
 export type {
   ClosedCheck,
   CreatePendingChecksInput,
   CreatePendingChecksResult,
   SkipReason,
   SkippedIssue,
-} from './createPendingChecks.js';
-export { CLOSED_VISIBLE_DAYS, listPending } from './listPending.js';
+} from './createPendingChecks.ts';
+export { CLOSED_VISIBLE_DAYS, listPending } from './listPending.ts';
 export type {
   ListPendingInput,
   ListPendingOptions,
@@ -17,16 +17,16 @@ export type {
   PendingItemAnswer,
   PendingItemIssue,
   PendingItemStandard,
-} from './listPending.js';
-export { MAX_UNAFFECTED_REASON_LENGTH, respond } from './respond.js';
+} from './listPending.ts';
+export { MAX_UNAFFECTED_REASON_LENGTH, respond } from './respond.ts';
 export type {
   RespondErrorCode,
   RespondInput,
   RespondOptions,
   RespondResult,
-} from './respond.js';
-export { JsonFileStore, MemoryStore, createEmptyData } from './store.js';
-export type { NotifyData, NotifyStore } from './store.js';
+} from './respond.ts';
+export { JsonFileStore, MemoryStore, createEmptyData } from './store.ts';
+export type { NotifyData, NotifyStore } from './store.ts';
 export type {
   Answer,
   AnswerChannel,
@@ -41,4 +41,4 @@ export type {
   StandardSource,
   StandardVersionRecord,
   VersionValue,
-} from './types.js';
+} from './types.ts';

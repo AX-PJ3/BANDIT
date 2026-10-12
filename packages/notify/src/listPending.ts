@@ -1,4 +1,4 @@
-import type { NotifyStore } from './store.js';
+import type { NotifyStore } from './store.ts';
 import type {
   AnswerChannel,
   IsoDateTime,
@@ -8,7 +8,7 @@ import type {
   PendingCheckStatus,
   StandardId,
   StandardSource,
-} from './types.js';
+} from './types.ts';
 
 export interface ListPendingInput {
   /** 받는 사람 이름 */

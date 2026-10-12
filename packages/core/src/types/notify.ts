@@ -1,4 +1,4 @@
-import type { Actor, IsoDateTime, IssueKey, StandardId } from './common.js';
+import type { Actor, IsoDateTime, IssueKey, StandardId } from './common.ts';
 
 /**
  * 이슈 — 이 도구 안에 미리 넣어 두는 작업 목록이에요 (Linear와 연결하지 않아요).

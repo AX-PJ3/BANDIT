@@ -6,7 +6,7 @@ import type {
   Issue,
   PendingCheck,
   StandardVersionRecord,
-} from './types.js';
+} from './types.ts';
 
 /**
  * 알리기 기능이 읽고 쓰는 데이터 전체예요.
@@ -51,7 +51,12 @@ export class MemoryStore implements NotifyStore {
 
 /** JSON 파일 하나에 저장하는 저장소. 파일이 없으면 빈 데이터로 시작해요 */
 export class JsonFileStore implements NotifyStore {
-  constructor(readonly filePath: string) {}
+  readonly filePath: string;
+
+  // 생성자 매개변수 속성(constructor(readonly filePath))은 Node가 .ts를 바로 실행할 때 지울 수 없는 문법이라 풀어 써요 (erasableSyntaxOnly)
+  constructor(filePath: string) {
+    this.filePath = filePath;
+  }
 
   async read(): Promise<NotifyData> {
     let text: string;
