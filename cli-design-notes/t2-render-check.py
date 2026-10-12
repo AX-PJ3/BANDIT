@@ -8,16 +8,16 @@
 - 굵게/색이 어떻게 보이는지
 
 사용법
-  python3 design-notes/t2-render-check.py                 # 지금 터미널 너비로, 굵게 모드
-  python3 design-notes/t2-render-check.py --style plain   # 꾸밈 없이
-  python3 design-notes/t2-render-check.py --style color   # 굵게 + 색
-  python3 design-notes/t2-render-check.py --width 80      # 내용만 80칸 기준으로 계산
-  python3 design-notes/t2-render-check.py --wide          # 애매한 폭 기호를 2칸으로 계산 (한국어 터미널 설정)
+  python3 cli-design-notes/t2-render-check.py                 # 지금 터미널 너비로, 굵게 모드
+  python3 cli-design-notes/t2-render-check.py --style plain   # 꾸밈 없이
+  python3 cli-design-notes/t2-render-check.py --style color   # 굵게 + 색
+  python3 cli-design-notes/t2-render-check.py --width 80      # 내용만 80칸 기준으로 계산
+  python3 cli-design-notes/t2-render-check.py --wide          # 애매한 폭 기호를 2칸으로 계산 (한국어 터미널 설정)
 
 줄이 꺾이는지 보려면 --width 대신 터미널 창 자체를 80칸으로 줄여서 실행하세요.
 외부 패키지 없이 Python 3만 있으면 돼요.
 
-규칙은 design-notes/T2-첫줄-결정기록.md, T2-본문-결정기록.md 를 따라요.
+규칙은 cli-design-notes/T2-첫줄-결정기록.md, T2-본문-결정기록.md 를 따라요.
 """
 
 import argparse

@@ -1,6 +1,6 @@
 """시안용 공용 부품: 샘플 데이터 읽기, 답 저장, 화면 글 만들기.
 
-값 비교 규칙과 글자 폭 계산은 design-notes/t2-render-check.py에서 그대로 가져온다 (원본은 고치지 않음).
+값 비교 규칙과 글자 폭 계산은 cli-design-notes/t2-render-check.py에서 그대로 가져온다 (원본은 고치지 않음).
 """
 import importlib.util
 import json
@@ -10,7 +10,7 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, os.environ.get('NOTICE_DATA', 'changes') + '.json')   # NOTICE_DATA=changes-demo 처럼 바꿔 볼 수 있다
 ANSWERS = os.path.join(HERE, '..', 'answers.json')
-SRC = '/Users/bugeon/orca/projects/cli-design/design-notes/t2-render-check.py'
+SRC = '/Users/bugeon/orca/projects/cli-design/cli-design-notes/t2-render-check.py'
 
 spec = importlib.util.spec_from_file_location('t2', SRC)
 t2 = importlib.util.module_from_spec(spec)

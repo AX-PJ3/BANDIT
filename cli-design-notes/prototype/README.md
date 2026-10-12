@@ -5,7 +5,7 @@
 ## 켜 보기
 
 ```
-cd design-notes/prototype/notify-prototype && ./reset.sh && claude
+cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 ```
 
 - 처음 켤 때 폴더를 믿을지 묻는 창이 나오면 허용해요.
@@ -35,4 +35,4 @@ cd design-notes/prototype/notify-prototype && ./reset.sh && claude
 | `theme-preview.py`                                | 어두운·밝은 터미널 미리보기 HTML (`theme-preview.html`)                                    |
 | `show.py`                                         | hooks 출력을 꾸밈 없이 칸 수와 함께 보는 도구 (`... \| python3 show.py`, 시안 폴더 안에서) |
 
-`notice.py`는 `design-notes/t2-render-check.py`의 글자 폭·값 비교 함수를 가져다 써요.
+`notice.py`는 `cli-design-notes/t2-render-check.py`의 글자 폭·값 비교 함수를 가져다 써요.
