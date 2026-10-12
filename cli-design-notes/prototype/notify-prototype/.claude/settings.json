@@ -1,7 +1,12 @@
 {
   "enableAllProjectMcpServers": true,
   "permissions": {
-    "allow": ["mcp__notice__list_pending", "mcp__notice__respond"]
+    "allow": [
+      "mcp__notice__list_pending",
+      "mcp__notice__respond",
+      "mcp__notice__get_quiz",
+      "mcp__notice__save_quiz"
+    ]
   },
   "hooks": {
     "SessionStart": [
@@ -32,6 +37,15 @@
           {
             "type": "command",
             "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after_respond.py"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__notice__save_quiz",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after_quiz.py"
           }
         ]
       }

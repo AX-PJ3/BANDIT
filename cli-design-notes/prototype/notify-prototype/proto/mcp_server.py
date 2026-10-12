@@ -32,6 +32,30 @@ TOOLS = [
         },
     },
 ]
+# 사내 테스트 모드에서만: 변경마다 답한 뒤 이해도를 묻고 기록한다
+QUIZ_TOOLS = [
+    {
+        'name': 'get_quiz',
+        'description': '방금 답한 확인할 변경의 이해도 문제 3개를 불러온다. 받은 questions 를 AskUserQuestion 한 번에 그대로 묻는다.',
+        'inputSchema': {'type': 'object', 'properties': {'change_id': {'type': 'string'}}, 'required': ['change_id']},
+    },
+    {
+        'name': 'save_quiz',
+        'description': '이해도 답을 기록한다. 기록 뒤 다음 변경 상세는 hooks가 사용자에게 직접 보여 준다.',
+        'inputSchema': {
+            'type': 'object',
+            'properties': {
+                'change_id': {'type': 'string'},
+                'written': {'type': 'string', 'description': '첫 문항: 사용자가 직접 쓴 글, 또는 고른 보기의 label'},
+                'what': {'type': 'string', 'description': '둘째 문항에서 고른 보기의 label 그대로'},
+                'why': {'type': 'string', 'description': '셋째 문항에서 고른 보기의 label 그대로'},
+            },
+            'required': ['change_id', 'written', 'what', 'why'],
+        },
+    },
+]
+if notice.IS_TEST:
+    TOOLS += QUIZ_TOOLS
 
 
 def call_tool(name, args):
@@ -50,6 +74,16 @@ def call_tool(name, args):
         if problem:
             raise ValueError(problem)
         notice.save_answer(args['change_id'], args['relation'], args.get('knew'), args.get('reason'), args.get('note'))
+        return {'saved': True}
+    if name in ('get_quiz', 'save_quiz') and notice.IS_TEST:
+        if not notice.has_quiz(args.get('change_id')):
+            raise ValueError('이해도 문제가 없는 change_id예요')
+        if name == 'get_quiz':
+            return {'questions': notice.quiz_questions(args['change_id'])}
+        problem = notice.check_quiz(args['change_id'], args.get('what'), args.get('why'))
+        if problem:
+            raise ValueError(problem)
+        notice.save_quiz(args['change_id'], args.get('written'), args['what'], args['why'])
         return {'saved': True}
     raise ValueError(f'모르는 도구: {name}')
 

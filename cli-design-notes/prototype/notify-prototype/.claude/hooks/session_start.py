@@ -9,4 +9,5 @@ import notice  # noqa: E402
 
 items = notice.pending()
 if items:
+    notice.log_event('notice_shown', count=len(items))
     print(json.dumps({'systemMessage': notice.session_notice(items)}, ensure_ascii=False))

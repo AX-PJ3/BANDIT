@@ -10,7 +10,12 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, os.environ.get('NOTICE_DATA', 'changes') + '.json')   # NOTICE_DATA=changes-demo 처럼 바꿔 볼 수 있다
 ANSWERS = os.path.join(HERE, '..', 'answers.json')
-SRC = '/Users/bugeon/orca/projects/cli-design/cli-design-notes/t2-render-check.py'
+# 사내 테스트 모드 (test_run.py가 켠다): 사건 시각을 남기고, 변경마다 답한 뒤 이해도를 묻는다
+IS_TEST = bool(os.environ.get('NOTICE_TEST'))
+EVENTS = os.path.join(HERE, '..', '.events.jsonl')
+QUIZ = os.path.join(HERE, '..', 'quiz.json')
+PUSH_LINES = int(os.environ.get('NOTICE_ROWS', '40'))   # 이해도를 묻기 전에 상세를 화면 위로 밀어낼 빈 줄 수
+SRC ='/Users/bugeon/orca/projects/cli-design/cli-design-notes/t2-render-check.py'
 
 spec = importlib.util.spec_from_file_location('t2', SRC)
 t2 = importlib.util.module_from_spec(spec)
@@ -83,6 +88,82 @@ def save_answer(change_id, relation, knew=None, reason=None, note=None):
                           'place': '터미널', 'at': datetime.now().strftime('%Y-%m-%d %H:%M')}
     with open(ANSWERS, 'w') as f:
         json.dump(answers, f, ensure_ascii=False, indent=2)
+    log_event('answered', change_id, relation=relation)
+
+
+# ---------- 사내 테스트: 사건 시각과 이해도 ----------
+
+def log_event(event, change_id=None, **extra):
+    """테스트 모드일 때만 사건을 초 단위(밀리초까지) 시각과 함께 한 줄씩 남긴다. test_run.py가 이걸로 시간을 잰다."""
+    if not IS_TEST:
+        return
+    row = {'at': datetime.now().isoformat(timespec='milliseconds'), 'event': event}
+    if change_id:
+        row['change_id'] = change_id
+    row.update(extra)
+    with open(EVENTS, 'a') as f:
+        f.write(json.dumps(row, ensure_ascii=False) + '\n')
+
+
+def find_change(change_id):
+    return next((c for c in load_changes()['changes'] if c['id'] == change_id), None)
+
+
+def has_quiz(change_id):
+    c = find_change(change_id)
+    return IS_TEST and bool(c and c.get('quiz'))
+
+
+def load_quiz():
+    try:
+        with open(QUIZ) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+# 첫 문항은 직접 쓰는 문항이다. 선택 화면은 보기가 2개 이상 있어야 해서 "모를 때" 보기 2개를 둔다
+WRITE_OPTIONS = [('기억나지 않아요', '무엇이 바뀌었는지 떠오르지 않아요'),
+                 ('제대로 안 읽었어요', '상세를 꼼꼼히 보지 않고 넘어갔어요')]
+
+
+def quiz_questions(change_id):
+    """이해도 3문항: 직접 쓰기 → 무엇이(객관식) → 왜(객관식). 선택 화면 한 번에 그대로 넘긴다."""
+    q = find_change(change_id)['quiz']
+
+    def choices(texts):
+        return [{'label': t, 'description': ''} for t in texts]
+
+    return [
+        {'question': '방금 본 변경에서 무엇이 무엇으로 바뀌었나요? 아래 "Type something."에 한 줄로 써 주세요.',
+         'header': '이해 1/3', 'multiSelect': False,
+         'options': [{'label': label, 'description': desc} for label, desc in WRITE_OPTIONS]},
+        {'question': '무엇이 바뀌었나요?', 'header': '이해 2/3', 'multiSelect': False, 'options': choices(q['what'])},
+        {'question': '왜 바뀌었나요?', 'header': '이해 3/3', 'multiSelect': False, 'options': choices(q['why'])},
+    ]
+
+
+def check_quiz(change_id, what, why):
+    q = find_change(change_id)['quiz']
+    if what not in q['what']:
+        return '"무엇이 바뀌었나요?"는 보기 중 하나만 기록해요. 같은 질문을 다시 물어 주세요.'
+    if why not in q['why']:
+        return '"왜 바뀌었나요?"는 보기 중 하나만 기록해요. 같은 질문을 다시 물어 주세요.'
+    return None
+
+
+def save_quiz(change_id, written, what, why):
+    q = find_change(change_id)['quiz']
+    quiz = load_quiz()
+    quiz[change_id] = {
+        'written': written,
+        'what': what, 'what_correct': q['what'].index(what) + 1 == q['what_answer'],
+        'why': why, 'why_correct': q['why'].index(why) + 1 == q['why_answer'],
+        'at': datetime.now().isoformat(timespec='seconds'),
+    }
+    with open(QUIZ, 'w') as f:
+        json.dump(quiz, f, ensure_ascii=False, indent=2)
+    log_event('quiz_saved', change_id)
 
 
 def _case(c):
@@ -386,6 +467,7 @@ def start_flow(session_id=None, recall=False):
     items = pending()
     with open(FLOW, 'w') as f:
         json.dump({'session': session_id, 'total': len(items), 'recall': recall}, f)
+    log_event('detail_shown', items[0]['id'], recall=recall)
     return detail_screen(items[0], 1, len(items), recall)
 
 
@@ -422,17 +504,40 @@ def recorded_line(change_id):
     return lines
 
 
-def after_answer(change_id):
-    """답을 기록한 뒤: 기록 줄 + 다음 변경 상세, 또는 마무리 한 줄. 기록되지 않았으면(보기 밖의 답) 아무것도 띄우지 않는다."""
-    if change_id not in load_answers():
-        return None
-    done = recorded_line(change_id)
+def next_screen():
+    """다음 변경 상세, 또는 남은 변경이 없으면 마무리 한 줄."""
     items = pending()
     flow = load_flow()
     total_at_start = flow.get('total', len(items))
     if not items:
-        start_work = '' if flow.get('recall') else ' 이제 작업을 시작할게요.'
+        log_event('all_done')
         count = f' {total_at_start}건' if total_at_start > 1 else ''     # 1건에 "1건을 모두"는 어색해서 뺀다
-        return '\n'.join(['', *done, '', bold(f'확인할 변경{count}을 모두 답했어요.{start_work}')])
-    return '\n'.join(['', *done,
-                      detail_screen(items[0], total_at_start - len(items) + 1, total_at_start, flow.get('recall'))])
+        if IS_TEST:     # 테스트는 여기서 끝난다. test_run.py가 Claude Code를 닫고 마지막 질문으로 넘어간다
+            return ['', bold(f'확인할 변경{count}을 모두 답했어요.'), '  테스트가 끝났어요. 잠시 뒤 마지막 질문으로 넘어가요.']
+        start_work = '' if flow.get('recall') else ' 이제 작업을 시작할게요.'
+        return ['', bold(f'확인할 변경{count}을 모두 답했어요.{start_work}')]
+    log_event('detail_shown', items[0]['id'])
+    return [detail_screen(items[0], total_at_start - len(items) + 1, total_at_start, flow.get('recall'))]
+
+
+def push_away():
+    """이해도를 묻기 전에 방금 본 상세를 화면 위로 밀어낸다. 빈 줄은 줄어들 수 있어서 꾸밈 끄기 코드 하나씩을 넣는다."""
+    return [esc('22')] * PUSH_LINES
+
+
+def after_answer(change_id):
+    """답을 기록한 뒤: 기록 줄 + 다음 변경 상세, 또는 마무리 한 줄. 기록되지 않았으면(보기 밖의 답) 아무것도 띄우지 않는다.
+    테스트 모드에서는 상세를 밀어내고 기록 줄만 띄운다. 다음 상세는 이해도를 기록한 뒤(after_quiz) 띄운다."""
+    if change_id not in load_answers():
+        return None
+    done = recorded_line(change_id)
+    if has_quiz(change_id):
+        return '\n'.join([*push_away(), '', *done])
+    return '\n'.join(['', *done, *next_screen()])
+
+
+def after_quiz(change_id):
+    """이해도를 기록한 뒤: 다음 변경 상세, 또는 마무리 한 줄."""
+    if change_id not in load_quiz():
+        return None
+    return '\n'.join(next_screen())

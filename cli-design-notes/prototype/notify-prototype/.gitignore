@@ -1,0 +1,7 @@
+# 시안을 돌리면 생기는 기록 (GitHub에 올리지 않음)
+answers.json
+quiz.json
+.flow.json
+.events.jsonl
+# 사내 테스트 결과: 참가자 이름과 답이 들어 있어요
+results/
