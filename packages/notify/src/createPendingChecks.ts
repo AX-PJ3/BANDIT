@@ -129,6 +129,8 @@ export function createPendingChecks(
       lastSeenVersion,
       createdAt: now,
       closedAt: null,
+      reflected: false,
+      reflectedAt: null,
     });
   }
 

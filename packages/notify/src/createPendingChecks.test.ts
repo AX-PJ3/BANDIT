@@ -72,6 +72,8 @@ function check(overrides: Partial<PendingCheck>): PendingCheck {
     lastSeenVersion: 1,
     createdAt: '2026-10-13T10:00:00+09:00',
     closedAt: null,
+    reflected: false,
+    reflectedAt: null,
     ...overrides,
   };
 }
@@ -122,6 +124,8 @@ describe('createPendingChecks', () => {
         lastSeenVersion: 1,
         createdAt: NOW,
         closedAt: null,
+        reflected: false,
+        reflectedAt: null,
       },
     ]);
   });
