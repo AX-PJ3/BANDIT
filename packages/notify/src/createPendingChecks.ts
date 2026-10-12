@@ -5,7 +5,7 @@ import type {
   PendingCheck,
   SavedVersion,
   VersionValue,
-} from './types.js';
+} from './types.ts';
 
 export interface CreatePendingChecksInput {
   /** 방금 저장된 새 버전 */

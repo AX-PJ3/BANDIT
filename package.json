@@ -1,15 +1,32 @@
 {
   "name": "haribo",
+  "version": "0.0.0",
   "private": true,
+  "description": "MVP 사일로 모노레포: 팀 기준 위키(MCP 서버) · 명령어 · 웹 앱(PWA) · 바뀐 기준 찾기",
   "type": "module",
   "packageManager": "pnpm@11.18.0",
   "engines": {
     "node": "24.x"
   },
   "scripts": {
+    "onboard": "node apps/cli/bin/sil.mjs doctor",
+    "sil": "node apps/cli/bin/sil.mjs",
+    "mcp:check": "pnpm --filter @sil/mcp run check",
+    "mcp:serve": "pnpm --filter @sil/mcp run start",
+    "mcp:dev": "pnpm --filter @sil/mcp run dev",
+    "mcp:register": "pnpm --filter @sil/mcp run register",
+    "mcp:token": "pnpm --filter @sil/mcp run token",
+    "db:push": "supabase db push",
+    "app:web": "pnpm --filter @sil/app run dev",
+    "app:build": "pnpm --filter @sil/app run build",
+    "app:preview": "pnpm --filter @sil/app run preview",
+    "typecheck": "pnpm -r run typecheck",
     "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "vitest run && pnpm --filter @sil/notify test",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check && pnpm test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -18,7 +35,9 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^17.13.0",
     "prettier": "3.9.9",
+    "supabase": "^2.120.0",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.71.1"
+    "typescript-eslint": "^8.71.1",
+    "vitest": "^5.0.3"
   }
 }

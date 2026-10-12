@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { applyNewVersion } from './applyNewVersion.js';
-import { MemoryStore } from './store.js';
-import { DEMO_V1, DEMO_V2, createDemoData, createIdMaker } from './demoData.js';
+import { applyNewVersion } from './applyNewVersion.ts';
+import { MemoryStore } from './store.ts';
+import { DEMO_V1, DEMO_V2, createDemoData, createIdMaker } from './demoData.ts';
 
 const NOW = '2026-10-13T14:13:00+09:00';
 

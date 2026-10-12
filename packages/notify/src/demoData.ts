@@ -1,5 +1,5 @@
-import type { NotifyData } from './store.js';
-import type { Issue, StandardVersionRecord } from './types.js';
+import type { NotifyData } from './store.ts';
+import type { Issue, StandardVersionRecord } from './types.ts';
 
 /**
  * 테스트와 데모가 함께 쓰는 착수 안내 "데모 예시: 알림 제목 길이" 데이터예요.

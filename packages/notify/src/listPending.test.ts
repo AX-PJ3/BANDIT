@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { applyNewVersion } from './applyNewVersion.js';
-import { listPending } from './listPending.js';
-import { respond } from './respond.js';
-import { MemoryStore } from './store.js';
+import { applyNewVersion } from './applyNewVersion.ts';
+import { listPending } from './listPending.ts';
+import { respond } from './respond.ts';
+import { MemoryStore } from './store.ts';
 import {
   DEMO_STANDARD_ID,
   DEMO_V2,
   createDemoData,
   createIdMaker,
-} from './demoData.js';
+} from './demoData.ts';
 
 const NOW = '2026-10-13T14:13:00+09:00';
 const LATER = '2026-10-13T15:00:00+09:00';

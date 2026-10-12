@@ -1,11 +1,11 @@
-import type { NotifyStore } from './store.js';
+import type { NotifyStore } from './store.ts';
 import type {
   Answer,
   AnswerChannel,
   IsoDateTime,
   PendingCheckStatus,
   StandardId,
-} from './types.js';
+} from './types.ts';
 
 /** 관계없는 이유의 최대 글자 수 (착수 안내 v2) */
 export const MAX_UNAFFECTED_REASON_LENGTH = 100;

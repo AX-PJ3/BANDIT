@@ -1,4 +1,8 @@
 {
+  // 모든 패키지가 이 설정을 이어받아요. 패키지마다 다른 점(화면용 DOM, Vite 번들 등)만 각 패키지 tsconfig에 적어요.
+  // 빌드 없음(D48): Node 24.18이 .ts 파일을 그대로 실행해요. 그래서 상대 경로 import에 .ts를 붙이고
+  // (allowImportingTsExtensions), Node가 지울 수 없는 문법(enum, namespace, 생성자 매개변수 속성)은 막고
+  // (erasableSyntaxOnly), 결과 파일은 만들지 않아요(noEmit).
   "compilerOptions": {
     "target": "ES2024",
     "lib": ["ES2024"],
@@ -16,8 +20,9 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
-    "declaration": true,
-    "sourceMap": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
     "types": ["node"]
   }
 }

@@ -2,3 +2,13 @@ node_modules/
 dist/
 .env*
 .omc/
+
+# 필요한 키 이름을 적은 예시 파일은 올려요. 실제 키(.env)는 각자 컴퓨터에만 둬요.
+!.env.example
+
+# Supabase CLI가 연결한 프로젝트 정보를 남기는 폴더
+supabase/.temp/
+
+# sil backup, sil export 결과 (DB 내용이 들어 있어요)
+/backup/
+sil-export-*.csv

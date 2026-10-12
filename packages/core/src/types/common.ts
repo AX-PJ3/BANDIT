@@ -8,8 +8,8 @@
 export type PersonRef = string;
 
 /**
- * 이슈 번호 그대로 써요. 예: '#5', 'SIL-28'.
- * 착수 안내 v2는 '#5'처럼, 팀 위키 data.issue.linear-id는 Linear 번호(SIL-12)처럼 써요. 둘 다 받아요.
+ * 이슈 번호예요. 이 도구가 붙이는 #번호(#5 형식)를 쓰고 Linear 번호와는 상관없어요 (data.issue.tool-number).
+ * 지금 DB는 번호 모양을 막지 않아요(알림 기능이 생길 때까지 이전대로, D51).
  */
 export type IssueKey = string;
 

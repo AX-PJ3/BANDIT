@@ -39,9 +39,55 @@
 ## 패키지 규칙
 
 - 모든 패키지의 `package.json`에 `"type": "module"`을 넣습니다.
-- 상대 경로 import에는 `.js` 확장자를 붙입니다. (예: `import { foo } from './foo.js'`, 실제 파일은 `foo.ts`)
+- 상대 경로 import에는 `.ts` 확장자를 붙입니다. (예: `import { foo } from './foo.ts'`, 화면 컴포넌트는 `.tsx`)
+  - 빌드하지 않고 Node 24.18이 `.ts` 파일을 바로 실행합니다. 그래서 `dist/`를 만들지 않고, 패키지의 `exports`는 `src/*.ts`를 가리킵니다.
+  - Node가 지울 수 없는 문법(`enum`, `namespace`, 생성자 매개변수 속성)은 쓰지 않습니다. `tsconfig.base.json`의 `erasableSyntaxOnly`가 막습니다.
+  - `.js`로 쓰면 타입 검사와 테스트는 통과해도 Node로 실행할 때 파일을 찾지 못합니다.
 - 타입만 가져올 때는 `import type`을 씁니다.
 - 각 패키지의 `tsconfig.json`은 루트의 `tsconfig.base.json`을 `extends` 합니다.
+
+## 저장소 구조
+
+- `apps/`는 직접 실행하는 프로그램, `packages/`는 가져다 쓰는 코드다 (D49). 패키지 이름은 `@sil/*` 그대로다.
+- `packages/notify` 알리기(`@sil/notify`, 민수님 SIL-67). 확인할 변경 만들기(`createPendingChecks`), 목록(`listPending`), 답(`respond`), 임시 저장소. 테스트는 `node:test`. 타입은 자기 `types.ts`에 있어요(core와 합치기는 민수님과 정함)
+- `packages/core` 공통 타입·에러·위키 규칙(`rules.ts`)·예시 데이터(`@sil/core`), 브라우저·Node 공통 DB 연결과 읽기쓰기(`@sil/core/data`), Node 전용 env·로그와 .env 연결(`@sil/core/node`, data 함수도 다시 내보냄), 테스트용 가짜 DB(`@sil/core/testing`)
+- `apps/mcp-server` 팀이 함께 쓰는 MCP 서버 (Streamable HTTP, `src/http.ts`). Claude Code 등록 이름은 `haribo`(`src/server-info.ts`, D55. 환경 변수 `SIL_MCP_*`·헤더 `X-Sil-User`·명령어 `sil`은 그대로). 도구는 `src/tools/<묶음>/`에 파일 하나씩, 같은 폴더 `index.ts`의 `tools` 배열에 등록
+- `supabase/migrations` DB 표·함수·권한, `supabase/tests` DB 규칙 검사 (SQL)
+- `apps/cli` `sil` 명령어. `src/commands/`에 파일 하나씩, `index.ts` 배열에 등록
+- `apps/web` 웹 앱(PWA, Vite, D50). 화면은 `src/screens/`, 화면↔데이터 약속은 `src/api/types.ts`, 설치 정보와 서비스 워커는 `public/`
+- `apps/detect` 바뀐 기준 찾기 (경하님 SIL-66, 아직 없음)
+
+## 코드 규칙
+
+- 타입은 `packages/core/src/types/`에만 정의한다. 다른 패키지에서 같은 모양을 다시 만들지 않는다. 타입 설명과 이름 연결표(착수 안내 ↔ 코드 ↔ DB)는 `docs/타입명세서.md`에 있고, 타입을 바꾸면 이 문서도 고친다 (`spec-doc.test.ts`가 확인).
+- DB는 Supabase다. DB를 직접 부르지 않고 core의 DB 함수(`data/standards.ts` 등)만 쓴다. Node는 `@sil/core/node`, 웹 앱은 `@sil/core/data`에서 같은 함수를 가져온다. 주소·키가 없으면 `getDb()`는 `DbNotConfiguredError`를 던진다.
+- DB 쓰기는 데이터베이스 함수(`save_standard`, `revert_standard`, `deprecate_standard`, `save_issue`, `hold_conflict`, `resolve_conflict`, `save_answer`, `save_reflected`)로만 한다. 확인할 변경은 기준을 저장할 때 `on_standard_version_saved`가 만든다. 규칙은 `@sil/notify`의 `createPendingChecks`와 같게 두고, 한쪽을 고치면 다른 쪽과 `supabase/tests/notify_rules.test.sql`도 고친다 (D53). 표에 직접 insert/update/delete 하지 않는다 (공용 키는 막혀 있다).
+- 화면·도구·안내 문구에서는 위키의 항목을 "결정 사항"이라고 쓰고 "기준"이라고 쓰지 않는다(copy.term.standard v2, D57). 코드 이름(`standard`)과 위키 파일 이름·응답 기록 열 이름은 그대로다.
+- 표·칸 이름은 `용어.md`의 코드 이름을 따른다(`pending_checks`, `affected`, `known`). 위키 기준을 코드로 옮긴 곳에는 기준 ID를 주석에 남긴다.
+- 위키 MCP 도구는 다섯 개다(`wiki.mcp.five-tools`). 새 위키 도구를 더하지 않는다. 폐기는 사람이 `sil deprecate`로 한다.
+- 표 칸은 착수 안내 "데이터 항목 목록 v2"를 따른다. 기준 저장 필수 칸은 ID, 제목, 값, 이유, 항상 적용 5개다 (SIL-65).
+- 사람은 이름으로만 구분한다. `X-Sil-User` 헤더는 이름을 퍼센트 인코딩해서 보낸다.
+- 표를 바꿀 때는 이미 올린 마이그레이션을 고치지 않고 `supabase/migrations/`에 새 파일을 더하고, `supabase/tests/`에 검사를 붙인다.
+- Docker를 쓰지 않는다. 로컬 Supabase(`supabase start`) 대신 SQL 검사는 `supabase/tests/*.sql`을 psql이나 SQL Editor로 돌린다 (전부 ROLLBACK).
+- 기준은 지울 수 없으므로, 팀 DB에 테스트 데이터를 저장(커밋)하지 않는다.
+- `apps/mcp-server/src`에서는 `console.log`를 쓰지 않는다. 로그는 `createLogger`.
+- MCP 토큰, Supabase 키를 코드·로그·문서에 남기지 않는다.
+- 웹 앱(`apps/web`) 코드에서는 `@sil/core/node`를 가져오지 않고 `@sil/core/data`를 쓴다 (린트가 막는다). 화면에 넣는 환경 변수는 Supabase 주소와 공용 키 두 개뿐이다.
+- 서비스 워커(`apps/web/public/sw.js`)는 DB 응답을 저장하지 않는다 (notify.error.not-empty). 저장 목록과 저장 이름은 `pnpm app:build`가 채우므로 `const BUILD = 'dev';`와 `const PRECACHE = [];` 두 줄은 그대로 둔다 (D52).
+- 웹 앱은 상대 경로(`base: './'`)로 빌드한다. 화면 이동은 주소 경로가 아니라 상태와 `?check=` 같은 쿼리로 한다 (어느 경로에 올려도 열리게, D52).
+- Node는 24.18로 맞춘다(`.nvmrc`, `sil doctor`가 확인). `@types/node`도 실제 Node보다 높지 않게 24.13대로 둔다.
+- 새 도구·명령은 각 폴더의 `_template.ts`를 복사해서 시작한다.
+- 새 환경 변수는 `core/src/node/env.ts` 스키마와 `.env.example`에 함께 추가한다.
+- 기능을 바꾸면 해당 패키지 README의 표도 함께 고친다.
+
+## 확인 명령
+
+- 전체 검사: `pnpm check` (타입, 린트, 포맷, 테스트)
+- MCP 서버: `pnpm mcp:check` (HTTP로 켜서 401·도구 목록·ping 확인), 켜기: `pnpm mcp:serve`. 올린 서버는 `pnpm mcp:check --url https://…/mcp` (토큰은 `.env`의 `SIL_MCP_TOKEN`, 설치·실행 명령은 `apps/mcp-server/README.md` "올리기", D54)
+- DB 규칙: `psql "<DB 주소>" -v ON_ERROR_STOP=1 -f supabase/tests/wiki.test.sql` (`v2.test.sql`, `compat.test.sql`, `always_on_per_version.test.sql`, `feedback_v2.test.sql`, `notify_rules.test.sql`, `reflected.test.sql`도 같은 방법)
+- 위키 적용 범위 경로 확인: `pnpm sil scope-check` (맞는 파일이 없는 코드 경로 목록)
+- 위키 불러오기 미리 보기: `pnpm sil import` (저장은 `--apply`)
+- 화면 미리보기: `pnpm app:web` (http://localhost:5173). PWA(설치·서비스 워커) 확인은 `pnpm app:build` 후 `pnpm app:preview` (http://localhost:4173)
 
 ## 커밋 메시지 규칙
 
