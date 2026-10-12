@@ -1,0 +1,3203 @@
+<title>터미널 알림 사내 테스트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic+Coding:wght@400;700&display=swap"
+/>
+<style>
+  /* 레이아웃: 시험장 한 칸. 위에 단계 표시줄, 그 아래 "지금 할 일" 안내 띠, 가운데에 터미널 창(또는 설문지) 하나. 만든 사람이 열면 결과 표 하나 */
+  :root {
+    --bg: #eceef1;
+    --surface: #ffffff;
+    --fg: #1a1d23;
+    --muted: #5b6370;
+    --line: #d3d8df;
+    --accent: #8a5d00;
+    --accent-soft: #f5ead2;
+    --danger: #b3261e;
+    --ok: #1f7a3a;
+    --font-ui:
+      'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
+      sans-serif;
+    --font-mono:
+      'Nanum Gothic Coding', 'D2Coding', ui-monospace, Menlo, Consolas,
+      monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #14161a;
+      --surface: #1c1f25;
+      --fg: #e4e7ec;
+      --muted: #98a0ad;
+      --line: #2e333b;
+      --accent: #e2b54e;
+      --accent-soft: #3a2f14;
+      --danger: #f2b8b5;
+      --ok: #7fd49a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #14161a;
+    --surface: #1c1f25;
+    --fg: #e4e7ec;
+    --muted: #98a0ad;
+    --line: #2e333b;
+    --accent: #e2b54e;
+    --accent-soft: #3a2f14;
+    --danger: #f2b8b5;
+    --ok: #7fd49a;
+    color-scheme: dark;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-ui);
+    font-size: 15px;
+    line-height: 1.6;
+  }
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 20px 48px;
+    display: grid;
+    gap: 16px;
+  }
+
+  /* 위 표시줄 */
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px 16px;
+  }
+  .top h1 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .steps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .steps li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .steps li::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line);
+  }
+  .steps li.on {
+    color: var(--fg);
+    font-weight: 500;
+  }
+  .steps li.on::before {
+    background: var(--accent);
+    border-color: var(--accent);
+  }
+  .steps li.done::before {
+    background: var(--muted);
+    border-color: var(--muted);
+  }
+  .save-state {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .save-state.err {
+    color: var(--danger);
+  }
+
+  /* 종이(입력 화면) */
+  .sheet {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px;
+    display: grid;
+    gap: 20px;
+    max-width: 680px;
+    width: 100%;
+    justify-self: center;
+  }
+  .sheet h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    text-wrap: balance;
+  }
+  .sheet h3 {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+  }
+  .sheet p {
+    margin: 0;
+  }
+  .lede {
+    color: var(--muted);
+  }
+  .field {
+    display: grid;
+    gap: 8px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .field > label,
+  .field > legend {
+    font-weight: 500;
+    padding: 0;
+  }
+  .hint {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+  }
+  input[type='text'],
+  textarea {
+    font: inherit;
+    color: var(--fg);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 9px 11px;
+    width: 100%;
+  }
+  textarea {
+    min-height: 72px;
+    resize: vertical;
+  }
+  input[type='text']:focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .choices label {
+    position: relative;
+  }
+  .choices input {
+    position: absolute;
+    opacity: 0;
+    inset: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .choices span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding: 7px 14px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+  .choices input:checked + span {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    font-weight: 500;
+  }
+  .choices input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+  }
+  .scale-ends {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--muted);
+    max-width: 420px;
+  }
+  .row-end {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .btn {
+    font: inherit;
+    font-weight: 500;
+    border-radius: 6px;
+    padding: 9px 18px;
+    border: 1px solid var(--fg);
+    background: var(--fg);
+    color: var(--surface);
+    cursor: pointer;
+  }
+  .btn.ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--line);
+  }
+  .btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .form-error {
+    color: var(--danger);
+    font-size: 14px;
+    margin: 0;
+  }
+  .guide {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.7;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    margin: 0;
+  }
+  .guide b {
+    font-weight: 700;
+  }
+  .note {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .follow {
+    display: grid;
+    gap: 8px;
+    border-left: 3px solid var(--accent);
+    padding: 4px 0 4px 14px;
+    margin-top: 4px;
+  }
+  .follow-q {
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .term-choices span {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+    padding: 8px 12px;
+  }
+  .term-choices b {
+    font-weight: 600;
+  }
+  .term-choices small {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+    white-space: pre-wrap;
+  }
+  .center-msg {
+    text-align: center;
+    color: var(--muted);
+    padding-block: 48px;
+  }
+  hr.sep {
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 0;
+  }
+
+  /* 지금 할 일 안내 띠 */
+  .coach {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: grid;
+    gap: 6px;
+  }
+  .coach-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+  }
+  .coach-step {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+  .coach-title {
+    font-weight: 600;
+  }
+  .coach-mission {
+    margin: 0;
+    font-size: 14px;
+  }
+  .coach-now {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+  }
+  .coach-now::before {
+    content: '지금 할 일 · ';
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .coach-hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .coach-done {
+    display: grid;
+    gap: 10px;
+    padding-top: 6px;
+  }
+  .coach-done .field > legend,
+  .coach-done .field > label {
+    font-size: 14px;
+  }
+
+  /* 터미널 창. 참가자가 고른 터미널 테마로 그린다 (페이지 테마와 따로) */
+  .term {
+    --t-bg: #18191c;
+    --t-fg: #ececec;
+    --t-gray: #8d9199;
+    --t-dim: #5d6168;
+    --t-yellow: #e8c46a;
+    --t-green: #86c77a;
+    --t-sel: #9fb1ff;
+    --t-spin: #e08a62;
+    --t-rule: #3a3d43;
+    --t-bar: #26282c;
+    --t-bar-fg: #9a9ea6;
+    background: var(--t-bg);
+    color: var(--t-fg);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--t-rule);
+    font-family: var(--font-mono);
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    flex-direction: column;
+    height: min(66vh, 660px);
+    min-height: 400px;
+  }
+  .term[data-term='light'] {
+    --t-bg: #fbfbf9;
+    --t-fg: #1b1b1b;
+    --t-gray: #686c73;
+    --t-dim: #a2a6ad;
+    --t-yellow: #946200;
+    --t-green: #2e7d32;
+    --t-sel: #3b55d6;
+    --t-spin: #c4562c;
+    --t-rule: #d6d7d9;
+    --t-bar: #ececea;
+    --t-bar-fg: #6a6d72;
+  }
+  .term:focus {
+    outline: none;
+  }
+  .term:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .term-bar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 12px;
+    background: var(--t-bar);
+    color: var(--t-bar-fg);
+    font-family: var(--font-ui);
+    font-size: 12px;
+  }
+  .term-bar i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--t-rule);
+    display: block;
+  }
+  .term-bar span {
+    margin-left: 6px;
+  }
+  .term-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px 4px;
+    min-width: 0;
+  }
+  .term-input {
+    padding: 0 14px 12px;
+  }
+  .ln {
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 1.5em;
+  }
+  .hook {
+    color: var(--t-gray);
+  }
+  .fg {
+    color: var(--t-fg);
+  }
+  .g {
+    color: var(--t-gray);
+  }
+  .d {
+    color: var(--t-dim);
+  }
+  .b {
+    font-weight: 700;
+  }
+  .y {
+    color: var(--t-yellow);
+  }
+  .gr {
+    color: var(--t-green);
+  }
+  .inv {
+    background: var(--t-fg);
+    color: var(--t-bg);
+  }
+  .spin {
+    color: var(--t-spin);
+  }
+  .welcome {
+    border: 1px solid var(--t-spin);
+    border-radius: 6px;
+    padding: 6px 10px;
+    display: inline-block;
+    margin-bottom: 8px;
+    max-width: 100%;
+  }
+  .prompt-rule {
+    border-top: 1px solid var(--t-rule);
+  }
+  .prompt-row {
+    display: flex;
+    align-items: baseline;
+    padding-block: 6px;
+  }
+  .prompt-row input {
+    flex: 1;
+    min-width: 0;
+    font: inherit;
+    color: var(--t-fg);
+    background: transparent;
+    border: 0;
+    outline: none;
+    padding: 0;
+    caret-color: var(--t-fg);
+  }
+  .prompt-row input::placeholder {
+    color: var(--t-dim);
+  }
+  .ask {
+    display: grid;
+  }
+  .ask-rule {
+    border-top: 1px solid var(--t-rule);
+    margin-bottom: 6px;
+  }
+  .tab {
+    cursor: pointer;
+    padding: 0 2px;
+  }
+  .tab.on {
+    background: var(--t-sel);
+    color: var(--t-bg);
+  }
+  .opt {
+    cursor: pointer;
+    white-space: pre-wrap;
+  }
+  .opt.sel {
+    color: var(--t-sel);
+  }
+  .opt-desc {
+    color: var(--t-gray);
+    white-space: pre-wrap;
+    padding-left: 5ch;
+  }
+  .opt input {
+    font: inherit;
+    color: var(--t-fg);
+    background: transparent;
+    border: 0;
+    outline: none;
+    padding: 0;
+    width: calc(100% - 6ch);
+    caret-color: var(--t-fg);
+  }
+  .opt input::placeholder {
+    color: var(--t-dim);
+  }
+  .under-term {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .linkish {
+    font: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--muted);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+  }
+  .linkish.warn {
+    color: var(--danger);
+  }
+  .measure {
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    font-family: var(--font-mono);
+    font-size: 14px;
+  }
+
+  /* 결과 화면 (만든 사람) */
+  .owner-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .owner-head h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+  }
+  .owner-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .stats b {
+    color: var(--fg);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+  .table-box {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  th,
+  td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line);
+    white-space: nowrap;
+    vertical-align: top;
+  }
+  th {
+    font-weight: 500;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    background: var(--bg);
+  }
+  td.wrap-cell {
+    white-space: normal;
+    min-width: 180px;
+    max-width: 320px;
+  }
+  tr.run {
+    cursor: pointer;
+  }
+  tr.run:hover td {
+    background: var(--bg);
+  }
+  tr.run:focus-visible td {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+  }
+  tr.detail > td {
+    background: var(--bg);
+    padding: 14px;
+    white-space: normal;
+  }
+  .detail-grid {
+    display: grid;
+    gap: 14px;
+  }
+  .detail-grid table {
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .answers {
+    display: grid;
+    grid-template-columns: minmax(140px, 220px) 1fr;
+    gap: 6px 16px;
+    margin: 0;
+    font-size: 13px;
+  }
+  .answers dt {
+    color: var(--muted);
+  }
+  .answers dd {
+    margin: 0;
+    min-width: 0;
+    white-space: pre-wrap;
+  }
+  .chip {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    border: 1px solid var(--line);
+  }
+  .chip.done {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+  .chip.part {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  .ok {
+    color: var(--ok);
+  }
+  .no {
+    color: var(--danger);
+  }
+  .empty {
+    padding: 28px;
+    color: var(--muted);
+    display: grid;
+    gap: 8px;
+  }
+  .empty b {
+    color: var(--fg);
+  }
+
+  @media (max-width: 520px) {
+    .sheet {
+      padding: 18px;
+    }
+    .term {
+      font-size: 13px;
+      height: 64vh;
+    }
+    .answers {
+      grid-template-columns: 1fr;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation: none !important;
+      transition: none !important;
+    }
+  }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>터미널 알림 사내 테스트</h1>
+    <ol class="steps" id="steps" hidden>
+      <li data-step="info">참가자 정보</li>
+      <li data-step="guide">안내</li>
+      <li data-step="terminal">케이스 4개</li>
+      <li data-step="survey">마지막 질문</li>
+    </ol>
+    <span class="save-state" id="save-state" aria-live="polite"></span>
+  </header>
+
+  <main id="screen-loading" class="center-msg">불러오는 중이에요…</main>
+
+  <main id="screen-blocked" class="sheet" hidden>
+    <h2>결과를 저장할 수 없어요</h2>
+    <p id="blocked-msg"></p>
+  </main>
+
+  <main id="screen-info" class="sheet" hidden>
+    <h2>시작하기 전에 알려 주세요</h2>
+    <p class="lede">
+      터미널에 뜨는 알림을 보고 어떻게 받아들이는지 보는 테스트예요. 10분쯤
+      걸려요.
+    </p>
+    <form id="info-form" style="display: grid; gap: 20px" novalidate>
+      <div class="field">
+        <label for="f-name">이름</label>
+        <input type="text" id="f-name" autocomplete="name" maxlength="40" />
+      </div>
+      <fieldset class="field">
+        <legend>직군</legend>
+        <div class="choices">
+          <label
+            ><input
+              type="radio"
+              name="role"
+              id="f-role-dev"
+              value="개발"
+            /><span>개발</span></label
+          >
+          <label
+            ><input
+              type="radio"
+              name="role"
+              id="f-role-design"
+              value="디자인"
+            /><span>디자인</span></label
+          >
+          <label
+            ><input
+              type="radio"
+              name="role"
+              id="f-role-etc"
+              value="기타"
+            /><span>기타</span></label
+          >
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>이 도구를 만드는 사일로에 있나요?</legend>
+        <div class="choices">
+          <label
+            ><input
+              type="radio"
+              name="silo"
+              id="f-silo-yes"
+              value="사일로"
+            /><span>네, 사일로예요</span></label
+          >
+          <label
+            ><input type="radio" name="silo" id="f-silo-no" value="아님" /><span
+              >아니요</span
+            ></label
+          >
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>평소 쓰는 터미널 테마</legend>
+        <span class="hint">고른 테마로 시안 화면을 그려요.</span>
+        <div class="choices">
+          <label
+            ><input
+              type="radio"
+              name="theme"
+              id="f-theme-dark"
+              value="어두움"
+            /><span>어두움</span></label
+          >
+          <label
+            ><input
+              type="radio"
+              name="theme"
+              id="f-theme-light"
+              value="밝음"
+            /><span>밝음</span></label
+          >
+        </div>
+      </fieldset>
+      <p class="form-error" id="info-error" hidden></p>
+      <div class="row-end">
+        <button class="btn" type="submit" id="info-submit">다음</button>
+      </div>
+    </form>
+  </main>
+
+  <main id="screen-guide" class="sheet" hidden>
+    <h2>테스트 안내</h2>
+    <pre
+      class="guide"
+    >10분쯤 걸려요. 잘하고 못하고는 없어요. 막히면 그건 화면 탓이에요.
+
+<b>[상황]</b> 당신은 아래 두 이슈를 맡고 있어요.
+  #6 터미널 알림 상세 화면 만들기
+  #7 앱 알림과 나에게 온 변경 화면
+  Claude Code를 켜서 평소처럼 일을 시작하려고 해요.
+
+<b>[진행]</b> Claude Code를 4번 켜요. 케이스마다 해 볼 것이 달라요.
+  케이스 1  관계있다를 고르면
+  케이스 2  관계없다를 고르면
+  케이스 3  직접 써서 물어보면
+  케이스 4  닫았다가 나중에 답하면
+
+  터미널 아래 노란 띠에 "지금 할 일"이 계속 적혀 있어요.
+  케이스 1·2에서는 답한 뒤 방금 본 내용에 대한 질문 2개가
+  이어져요. 기억나는 대로 답해 주세요.
+  케이스가 끝나면 한 줄 소감을 남기고 다음 케이스로 가요.
+
+<b>[답하는 법]</b> 화살표(↑↓)로 고르고 Enter. 눌러서 골라도 돼요.
+  직접 쓰려면 "Type something."을 골라 입력해요.</pre>
+    <p class="note">
+      이 화면은 실제 Claude Code가 아니라 터미널 시안을 웹에서 흉내 낸 거예요.
+      Claude가 하는 작업도 예시예요.
+    </p>
+    <div class="row-end">
+      <button class="btn" type="button" id="guide-start">케이스 1 시작</button>
+    </div>
+  </main>
+
+  <main id="screen-terminal" hidden style="display: grid; gap: 10px">
+    <section class="term" id="term" tabindex="0" aria-label="터미널 시안">
+      <div class="term-bar" aria-hidden="true">
+        <i></i><i></i><i></i><span>notify-test — claude</span>
+      </div>
+      <div class="term-body" id="term-log" aria-live="polite"></div>
+      <div class="term-input" id="term-input"></div>
+    </section>
+    <section class="coach" id="coach" aria-live="polite">
+      <div class="coach-head">
+        <span class="coach-step" id="coach-step"></span
+        ><span class="coach-title" id="coach-title"></span>
+      </div>
+      <p class="coach-mission" id="coach-mission"></p>
+      <p class="coach-now" id="coach-now"></p>
+      <p class="coach-hint" id="coach-hint" hidden></p>
+      <form class="coach-done" id="coach-done" hidden novalidate>
+        <fieldset class="field">
+          <legend>이번 케이스는 얼마나 매끄러웠나요?</legend>
+          <div class="choices" id="c-smooth"></div>
+          <div class="scale-ends" style="max-width: 300px">
+            <span>1 자주 끊겼다</span><span>5 아주 매끄러웠다</span>
+          </div>
+        </fieldset>
+        <div class="field">
+          <label for="c-note"
+            >걸리거나 헷갈린 곳이 있었다면 적어 주세요
+            <span class="hint">(없으면 비워 두세요)</span></label
+          >
+          <input type="text" id="c-note" maxlength="300" />
+        </div>
+        <p class="form-error" id="c-error" hidden></p>
+        <div class="row-end">
+          <button class="btn" type="submit" id="c-next">다음 케이스</button>
+        </div>
+      </form>
+    </section>
+    <div class="under-term">
+      <span>키보드가 안 먹으면 터미널 안을 한 번 눌러 주세요.</span>
+      <button class="linkish" type="button" id="stop-btn">
+        테스트 그만하기
+      </button>
+    </div>
+  </main>
+
+  <main id="screen-survey" class="sheet" hidden>
+    <h2>마지막 질문</h2>
+    <p class="lede">
+      실제로 일할 때 이 알림을 받는다고 생각하고 답해 주세요. 솔직한 답이 가장
+      도움이 돼요.
+    </p>
+    <form id="survey-form" style="display: grid; gap: 22px" novalidate>
+      <fieldset class="field">
+        <legend>
+          1. 결정 사항이 바뀌었다는 알림을 잘 알아차릴 수 있었나요?
+        </legend>
+        <div class="choices" id="s-noticed"></div>
+        <div class="scale-ends" style="max-width: 300px">
+          <span>1 전혀 못 알아차렸다</span><span>5 바로 알아차렸다</span>
+        </div>
+        <div class="follow" id="f-noticed" hidden>
+          <span class="follow-q"
+            >알아차리기 어려웠던 까닭은 무엇인가요?
+            <span class="hint">(여러 개 골라도 돼요)</span></span
+          >
+          <div class="choices" id="s-noticed-reasons"></div>
+          <input
+            type="text"
+            id="s-noticed-why"
+            maxlength="300"
+            placeholder="그 밖의 까닭이 있다면 적어 주세요"
+            aria-label="그 밖의 까닭"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>2. 무엇이 왜 바뀌었는지 잘 이해됐나요?</legend>
+        <div class="choices" id="s-understood"></div>
+        <div class="scale-ends" style="max-width: 300px">
+          <span>1 전혀 이해 안 됐다</span><span>5 아주 잘 이해됐다</span>
+        </div>
+        <div class="follow" id="f-understood" hidden>
+          <span class="follow-q"
+            >이해하기 어려웠던 까닭은 무엇인가요?
+            <span class="hint">(여러 개 골라도 돼요)</span></span
+          >
+          <div class="choices" id="s-understood-reasons"></div>
+          <input
+            type="text"
+            id="s-understood-why"
+            maxlength="300"
+            placeholder="그 밖의 까닭이 있다면 적어 주세요"
+            aria-label="그 밖의 까닭"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>3. 가장 귀찮거나 막혔던 순간은 언제였나요?</legend>
+        <div class="choices" id="s-hardest"></div>
+        <div class="follow" id="f-hardest" hidden>
+          <span class="follow-q"
+            >그 순간에 무엇 때문에 그랬나요?
+            <span class="hint">(여러 개 골라도 돼요)</span></span
+          >
+          <div class="choices" id="s-hardest-reasons"></div>
+          <input
+            type="text"
+            id="s-hardest-why"
+            maxlength="300"
+            placeholder="그 밖의 까닭이 있다면 적어 주세요"
+            aria-label="그 밖의 까닭"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>
+          4. 관계있다/관계없다, 알았다/몰랐다를 차례로 고르는 과정이 귀찮지는
+          않았나요?
+        </legend>
+        <div class="choices" id="s-tedious"></div>
+        <div class="scale-ends" style="max-width: 300px">
+          <span>1 아주 귀찮았다</span><span>5 전혀 귀찮지 않았다</span>
+        </div>
+        <div class="follow" id="f-tedious" hidden>
+          <span class="follow-q"
+            >귀찮았던 까닭은 무엇인가요?
+            <span class="hint">(여러 개 골라도 돼요)</span></span
+          >
+          <div class="choices" id="s-tedious-reasons"></div>
+          <input
+            type="text"
+            id="s-tedious-why"
+            maxlength="300"
+            placeholder="그 밖의 까닭이 있다면 적어 주세요"
+            aria-label="그 밖의 까닭"
+          />
+        </div>
+      </fieldset>
+      <fieldset class="field">
+        <legend>
+          5. 화면에 나온 말 중 뜻이 헷갈린 것이 있었나요?
+          <span class="hint">(여러 개 골라도 돼요)</span>
+        </legend>
+        <div class="choices term-choices" id="s-terms"></div>
+        <input
+          type="text"
+          id="s-terms-etc"
+          maxlength="200"
+          placeholder="다른 말이 헷갈렸다면 적어 주세요 (선택)"
+          aria-label="그 밖에 헷갈린 말"
+        />
+      </fieldset>
+      <div class="field">
+        <label for="s-ideas"
+          >6. 더 좋아지려면 무엇이 바뀌면 좋을까요?
+          <span class="hint">(자유롭게 적어 주세요)</span></label
+        >
+        <textarea id="s-ideas" maxlength="1500"></textarea>
+      </div>
+      <p class="form-error" id="survey-error" hidden></p>
+      <div class="row-end">
+        <button class="btn" type="submit">제출하기</button>
+      </div>
+    </form>
+  </main>
+
+  <main id="screen-done" class="sheet" hidden>
+    <h2>고마워요! 테스트가 끝났어요</h2>
+    <p>답은 모두 저장했어요. 이 창은 닫아도 돼요.</p>
+    <div class="row-end" id="done-owner" hidden>
+      <button class="btn" type="button" id="back-owner">결과 보기</button>
+    </div>
+  </main>
+
+  <main id="screen-owner" hidden style="display: grid; gap: 14px">
+    <div class="owner-head">
+      <h2>테스트 결과</h2>
+      <div class="owner-actions">
+        <button class="btn ghost" type="button" id="csv-btn" hidden>
+          CSV로 받기
+        </button>
+        <button class="btn" type="button" id="owner-try">직접 해 보기</button>
+      </div>
+    </div>
+    <p class="stats" id="owner-stats"></p>
+    <div class="table-box" id="owner-table"></div>
+    <p class="note">
+      참가자는 이 페이지 링크를 열어 혼자 진행해요. 결과를 저장하려면 공유
+      메뉴에서 참가자에게 Contributor 이상 권한을 줘야 해요. 참가자는 다른
+      사람의 결과를 볼 수 없어요. 줄을 누르면 케이스별 답과 마지막 질문의 답이
+      보여요.
+    </p>
+  </main>
+</div>
+<span class="measure" id="measure">0000000000</span>
+
+<script>
+  // ---------- 시안 데이터 ----------
+  // 변경 1~3: cli-design-notes/prototype/notify-prototype/proto/changes-test.json
+  // 변경 4: changes-sample.json의 리뷰 규칙 폐기 (위키 work.review.within-4h → work.review.self-merge)
+  // expected(관계 정답)와 quiz(이해도 문제)는 화면에 보이지 않는다. 화면 글은 notice.py가 만드는 글을 그대로 옮겼다
+  const DATA_NAME = 'changes-test-cases';
+  const RECALL = '결정 사항 확인';
+  const THINK_MS = 900; // 상세를 띄운 뒤 Claude가 질문을 꺼낼 때까지 (실제 Claude Code의 기다림 흉내)
+  const SHORT_THINK_MS = 450;
+  const RECORDED_PAUSE_MS = 1600; // "✓ 기록했어요"를 읽을 시간. 그 뒤에 상세를 가리고 이해도 질문으로 넘어간다
+  const RECALL_HINT_MS = 40000; // 케이스 4에서 한 줄 알림을 본 뒤 이만큼 지나면 힌트를 보여 준다
+
+  const CHANGES = {
+    'test-1-number': {
+      id: 'test-1-number',
+      area: 'app',
+      who: '부건',
+      when: '오후 2:13',
+      tag: null,
+      title: '앱 알림 제목은 32자 이하로 쓴다',
+      value: { type: 'swap', old: '40자', new: '32자' },
+      reason: 'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
+      issue: '#7',
+      issueTitle: '앱 알림과 나에게 온 변경 화면',
+      source: 'AI 대화',
+      expected: '관계있다',
+      explain:
+        '앱 알림 제목 길이 기준이 공백 포함 40자 이하에서 32자 이하로 바뀌었어요. Windows 알림 창에서 32자를 넘으면 제목 끝이 잘려서예요.',
+      quiz: {
+        what: [
+          '앱 알림 본문 길이 제한이 32자에서 40자로 늘었다',
+          '앱 알림 제목 길이 제한이 40자에서 32자로 줄었다',
+          '터미널 알림 제목에 이슈 번호를 넣게 됐다',
+          '앱 알림에서 제목을 빼기로 했다',
+        ],
+        whatAnswer: 2,
+        why: [
+          'Mac 알림 센터의 디자인 규칙이 바뀌어서',
+          '터미널 가로 80칸에 맞추려고',
+          'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘려서',
+          '번역하면 글자 수가 늘어나서',
+        ],
+        whyAnswer: 3,
+      },
+    },
+    'test-5-unrelated': {
+      id: 'test-5-unrelated',
+      area: 'work',
+      who: '호윤',
+      when: '오전 10:30',
+      tag: null,
+      title: '다른 팀 배포는 발표 뒤에 한다',
+      value: {
+        type: 'rewrite',
+        old: '새 기능은 팀원 2명, 사일로 전원, 다른 팀 순서로 넓힌다',
+      },
+      reason: '다른 팀 동의를 받는 데 시간이 걸려 발표 전에 배포하기 어려움',
+      issue: '#6',
+      issueTitle: '터미널 알림 상세 화면 만들기',
+      source: 'PR · AI가 찾음',
+      expected: '관계없다',
+      explain:
+        '새 기능은 팀원 2명, 사일로 전원 순서로 넓히고, 다른 팀 배포는 10/16 발표 뒤로 미뤘어요. 다른 팀 동의를 받는 데 시간이 걸려서예요.',
+      quiz: {
+        what: [
+          '사일로 전원 배포를 건너뛰게 됐다',
+          '팀원 2명에게 먼저 배포하는 단계를 없앴다',
+          '다른 팀 배포를 10/16 발표 뒤로 미뤘다',
+          '다른 팀에 먼저 배포하게 됐다',
+        ],
+        whatAnswer: 3,
+        why: [
+          '다른 팀 동의를 받는 데 시간이 걸려서',
+          '사일로에서 버그가 많이 나와서',
+          '발표 자료를 만들 시간이 없어서',
+          '다른 팀이 미뤄 달라고 해서',
+        ],
+        whyAnswer: 1,
+      },
+    },
+    'test-4-new': {
+      id: 'test-4-new',
+      area: 'notify',
+      who: '민수',
+      when: '오후 1:05',
+      tag: '신규',
+      title: '보기 대신 쓴 글은 답이 아닌 메모로 남긴다',
+      value: { type: 'new' },
+      reason: "답이 보기 중 하나여야 '몰랐다' 수를 바로 셀 수 있음",
+      issue: '#6',
+      issueTitle: '터미널 알림 상세 화면 만들기',
+      source: 'AI 대화',
+      expected: '관계있다',
+      explain:
+        "관계·알았나 질문에서 보기 대신 직접 쓴 글은 답이 아니라 메모로 남긴다는 결정 사항이 새로 생겼어요. 답이 보기 중 하나여야 '몰랐다' 수를 바로 셀 수 있어서예요.",
+      quiz: {
+        what: [
+          '직접 쓴 글도 답으로 기록하게 됐다',
+          "'Type something.' 칸을 화면에서 빼게 됐다",
+          '메모는 앱에서만 쓸 수 있게 됐다',
+          '직접 쓴 글은 답이 아니라 메모로 남긴다는 결정 사항이 새로 생겼다',
+        ],
+        whatAnswer: 4,
+        why: [
+          '메모를 저장할 곳이 부족해서',
+          "답이 보기 중 하나여야 '몰랐다' 수를 바로 셀 수 있어서",
+          '직접 쓴 글에 개인정보가 들어갈 수 있어서',
+          'Claude가 쓴 글을 줄여 버려서',
+        ],
+        whyAnswer: 2,
+      },
+    },
+    'test-6-deprecated': {
+      id: 'test-6-deprecated',
+      area: 'work',
+      who: '호윤',
+      when: '오전 11:20',
+      tag: '폐기',
+      title: '리뷰 요청은 4시간 안에 본다',
+      value: {
+        type: 'deprecated',
+        old: '코드 리뷰 요청은 4시간 안에 보고, 못 보면 못 본다고 남긴다',
+      },
+      reason: '리뷰 승인 없이 본인이 머지하고 CI로 검사하기로 바뀜',
+      issue: '#6',
+      issueTitle: '터미널 알림 상세 화면 만들기',
+      source: 'AI 대화',
+      expected: '관계있다',
+      explain:
+        '"리뷰 요청은 4시간 안에 본다"는 결정 사항을 더는 쓰지 않아요. 리뷰 승인 없이 본인이 머지하고 CI(자동 검사)로 검사하기로 바뀌어서예요.',
+      quiz: {
+        what: [
+          '리뷰 요청을 2시간 안에 보도록 바꿨다',
+          '"리뷰 요청은 4시간 안에 본다"는 결정 사항을 폐기했다',
+          '리뷰를 두 사람이 하도록 바꿨다',
+          '리뷰 요청을 Slack으로만 보내게 됐다',
+        ],
+        whatAnswer: 2,
+        why: [
+          '리뷰가 너무 늦어져서',
+          '리뷰 승인 없이 본인이 머지하고 CI로 검사하기로 바뀌어서',
+          '리뷰할 사람이 부족해서',
+          '4시간이 너무 짧아서',
+        ],
+        whyAnswer: 2,
+      },
+    },
+  };
+
+  // 케이스: Claude Code를 새로 켤 때마다 하나. path는 이번에 겪어 볼 흐름, isComeBack은 닫은 뒤 다시 답하는 케이스
+  // 이해 질문(hasQuiz)은 변경 내용을 보는 케이스 1·2에서만 묻는다. 3·4는 답하는 흐름을 보는 케이스다
+  const CASES = [
+    {
+      id: 'case-1',
+      title: '관계있다를 고르면',
+      changeId: 'test-1-number',
+      path: 'related',
+      hasQuiz: true,
+      mission: '이번에는 "관계있다"를 골라요. 그다음 질문은 생각대로 답해요.',
+    },
+    {
+      id: 'case-2',
+      title: '관계없다를 고르면',
+      changeId: 'test-5-unrelated',
+      path: 'unrelated',
+      hasQuiz: true,
+      mission: '이번에는 "관계없다"를 골라요. 이유는 생각대로 골라요.',
+    },
+    {
+      id: 'case-3',
+      title: '직접 써서 물어보면',
+      changeId: 'test-4-new',
+      path: 'typed',
+      mission:
+        '보기를 고르기 전에 "Type something."에 궁금한 점을 직접 써서 물어봐요. 답을 읽은 뒤에는 원하는 보기를 골라요.',
+    },
+    {
+      id: 'case-4',
+      title: '닫았다가 나중에 답하면',
+      changeId: 'test-6-deprecated',
+      path: 'comeback',
+      isComeBack: true,
+      mission:
+        '급한 일이 있어서 지금은 답할 시간이 없다고 생각해요. 질문이 뜨면 닫고 넘어간 뒤, 나중에 다시 답해 봐요.',
+    },
+  ];
+
+  const QUESTIONS = {
+    relation: {
+      question: '이 변경이 내 이슈와 관계가 있나요?',
+      options: [
+        ['관계있다', '내 이슈 결과물이 이 변경에 맞춰 바뀌어야 해요'],
+        ['관계없다', '내 이슈와는 상관없는 변경이에요'],
+      ],
+    },
+    knew: {
+      question: '이 변경을 이미 알고 있었나요?',
+      options: [
+        ['알았다', '오늘 알림을 보기 전에 알고 있었어요'],
+        ['몰랐다', '오늘 알림으로 처음 알았어요'],
+      ],
+    },
+    reason: {
+      question: '왜 관계없나요?',
+      options: [
+        [
+          '내 작업 범위가 아니에요',
+          '이 결정 사항이 다루는 화면·기능을 내가 맡고 있지 않아요',
+        ],
+        [
+          '내 이슈와 연결이 잘못됐어요',
+          '이 결정 사항이 내 이슈에 잘못 이어져 있어요',
+        ],
+        [
+          '바뀐 부분은 내 작업에 안 쓰여요',
+          '결정 사항은 내 작업과 이어져 있지만, 이번에 바뀐 부분은 영향이 없어요',
+        ],
+      ],
+    },
+  };
+
+  // 마지막 질문 보기. 알아차림·이해·귀찮음·헷갈린 말·개선 의견 (10/12 부건과 정함, 진행 대본 4-4·4-6에서 가져옴)
+  const SURVEY_OPTIONS = {
+    hardest: [
+      '켤 때 뜬 알림',
+      '변경 내용 읽기',
+      '관계있다/관계없다 고르기',
+      '알았다/몰랐다 고르기',
+      '관계없는 이유 고르기',
+      '직접 써서 물어보기',
+      '질문을 닫고 넘어가기',
+      '넘긴 변경에 다시 답하기',
+      '이어지는 이해 질문',
+      '딱히 없었다',
+    ],
+  };
+  const NO_TROUBLE = '딱히 없었다';
+  const NEGATIVE_MAX = 3; // 1~5점 중 이 점수 이하를 고르면 까닭을 묻는다
+  // 부정적으로 답했을 때 묻는 까닭 보기
+  const REASONS = {
+    noticed: [
+      '회색 글씨라 눈에 잘 띄지 않았다',
+      '다른 글과 섞여 알림인지 몰랐다',
+      '첫 줄만 보고는 무슨 일인지 몰랐다',
+      '작업을 입력하기 전까지 못 봤다',
+      '질문을 닫은 뒤 뜬 한 줄 알림을 못 봤다',
+    ],
+    understood: [
+      '"변경" 줄만으로는 무엇이 바뀌었는지 몰랐다',
+      '이전 값과 지금 값을 견주기 어려웠다',
+      '이유가 짧아 왜 바뀌었는지 몰랐다',
+      '내 이슈와 어떻게 이어지는지 몰랐다',
+      '처음 보는 말이 있었다',
+      '읽을 글이 많았다',
+    ],
+    hardest: [
+      '무엇을 해야 할지 몰랐다',
+      '고를 보기가 내 생각과 맞지 않았다',
+      '읽을 글이 많았다',
+      '기다리는 시간이 길었다',
+      '질문이 너무 많았다',
+      '화면이 갑자기 바뀌었다',
+    ],
+    tedious: [
+      '질문이 두 번에 나뉘어 나와서',
+      '관계가 있는지 판단하기 어려워서',
+      '알았다/몰랐다를 정하기 애매해서',
+      '작업을 시작하기 전에 끼어들어서',
+      '변경마다 같은 걸 반복해서',
+    ],
+  };
+  // 헷갈린 말: 시안 화면에 실제로 나온 글을 예시로 함께 보여 준다
+  const TERMS = [
+    ['결정 사항', '● [app] 결정 사항이 1건 변경되었어요.'],
+    ['확인할 변경', '작업 전에 확인할 변경이 1건 있어요.'],
+    ['변경 · 이전', '변경  40자 ⭢ 32자\n이전  새 기능은 팀원 2명, …'],
+    ['(신규) · (폐기)', '[notify] 보기 대신 쓴 글은… (신규)'],
+    ['출처', '출처  AI 대화 / 출처  PR · AI가 찾음'],
+    ['관계있다 · 관계없다', '이 변경이 내 이슈와 관계가 있나요?'],
+    ['알았다 · 몰랐다', '오늘 알림을 보기 전에 알고 있었어요'],
+    [
+      '관계없는 이유 보기',
+      '내 이슈와 연결이 잘못됐어요\n바뀐 부분은 내 작업에 안 쓰여요',
+    ],
+    ['다음 작업부터 따른다', '다음 작업부터 바뀐 결정 사항을 따라요.'],
+    [
+      '"결정 사항 확인"',
+      '"결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
+    ],
+    ['없었다', ''],
+  ];
+
+  // ---------- 상태 ----------
+  const S = {
+    db: null,
+    uid: null,
+    downloads: null,
+    isOwner: false,
+    runId: null,
+    participant: null,
+    status: 'info',
+    startedAt: null,
+    endedAt: null,
+    isEnded: false,
+    events: [],
+    caseStates: [],
+    caseIndex: -1,
+    cur: null,
+    survey: null,
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const iso = () => new Date().toISOString();
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  let hintTimer = null;
+
+  function logEvent(event, extra) {
+    const row = { at: iso(), event };
+    if (S.cur) {
+      row.case_id = S.cur.case_id;
+      row.change_id = S.cur.change_id;
+    }
+    Object.assign(row, extra || {});
+    S.events.push(row);
+  }
+
+  // ---------- 화면 전환 ----------
+  const SCREENS = [
+    'loading',
+    'blocked',
+    'info',
+    'guide',
+    'terminal',
+    'survey',
+    'done',
+    'owner',
+  ];
+  const STEP_ORDER = ['info', 'guide', 'terminal', 'survey'];
+
+  function showScreen(name) {
+    for (const s of SCREENS) $('screen-' + s).hidden = s !== name;
+    const steps = $('steps');
+    const idx = STEP_ORDER.indexOf(name);
+    steps.hidden = idx < 0 && name !== 'done';
+    for (const li of steps.children) {
+      const i = STEP_ORDER.indexOf(li.dataset.step);
+      li.className =
+        name === 'done' ? 'done' : i === idx ? 'on' : i < idx ? 'done' : '';
+    }
+    window.scrollTo(0, 0);
+  }
+
+  function showBlocked(message) {
+    $('blocked-msg').textContent = message;
+    showScreen('blocked');
+  }
+
+  function setSaveState(text, isError) {
+    const el = $('save-state');
+    el.textContent = text;
+    el.classList.toggle('err', !!isError);
+  }
+
+  // ---------- 지금 할 일 안내 ----------
+  const COACH = {
+    start:
+      '평소처럼 작업을 하나 입력하고 Enter를 눌러요. (예: 로그인 화면 문구 고쳐 줘)',
+    question: '변경 내용을 읽고 아래 질문에 답해요.',
+    typedReply: 'Claude의 답을 읽었다면, 이번에는 보기 중 하나를 골라요.',
+    recorded:
+      '답이 기록됐어요. 곧 방금 본 변경에 대한 질문 2개가 나와요. 위 내용은 가려져요.',
+    quiz: '기억나는 대로 골라요. 두 질문에 다 답하면 Submit answers를 눌러요.',
+    working: 'Claude가 원래 하려던 작업을 이어서 하고 있어요. 잠시 지켜봐요.',
+    closedComeBack:
+      '질문을 닫았어요. Claude가 작업을 이어서 하는 걸 본 뒤, 다른 작업을 하나 더 입력해 봐요. (예: 회원가입 버튼 문구도 고쳐 줘)',
+    afterReminder:
+      '이제 시간이 생겼어요. 아까 넘긴 변경에 다시 답해 봐요. 어떻게 하면 되는지는 화면에서 찾아봐요.',
+    closedOther:
+      '질문을 닫았어요. 괜찮아요. Claude가 작업을 이어서 하는 걸 본 뒤 다음 케이스로 가요.',
+    done: '이번 케이스를 마쳤어요. 아래에 한 줄 소감을 남기고 다음 케이스로 가요.',
+  };
+
+  function setCoach(key) {
+    const k = CASES[S.caseIndex];
+    $('coach-step').textContent =
+      '케이스 ' + (S.caseIndex + 1) + '/' + CASES.length;
+    $('coach-title').textContent = k.title;
+    $('coach-mission').textContent = '이번에 해 볼 것 · ' + k.mission;
+    $('coach-now').textContent = COACH[key];
+    $('coach-hint').hidden = true;
+    $('coach-done').hidden = key !== 'done';
+    if (S.cur) S.cur.coach = key;
+  }
+
+  function showCoachHint(text) {
+    $('coach-hint').textContent = text;
+    $('coach-hint').hidden = false;
+  }
+
+  // ---------- 저장 (db: results/<내 id> 문서 하나에 runs.<runId>로 쌓는다) ----------
+  let saveChain = Promise.resolve();
+  let hasDoc = null;
+
+  // 기다리지 않고 저장 (실패는 위 표시줄에만 보인다)
+  function save() {
+    saveOrThrow().catch(() => {});
+  }
+  // 저장이 끝날 때까지 기다리고, 실패하면 오류를 넘긴다
+  function saveOrThrow() {
+    const p = saveChain.then(() => writeRun(false));
+    saveChain = p.catch(() => {});
+    return p;
+  }
+
+  async function writeRun(isRetry) {
+    if (!S.db || !S.uid || !S.runId) return;
+    const ref = S.db.doc('results/' + S.uid);
+    const body = { runs: { [S.runId]: buildRun() } };
+    try {
+      if (hasDoc === null) hasDoc = (await ref.get()).exists;
+      if (hasDoc) await ref.update(body);
+      else {
+        await ref.set(body);
+        hasDoc = true;
+      }
+      const t = new Date();
+      setSaveState(
+        '저장됨 · ' +
+          String(t.getHours()).padStart(2, '0') +
+          ':' +
+          String(t.getMinutes()).padStart(2, '0'),
+      );
+    } catch (e) {
+      if (e && e.code === 'unavailable' && !isRetry) {
+        await sleep(600 + Math.random() * 600);
+        return writeRun(true);
+      }
+      setSaveState(
+        '저장하지 못했어요 (' + ((e && e.code) || '알 수 없음') + ')',
+        true,
+      );
+      throw e;
+    }
+  }
+
+  // ---------- 숫자 계산 ----------
+  function secondsBetween(a, b) {
+    if (!a || !b) return null;
+    return Math.round((new Date(b) - new Date(a)) / 100) / 10;
+  }
+  function present(values) {
+    return values.filter((x) => x !== null && x !== undefined);
+  }
+  function average(values) {
+    const v = present(values);
+    return v.length
+      ? Math.round((v.reduce((s, x) => s + x, 0) / v.length) * 10) / 10
+      : null;
+  }
+  function median(values) {
+    const v = present(values).sort((a, b) => a - b);
+    if (!v.length) return null;
+    const m = Math.floor(v.length / 2);
+    return v.length % 2 ? v[m] : Math.round(((v[m - 1] + v[m]) / 2) * 10) / 10;
+  }
+
+  function isFollowed(k, c) {
+    if (k.path === 'related') return c.relation === '관계있다';
+    if (k.path === 'unrelated') return c.relation === '관계없다';
+    if (k.path === 'typed') return c.typed_count > 0;
+    return c.closed && c.recalled;
+  }
+
+  function measureCase(st) {
+    const k = CASES.find((x) => x.id === st.case_id);
+    const ch = CHANGES[st.change_id];
+    const ev = S.events.filter((e) => e.case_id === st.case_id);
+    let shownAt = null,
+      relationAt = null,
+      answeredAt = null,
+      quizAt = null,
+      reminderAt = null,
+      recallAt = null;
+    for (const e of ev) {
+      if (e.event === 'detail_shown' && !answeredAt) {
+        shownAt = e.at;
+        relationAt = null;
+        if (e.recall && !recallAt) recallAt = e.at;
+      } else if (e.event === 'relation_chosen' && !answeredAt && !relationAt)
+        relationAt = e.at;
+      else if (e.event === 'answered') answeredAt = e.at;
+      else if (e.event === 'quiz_saved') quizAt = e.at;
+      else if (e.event === 'reminder' && !reminderAt) reminderAt = e.at;
+    }
+    const a = st.answer,
+      q = st.quiz || {};
+    const row = {
+      case_id: st.case_id,
+      title: k.title,
+      change_id: st.change_id,
+      relation: a ? a.relation : null,
+      knew: a ? a.knew : null,
+      reason: a ? a.reason : null,
+      note: a ? a.note : null,
+      expected: ch.expected,
+      path_taken: a
+        ? a.relation + ' → ' + (a.knew || a.reason || '')
+        : st.closed
+          ? '닫음'
+          : null,
+      typed_count: st.typed_count,
+      closed: st.closed,
+      reminders: ev.filter((e) => e.event === 'reminder').length,
+      recalled: !!recallAt,
+      recall_sec: secondsBetween(reminderAt, recallAt),
+      hint_shown: st.hint_shown,
+      relation_sec: secondsBetween(shownAt, relationAt),
+      decide_sec: secondsBetween(shownAt, answeredAt),
+      quiz_sec: secondsBetween(answeredAt, quizAt),
+      has_quiz: !!k.hasQuiz,
+      what: q.what ?? null,
+      what_correct: q.what_correct ?? null,
+      why: q.why ?? null,
+      why_correct: q.why_correct ?? null,
+      smooth: st.smooth,
+      smooth_note: st.smooth_note,
+      finished: st.finished,
+    };
+    row.followed = isFollowed(k, row);
+    return row;
+  }
+
+  function summarize(rows) {
+    const n = rows.length;
+    const quizRows = rows.filter((r) => r.has_quiz);
+    const decide = rows.map((r) => r.decide_sec);
+    const comeback = rows.find((r) => r.case_id === 'case-4');
+    return {
+      total_sec: secondsBetween(S.startedAt, S.endedAt),
+      cases_done: rows.filter((r) => r.finished).length + '/' + CASES.length,
+      decide_median_sec: median(decide),
+      decide_over_60:
+        present(decide).filter((x) => x > 60).length +
+        '/' +
+        present(decide).length,
+      quiz_avg_sec: average(rows.map((r) => r.quiz_sec)),
+      what_correct:
+        quizRows.filter((r) => r.what_correct).length + '/' + quizRows.length,
+      why_correct:
+        quizRows.filter((r) => r.why_correct).length + '/' + quizRows.length,
+      followed: rows.filter((r) => r.followed).length + '/' + n,
+      closed: rows.filter((r) => r.closed).length,
+      typed: rows.reduce((s, r) => s + (r.typed_count || 0), 0),
+      came_back: comeback ? comeback.recalled : null,
+      came_back_sec: comeback ? comeback.recall_sec : null,
+      came_back_hint: comeback ? comeback.hint_shown : null,
+      smooth_avg: average(rows.map((r) => r.smooth)),
+    };
+  }
+
+  function buildRun() {
+    const rows = S.caseStates.map(measureCase);
+    return {
+      run_id: S.runId,
+      version: 3,
+      data: DATA_NAME,
+      status: S.status,
+      participant: S.participant,
+      started: S.startedAt,
+      ended: S.endedAt,
+      metrics: summarize(rows),
+      cases: rows,
+      survey: S.survey,
+      events: S.events,
+    };
+  }
+
+  // ---------- 참가자 정보 ----------
+  function radioValue(name) {
+    const el = document.querySelector('input[name="' + name + '"]:checked');
+    return el ? el.value : null;
+  }
+  function checkedValues(name) {
+    return Array.from(
+      document.querySelectorAll('input[name="' + name + '"]:checked'),
+    ).map((el) => el.value);
+  }
+
+  function measureTerminal() {
+    const charW = $('measure').getBoundingClientRect().width / 10 || 8.4;
+    const body = $('term-log');
+    return {
+      cols: Math.max(1, Math.floor((body.clientWidth - 28) / charW)),
+      rows: Math.max(1, Math.floor(body.clientHeight / 21)),
+    };
+  }
+
+  $('info-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('f-name').value.trim();
+    const role = radioValue('role'),
+      silo = radioValue('silo'),
+      theme = radioValue('theme');
+    const err = $('info-error');
+    if (!name || !role || !silo || !theme) {
+      err.textContent = '네 칸을 모두 채워 주세요.';
+      err.hidden = false;
+      return;
+    }
+    err.hidden = true;
+    const now = new Date();
+    const stamp =
+      now.getFullYear() +
+      String(now.getMonth() + 1).padStart(2, '0') +
+      String(now.getDate()).padStart(2, '0') +
+      '-' +
+      String(now.getHours()).padStart(2, '0') +
+      String(now.getMinutes()).padStart(2, '0');
+    Object.assign(S, {
+      runId: 'r' + stamp + '-' + Math.random().toString(36).slice(2, 7),
+      participant: {
+        name,
+        role,
+        silo,
+        theme,
+        is_owner: S.isOwner,
+        viewport: { w: window.innerWidth, h: window.innerHeight },
+        input: window.matchMedia('(pointer: coarse)').matches
+          ? '터치'
+          : '마우스·키보드',
+        info_at: iso(),
+      },
+      status: 'info_done',
+      startedAt: null,
+      endedAt: null,
+      isEnded: false,
+      events: [],
+      caseStates: [],
+      caseIndex: -1,
+      cur: null,
+      survey: null,
+    });
+    $('info-submit').disabled = true;
+    try {
+      await saveOrThrow();
+    } catch (e2) {
+      $('info-submit').disabled = false;
+      if (e2 && e2.code === 'invalid_argument') {
+        showBlocked(
+          '이 링크로는 결과를 저장할 수 없어요. 링크를 준 분께 Contributor 이상 권한을 달라고 해 주세요.',
+        );
+      } else {
+        err.textContent = '저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.';
+        err.hidden = false;
+      }
+      return;
+    }
+    $('info-submit').disabled = false;
+    $('term').dataset.term = theme === '밝음' ? 'light' : 'dark';
+    showScreen('guide');
+  });
+
+  $('guide-start').addEventListener('click', () => {
+    showScreen('terminal');
+    S.startedAt = iso();
+    S.status = 'in_progress';
+    const size = measureTerminal();
+    S.participant.term_cols = size.cols;
+    S.participant.term_rows = size.rows;
+    startCase(0);
+  });
+
+  // ---------- 터미널 그리기 ----------
+  const LOG = $('term-log');
+  const INPUT = $('term-input');
+
+  function seg(cls, text) {
+    const s = document.createElement('span');
+    if (cls) s.className = cls;
+    s.textContent = text;
+    return s;
+  }
+  function ln(...parts) {
+    const d = document.createElement('div');
+    d.className = 'ln';
+    for (const p of parts) {
+      if (p === null || p === undefined || p === '') continue;
+      d.append(typeof p === 'string' ? document.createTextNode(p) : p);
+    }
+    if (!d.childNodes.length) d.textContent = ' ';
+    return d;
+  }
+  const blank = () => ln();
+  function hook(lines) {
+    // hooks가 띄우는 글: Claude Code가 회색으로 감싼다
+    const d = document.createElement('div');
+    d.className = 'hook';
+    for (const l of lines) if (l) d.append(l);
+    return d;
+  }
+  function out(...nodes) {
+    for (const n of nodes) LOG.append(n);
+    LOG.scrollTop = LOG.scrollHeight;
+  }
+  function clearLog() {
+    LOG.replaceChildren();
+  }
+  function claudeSay(text) {
+    out(blank(), ln(seg('fg', '⏺ '), seg('fg', text)));
+  }
+  function toolCall(name, arg, result) {
+    out(
+      blank(),
+      ln(seg('gr', '⏺ '), seg('fg b', name), seg('fg', '(' + arg + ')')),
+      ln(seg('g', '  ⎿  ' + result)),
+    );
+  }
+
+  async function think(ms) {
+    const glyphs = ['·', '✢', '✳', '✶', '✻', '✽'];
+    const mark = seg('spin', '✻');
+    const row = ln(mark, seg('spin', ' Thinking…'));
+    out(row);
+    let i = 0;
+    const isReduced = window.matchMedia(
+      '(prefers-reduced-motion: reduce)',
+    ).matches;
+    const timer = isReduced
+      ? null
+      : setInterval(() => {
+          mark.textContent = glyphs[i++ % glyphs.length];
+        }, 120);
+    await sleep(ms);
+    if (timer) clearInterval(timer);
+    row.remove();
+  }
+
+  function curChange() {
+    return CHANGES[S.cur.change_id];
+  }
+  function isPending() {
+    return !S.cur.answer;
+  }
+
+  function sessionNotice(c) {
+    return hook([
+      blank(),
+      ln(
+        seg('fg', '● [' + c.area + '] 결정 사항이 '),
+        seg('fg y b', '1'),
+        seg('fg', '건 변경되었어요.'),
+      ),
+      ln('  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.'),
+    ]);
+  }
+
+  function valueLines(c) {
+    if (c.value.type === 'new')
+      return [ln('  변경  새로 생긴 결정 사항이에요'), blank()];
+    if (c.value.type === 'deprecated')
+      return [
+        ln('  변경  결정 사항을 폐기했어요'),
+        ln('  이전  ' + c.value.old),
+        blank(),
+      ];
+    if (c.value.type === 'rewrite')
+      return [
+        ln('  변경  문장을 새로 썼어요'),
+        ln('  이전  ' + c.value.old),
+        blank(),
+      ];
+    return [
+      ln('  변경  ', seg('d', c.value.old), ' ⭢ ', seg('b', c.value.new)),
+      blank(),
+    ];
+  }
+
+  function showDetail(c, recall) {
+    logEvent('detail_shown', { recall: !!recall });
+    out(
+      hook([
+        blank(),
+        ln(
+          seg('b', (recall ? '' : '작업 전에 ') + '확인할 변경이 1건 있어요.'),
+        ),
+        blank(),
+        ln(
+          seg('fg', '[' + c.area + '] '),
+          seg('fg b', c.title),
+          c.tag ? seg('d', ' (' + c.tag + ')') : null,
+        ),
+        ln(
+          ' '.repeat(c.area.length + 3) +
+            c.who +
+            '님이 ' +
+            c.when +
+            '에 변경했어요.',
+        ),
+        ...valueLines(c),
+        ln('  이유  ' + c.reason),
+        ln('  이슈  ' + c.issue + ' ' + c.issueTitle),
+        ln('  출처  ' + c.source),
+      ]),
+    );
+  }
+
+  function recordedLines(c) {
+    const a = S.cur.answer;
+    const second = a.relation === '관계있다' ? a.knew : a.reason;
+    return hook([
+      blank(),
+      ln(
+        seg('gr', '✓'),
+        ' 기록했어요  ',
+        seg('fg', [c.issue, a.relation, second || ''].join(' · ')),
+      ),
+      a.relation === '관계있다'
+        ? ln('  다음 작업부터 바뀐 결정 사항을 따라요.')
+        : null,
+    ]);
+  }
+
+  function reminderLines() {
+    return hook([
+      blank(),
+      ln(
+        seg('fg', '● 확인할 변경 '),
+        seg('fg y b', '1'),
+        seg('fg', '건 · '),
+        seg('fg b', '"' + RECALL + '"'),
+        seg('fg', '을 입력하면 변경 내역을 볼 수 있어요.'),
+      ),
+    ]);
+  }
+
+  function echoAnswers(questions, answers) {
+    out(
+      blank(),
+      ln(seg('fg', '⏺ '), seg('fg', "User answered Claude's questions:")),
+    );
+    questions.forEach((q, i) =>
+      out(
+        ln(
+          seg(
+            'g',
+            (i === 0 ? '  ⎿  · ' : '     · ') +
+              q.question +
+              ' → ' +
+              answers[i].label,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // 원래 작업: 예시 데이터로 Claude가 작업을 이어 가는 모습만 보여 준다 (파일은 바뀌지 않는다)
+  async function mockWork(prompt) {
+    setCoach('working');
+    logEvent('work_started');
+    const task = prompt && prompt !== RECALL ? prompt : '요청한 작업';
+    await think(THINK_MS);
+    claudeSay(
+      '이어서 "' +
+        (task.length > 40 ? task.slice(0, 40) + '…' : task) +
+        '" 작업을 진행할게요.',
+    );
+    await think(700);
+    toolCall('Read', 'login-screen.md', 'Read 7 lines');
+    await think(800);
+    toolCall(
+      'Update',
+      'login-screen.md',
+      'Updated login-screen.md with 2 additions and 2 removals',
+    );
+    await think(500);
+    claudeSay(
+      '작업을 마쳤어요. 버튼 문구는 "로그인하기"에서 "로그인"으로, 오류 문구는 "로그인하지 못했어요. 다시 해 주세요."로 고쳤어요.',
+    );
+    logEvent('work_done');
+  }
+
+  // ---------- 입력줄 ----------
+  function showPrompt() {
+    if (S.isEnded) return;
+    INPUT.replaceChildren();
+    const rule = document.createElement('div');
+    rule.className = 'prompt-rule';
+    const row = document.createElement('div');
+    row.className = 'prompt-row';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'prompt-input';
+    input.setAttribute('aria-label', 'Claude Code 입력');
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.isComposing) return;
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      onPrompt(text);
+    });
+    row.append(seg('fg', '> '), input);
+    INPUT.append(
+      rule,
+      row,
+      rule.cloneNode(),
+      ln(seg('d', '  ? for shortcuts')),
+    );
+    input.focus({ preventScroll: true });
+  }
+  function hidePrompt() {
+    INPUT.replaceChildren();
+  }
+
+  // ---------- 선택 화면 (AskUserQuestion 흉내) ----------
+  let ACTIVE = null;
+
+  function ask(questions) {
+    if (S.isEnded) return Promise.resolve({ isCancelled: true });
+    return new Promise((resolve) => {
+      ACTIVE = {
+        questions,
+        tab: 0,
+        resolve,
+        cursor: questions.map(() => 0),
+        answers: questions.map(() => null),
+        typed: questions.map(() => ''),
+      };
+      renderAsk();
+    });
+  }
+
+  function optionCount(a) {
+    return a.tab === a.questions.length
+      ? 2
+      : a.questions[a.tab].options.length + 1;
+  }
+
+  function renderAsk() {
+    const a = ACTIVE;
+    if (!a) return;
+    const n = a.questions.length;
+    const isMulti = n > 1;
+    const box = document.createElement('div');
+    box.className = 'ask';
+    const rule = document.createElement('div');
+    rule.className = 'ask-rule';
+    box.append(rule);
+
+    const tabs = document.createElement('div');
+    tabs.className = 'ln';
+    if (isMulti) {
+      tabs.append(seg('d', '←  '));
+      a.questions.forEach((q, i) => {
+        const t = seg(
+          'tab' + (i === a.tab ? ' on' : ''),
+          (a.answers[i] ? '☒ ' : '☐ ') + q.header,
+        );
+        t.addEventListener('click', () => {
+          a.tab = i;
+          renderAsk();
+        });
+        tabs.append(t, document.createTextNode('  '));
+      });
+      const st = seg('tab' + (a.tab === n ? ' on' : ''), '✔ Submit');
+      st.addEventListener('click', () => {
+        a.tab = n;
+        renderAsk();
+      });
+      tabs.append(st, seg('d', '  →'));
+    } else {
+      tabs.append(seg('tab on', '☐ ' + a.questions[0].header));
+    }
+    box.append(tabs, blank());
+
+    let typedInput = null;
+    const cur = a.cursor[a.tab];
+    if (a.tab < n) {
+      const q = a.questions[a.tab];
+      box.append(ln(seg('fg b', q.question)), blank());
+      q.options.forEach((o, i) => {
+        const row = document.createElement('div');
+        row.className = 'opt' + (i === cur ? ' sel' : '');
+        row.textContent = (i === cur ? '❯ ' : '  ') + (i + 1) + '. ' + o.label;
+        row.addEventListener('click', () => {
+          a.cursor[a.tab] = i;
+          choose('click');
+        });
+        box.append(row);
+        if (o.description) {
+          const d = document.createElement('div');
+          d.className = 'opt-desc';
+          d.textContent = o.description;
+          box.append(d);
+        }
+      });
+      const k = q.options.length;
+      const row = document.createElement('div');
+      row.className = 'opt' + (cur === k ? ' sel' : '');
+      row.append(
+        document.createTextNode((cur === k ? '❯ ' : '  ') + (k + 1) + '. '),
+      );
+      if (cur === k) {
+        typedInput = document.createElement('input');
+        typedInput.id = 'ask-typed';
+        typedInput.type = 'text';
+        typedInput.placeholder = 'Type something.';
+        typedInput.autocomplete = 'off';
+        typedInput.spellcheck = false;
+        typedInput.value = a.typed[a.tab];
+        typedInput.setAttribute('aria-label', '직접 쓰기');
+        typedInput.addEventListener('input', () => {
+          a.typed[a.tab] = typedInput.value;
+        });
+        row.append(typedInput);
+      } else {
+        row.append(
+          document.createTextNode(a.typed[a.tab] || 'Type something.'),
+        );
+        row.addEventListener('click', () => {
+          a.cursor[a.tab] = k;
+          renderAsk();
+        });
+      }
+      box.append(row);
+    } else {
+      box.append(ln(seg('fg b', 'Review your answers')), blank());
+      a.questions.forEach((q, i) => {
+        box.append(ln(seg('fg', ' ● ' + q.question)));
+        box.append(
+          ln(
+            seg(
+              'g',
+              '   → ' + (a.answers[i] ? a.answers[i].label : '(답하지 않음)'),
+            ),
+          ),
+        );
+      });
+      box.append(
+        blank(),
+        ln(seg('fg', 'Ready to submit your answers?')),
+        blank(),
+      );
+      ['Submit answers', 'Cancel'].forEach((label, i) => {
+        const row = document.createElement('div');
+        row.className = 'opt' + (i === cur ? ' sel' : '');
+        row.textContent = (i === cur ? '❯ ' : '  ') + (i + 1) + '. ' + label;
+        row.addEventListener('click', () => {
+          a.cursor[a.tab] = i;
+          choose('click');
+        });
+        box.append(row);
+      });
+    }
+    box.append(
+      blank(),
+      ln(
+        seg(
+          'd',
+          isMulti
+            ? 'Enter to select · Tab/Arrow keys to navigate · Esc to cancel'
+            : 'Enter to select · ↑/↓ to navigate · Esc to cancel',
+        ),
+      ),
+    );
+    INPUT.replaceChildren(box);
+    LOG.scrollTop = LOG.scrollHeight;
+    if (typedInput) {
+      typedInput.focus({ preventScroll: true });
+      typedInput.setSelectionRange(
+        typedInput.value.length,
+        typedInput.value.length,
+      );
+    } else {
+      $('term').focus({ preventScroll: true });
+    }
+  }
+
+  function choose(how) {
+    const a = ACTIVE;
+    const n = a.questions.length;
+    const k = a.cursor[a.tab];
+    if (a.tab === n) {
+      if (k === 0) {
+        const missing = a.answers.findIndex((x) => !x);
+        if (missing >= 0) {
+          a.tab = missing;
+          renderAsk();
+          return;
+        }
+        finishAsk({ answers: a.answers });
+      } else {
+        finishAsk({ isCancelled: true });
+      }
+      return;
+    }
+    const q = a.questions[a.tab];
+    if (k === q.options.length) {
+      const text = a.typed[a.tab].trim();
+      if (!text) return;
+      a.answers[a.tab] = { label: text, isTyped: true, how };
+    } else {
+      a.answers[a.tab] = { label: q.options[k].label, isTyped: false, how };
+    }
+    if (n === 1) {
+      finishAsk({ answers: a.answers });
+      return;
+    }
+    a.tab += 1;
+    renderAsk();
+  }
+
+  function finishAsk(result) {
+    const a = ACTIVE;
+    ACTIVE = null;
+    INPUT.replaceChildren();
+    a.resolve(result);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    const a = ACTIVE;
+    if (!a || e.isComposing) return;
+    const n = a.questions.length;
+    const isMulti = n > 1;
+    const isTyping = e.target && e.target.id === 'ask-typed';
+    const count = optionCount(a);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      a.cursor[a.tab] =
+        (a.cursor[a.tab] + (e.key === 'ArrowDown' ? 1 : count - 1)) % count;
+      renderAsk();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      choose('key');
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      finishAsk({ isCancelled: true });
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      if (isMulti) {
+        a.tab = (a.tab + (e.shiftKey ? n : 1)) % (n + 1);
+        renderAsk();
+      }
+    } else if (
+      (e.key === 'ArrowLeft' || e.key === 'ArrowRight') &&
+      isMulti &&
+      !isTyping
+    ) {
+      e.preventDefault();
+      a.tab = (a.tab + (e.key === 'ArrowRight' ? 1 : n)) % (n + 1);
+      renderAsk();
+    } else if (!isTyping && /^[1-9]$/.test(e.key)) {
+      const i = Number(e.key) - 1;
+      if (i >= count) return;
+      e.preventDefault();
+      a.cursor[a.tab] = i;
+      const isTypedRow = a.tab < n && i === a.questions[a.tab].options.length;
+      if (isTypedRow) renderAsk();
+      else choose('key');
+    }
+  });
+
+  $('term').addEventListener('click', (e) => {
+    if (ACTIVE || e.target.closest('input, .opt, .tab')) return;
+    const p = $('prompt-input');
+    if (p) p.focus({ preventScroll: true });
+  });
+
+  // ---------- 질문 만들기 ----------
+  function choiceQuestion(key, c) {
+    const q = QUESTIONS[key];
+    return {
+      header: c.issue,
+      question: q.question,
+      options: q.options.map(([label, description]) => ({
+        label,
+        description,
+      })),
+    };
+  }
+
+  function quizQuestions(c) {
+    const plain = (texts) => texts.map((t) => ({ label: t, description: '' }));
+    return [
+      {
+        header: '이해 1/2',
+        question: '무엇이 바뀌었나요?',
+        options: plain(c.quiz.what),
+      },
+      {
+        header: '이해 2/2',
+        question: '왜 바뀌었나요?',
+        options: plain(c.quiz.why),
+      },
+    ];
+  }
+
+  // ---------- 케이스 흐름 (prompt_submit.py가 Claude에게 주는 순서를 따른다) ----------
+  async function startCase(i) {
+    const k = CASES[i];
+    S.caseIndex = i;
+    S.cur = {
+      case_id: k.id,
+      change_id: k.changeId,
+      started: iso(),
+      answer: null,
+      quiz: null,
+      notes: [],
+      typed_count: 0,
+      closed: false,
+      hint_shown: false,
+      hasFlowStarted: false,
+      lastPrompt: '',
+      finished: false,
+      smooth: null,
+      smooth_note: '',
+    };
+    S.caseStates.push(S.cur);
+    clearTimeout(hintTimer);
+    resetCaseForm();
+    setCoach('start');
+    hidePrompt();
+    clearLog();
+    logEvent('case_started');
+    out(ln(seg('g', '~/haribo/notify-test $ '), seg('fg', 'claude')));
+    await sleep(500);
+    const welcome = document.createElement('div');
+    welcome.className = 'welcome';
+    welcome.append(
+      ln(seg('spin', '✻ '), seg('fg b', 'Claude Code')),
+      ln(seg('g', '  cwd: ~/haribo/notify-test')),
+    );
+    out(blank(), welcome);
+    await sleep(300);
+    out(sessionNotice(curChange()));
+    logEvent('session_notice');
+    save();
+    showPrompt();
+  }
+
+  async function onPrompt(text) {
+    hidePrompt();
+    out(blank(), ln(seg('fg', '> ' + text)));
+    const st = S.cur;
+    const isRecallInput = text.replace(/[.!?]+$/, '') === RECALL;
+    logEvent('prompt', { text: text.slice(0, 200), recall: isRecallInput });
+    if (!isRecallInput) st.lastPrompt = text;
+    if (!isPending()) {
+      if (isRecallInput)
+        out(hook([blank(), ln(seg('gr', '✓'), ' 확인할 변경이 없어요.')]));
+      else await mockWork(text);
+      showPrompt();
+      return;
+    }
+    if (st.hasFlowStarted && !isRecallInput) {
+      logEvent('reminder');
+      out(reminderLines());
+      save();
+      await mockWork(text);
+      if (S.isEnded) return;
+      setCoach('afterReminder');
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => {
+        if (S.cur === st && isPending() && st.coach === 'afterReminder') {
+          st.hint_shown = true;
+          logEvent('hint_shown');
+          showCoachHint('힌트 · 회색 ● 줄에 적힌 말을 그대로 입력해 봐요.');
+        }
+      }, RECALL_HINT_MS);
+      showPrompt();
+      return;
+    }
+    clearTimeout(hintTimer);
+    runFlow(isRecallInput);
+  }
+
+  async function runFlow(recall) {
+    const st = S.cur;
+    const c = curChange();
+    st.hasFlowStarted = true;
+    showDetail(c, recall);
+    setCoach('question');
+    save();
+    if (!(await answerChange(c))) return onClosed(recall);
+    if (CASES[S.caseIndex].hasQuiz && !(await quizChange(c)))
+      return onClosed(recall);
+    if (S.isEnded) return;
+    out(
+      hook([
+        blank(),
+        ln(
+          seg(
+            'b',
+            '확인할 변경을 모두 답했어요.' +
+              (recall ? '' : ' 이제 작업을 시작할게요.'),
+          ),
+        ),
+      ]),
+    );
+    save();
+    if (!recall) await mockWork(st.lastPrompt);
+    finishCase();
+  }
+
+  async function askUntilChosen(key, c) {
+    const st = S.cur;
+    for (;;) {
+      const q = choiceQuestion(key, c);
+      const r = await ask([q]);
+      if (r.isCancelled) return null;
+      const a = r.answers[0];
+      echoAnswers([q], [a]);
+      logEvent(key + '_chosen', {
+        value: a.label,
+        typed: a.isTyped,
+        how: a.how,
+      });
+      if (!a.isTyped || key === 'reason') return a.label;
+      st.notes.push(a.label); // 보기 대신 쓴 글은 답이 아니라 메모로 (notice.check_answer)
+      st.typed_count += 1;
+      await think(THINK_MS);
+      claudeSay(c.explain); // 변경 상세에 있는 내용만으로 한두 문장 답하고 같은 질문을 다시 묻는다
+      setCoach('typedReply');
+      await think(SHORT_THINK_MS);
+    }
+  }
+
+  async function answerChange(c) {
+    const st = S.cur;
+    await think(THINK_MS);
+    const relation = await askUntilChosen('relation', c);
+    if (!relation) return false;
+    setCoach('question');
+    await think(SHORT_THINK_MS);
+    let knew = null,
+      reason = null;
+    if (relation === '관계있다') {
+      knew = await askUntilChosen('knew', c);
+      if (!knew) return false;
+    } else {
+      reason = await askUntilChosen('reason', c);
+      if (!reason) return false;
+    }
+    st.answer = {
+      relation,
+      knew,
+      reason: reason ? reason.slice(0, 100) : null,
+      note: st.notes.join('\n') || null,
+      at: iso(),
+    };
+    logEvent('answered', { relation });
+    out(recordedLines(c)); // 기록 줄을 상세 바로 아래에 먼저 보여 준다
+    save();
+    if (!CASES[S.caseIndex].hasQuiz) {
+      await sleep(SHORT_THINK_MS);
+      return true;
+    }
+    setCoach('recorded');
+    await sleep(RECORDED_PAUSE_MS);
+    clearLog(); // 이해도를 묻기 전에 방금 본 상세를 가린다 (기억으로 답하게)
+    out(
+      recordedLines(c),
+      hook([ln('  방금 본 변경에 대한 질문 2개가 이어져요.')]),
+    );
+    return true;
+  }
+
+  async function quizChange(c) {
+    const st = S.cur;
+    await think(SHORT_THINK_MS);
+    setCoach('quiz');
+    logEvent('quiz_shown');
+    for (;;) {
+      const questions = quizQuestions(c);
+      const r = await ask(questions);
+      if (r.isCancelled) return false;
+      echoAnswers(questions, r.answers);
+      const [what, why] = r.answers;
+      if (what.isTyped || why.isTyped) {
+        logEvent('quiz_typed', { what: what.label, why: why.label });
+        claudeSay('보기 중 하나를 골라 주세요. 다시 물어볼게요.');
+        await think(SHORT_THINK_MS);
+        continue;
+      }
+      st.quiz = {
+        what: what.label,
+        what_correct: c.quiz.what.indexOf(what.label) + 1 === c.quiz.whatAnswer,
+        why: why.label,
+        why_correct: c.quiz.why.indexOf(why.label) + 1 === c.quiz.whyAnswer,
+        at: iso(),
+      };
+      logEvent('quiz_saved');
+      save();
+      await think(SHORT_THINK_MS);
+      return true;
+    }
+  }
+
+  async function onClosed(recall) {
+    if (S.isEnded) return;
+    const st = S.cur;
+    const k = CASES[S.caseIndex];
+    st.closed = true;
+    logEvent('closed');
+    out(ln(seg('g', '  ⎿  User declined to answer questions')));
+    save();
+    if (recall) {
+      finishCase();
+      return;
+    } // 다시 불렀다가 또 닫으면 Claude는 글을 쓰지 않고 끝낸다
+    const canComeBack = k.isComeBack && isPending();
+    setCoach(canComeBack ? 'closedComeBack' : 'closedOther');
+    await mockWork(st.lastPrompt);
+    if (S.isEnded) return;
+    if (canComeBack) {
+      setCoach('closedComeBack');
+      showPrompt();
+    } else {
+      finishCase();
+    }
+  }
+
+  function finishCase() {
+    if (S.isEnded) return;
+    const st = S.cur;
+    st.finished = true;
+    st.ended = iso();
+    logEvent('case_done');
+    clearTimeout(hintTimer);
+    hidePrompt();
+    const isLast = S.caseIndex === CASES.length - 1;
+    $('c-next').textContent = isLast
+      ? '마지막 질문으로'
+      : '다음 케이스: Claude Code 다시 켜기';
+    setCoach('done');
+    save();
+    $('coach').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function resetCaseForm() {
+    for (const el of document.querySelectorAll('input[name="smooth"]'))
+      el.checked = false;
+    $('c-note').value = '';
+    $('c-error').hidden = true;
+  }
+
+  $('coach-done').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const smooth = radioValue('smooth');
+    if (!smooth) {
+      $('c-error').textContent = '1~5 중 하나를 골라 주세요.';
+      $('c-error').hidden = false;
+      return;
+    }
+    S.cur.smooth = Number(smooth);
+    S.cur.smooth_note = $('c-note').value.trim();
+    logEvent('case_rated', { smooth: S.cur.smooth });
+    if (S.caseIndex === CASES.length - 1) {
+      endTest('test_done');
+    } else {
+      save();
+      startCase(S.caseIndex + 1);
+    }
+  });
+
+  function endTest(status) {
+    if (S.isEnded) return;
+    S.isEnded = true;
+    clearTimeout(hintTimer);
+    if (ACTIVE) finishAsk({ isCancelled: true });
+    S.endedAt = iso();
+    S.status = status;
+    logEvent('ended', { status });
+    save();
+    showScreen('survey');
+  }
+
+  let isStopArmed = false;
+  $('stop-btn').addEventListener('click', () => {
+    const btn = $('stop-btn');
+    if (!isStopArmed) {
+      isStopArmed = true;
+      btn.textContent = '정말 그만할까요? 한 번 더 누르세요';
+      btn.classList.add('warn');
+      setTimeout(() => {
+        isStopArmed = false;
+        btn.textContent = '테스트 그만하기';
+        btn.classList.remove('warn');
+      }, 4000);
+      return;
+    }
+    endTest('stopped');
+  });
+
+  // ---------- 고르는 칸 만들기 ----------
+  function buildChoices(id, name, values, type) {
+    const box = $(id);
+    values.forEach((v, i) => {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = type || 'radio';
+      input.name = name;
+      input.value = String(v);
+      input.id = id + '-' + i;
+      label.append(input, seg('', String(v)));
+      box.append(label);
+    });
+  }
+  const range = (n) => Array.from({ length: n }, (_, i) => i + 1);
+  buildChoices('c-smooth', 'smooth', range(5));
+  buildChoices('s-noticed', 'noticed', range(5));
+  buildChoices('s-understood', 'understood', range(5));
+  buildChoices('s-hardest', 'hardest', SURVEY_OPTIONS.hardest);
+  buildChoices('s-tedious', 'tedious', range(5));
+  for (const key of Object.keys(REASONS))
+    buildChoices(
+      's-' + key + '-reasons',
+      key + '_reasons',
+      REASONS[key],
+      'checkbox',
+    );
+
+  (function buildTerms() {
+    const box = $('s-terms');
+    TERMS.forEach(([term, example], i) => {
+      const label = document.createElement('label');
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.name = 'terms';
+      input.value = term;
+      input.id = 's-terms-' + i;
+      const span = document.createElement('span');
+      const b = document.createElement('b');
+      b.textContent = term;
+      span.append(b);
+      if (example) {
+        const small = document.createElement('small');
+        small.textContent = example;
+        span.append(small);
+      }
+      label.append(input, span);
+      box.append(label);
+    });
+    // "없었다"는 다른 말과 함께 고를 수 없다
+    box.addEventListener('change', (e) => {
+      if (!e.target.checked) return;
+      const isNone = e.target.value === '없었다';
+      for (const el of box.querySelectorAll('input')) {
+        if (el !== e.target && (isNone || el.value === '없었다'))
+          el.checked = false;
+      }
+    });
+  })();
+
+  // 부정적으로 답하면 까닭 보기를 연다
+  function isNegative(key) {
+    const v = radioValue(key);
+    if (!v) return false;
+    return key === 'hardest' ? v !== NO_TROUBLE : Number(v) <= NEGATIVE_MAX;
+  }
+  function updateFollowUps() {
+    for (const key of Object.keys(REASONS))
+      $('f-' + key).hidden = !isNegative(key);
+  }
+  $('survey-form').addEventListener('change', updateFollowUps);
+
+  // ---------- 마지막 질문 ----------
+  $('survey-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const reasonsOf = (key) =>
+      isNegative(key) ? checkedValues(key + '_reasons') : [];
+    const whyOf = (key) =>
+      isNegative(key) ? $('s-' + key + '-why').value.trim() : '';
+    const survey = {
+      noticed: Number(radioValue('noticed')) || null,
+      noticed_reasons: reasonsOf('noticed'),
+      noticed_why: whyOf('noticed'),
+      understood: Number(radioValue('understood')) || null,
+      understood_reasons: reasonsOf('understood'),
+      understood_why: whyOf('understood'),
+      hardest: radioValue('hardest'),
+      hardest_reasons: reasonsOf('hardest'),
+      hardest_why: whyOf('hardest'),
+      tedious: Number(radioValue('tedious')) || null,
+      tedious_reasons: reasonsOf('tedious'),
+      tedious_why: whyOf('tedious'),
+      terms: checkedValues('terms'),
+      terms_etc: $('s-terms-etc').value.trim(),
+      ideas: $('s-ideas').value.trim(),
+      at: iso(),
+    };
+    const missing = [];
+    ['noticed', 'understood', 'hardest', 'tedious'].forEach((key, i) => {
+      if (!survey[key]) missing.push(i + 1 + '번');
+      else if (
+        isNegative(key) &&
+        !survey[key + '_reasons'].length &&
+        !survey[key + '_why']
+      )
+        missing.push(i + 1 + '번 까닭');
+    });
+    if (!survey.terms.length) missing.push('5번');
+    const err = $('survey-error');
+    if (missing.length) {
+      err.textContent = missing.join(', ') + '을 골라 주세요.';
+      err.hidden = false;
+      return;
+    }
+    err.hidden = true;
+    S.survey = survey;
+    S.status = S.status === 'stopped' ? 'stopped_survey_done' : 'survey_done';
+    try {
+      await saveOrThrow();
+    } catch (e2) {
+      err.textContent = '저장하지 못했어요. 잠시 뒤 다시 눌러 주세요.';
+      err.hidden = false;
+      return;
+    }
+    $('done-owner').hidden = !S.isOwner;
+    showScreen('done');
+  });
+
+  // ---------- 결과 화면 (만든 사람만) ----------
+  let RUNS = [];
+  const STATUS_TEXT = {
+    info_done: '정보만 입력',
+    in_progress: '진행 중',
+    test_done: '설문 전',
+    stopped: '중간에 그만둠',
+    survey_done: '끝까지',
+    stopped_survey_done: '그만둔 뒤 설문',
+  };
+  const SURVEY_LABELS = [
+    ['noticed', '1. 알아차림 (1~5)'],
+    ['noticed_reasons', '   어려웠던 까닭'],
+    ['noticed_why', '   그 밖의 까닭'],
+    ['understood', '2. 이해 (1~5)'],
+    ['understood_reasons', '   어려웠던 까닭'],
+    ['understood_why', '   그 밖의 까닭'],
+    ['hardest', '3. 가장 막힌 순간'],
+    ['hardest_reasons', '   막힌 까닭'],
+    ['hardest_why', '   그 밖의 까닭'],
+    ['tedious', '4. 고르는 과정 귀찮음 (1~5, 높을수록 덜 귀찮음)'],
+    ['tedious_reasons', '   귀찮았던 까닭'],
+    ['tedious_why', '   그 밖의 까닭'],
+    ['terms', '5. 헷갈린 말'],
+    ['terms_etc', '   그 밖에 헷갈린 말'],
+    ['ideas', '6. 개선 의견'],
+  ];
+
+  function fmt(v) {
+    if (Array.isArray(v)) return v.length ? v.join(', ') : '–';
+    if (v === true) return '예';
+    if (v === false) return '아니오';
+    return v === null || v === undefined || v === '' ? '–' : String(v);
+  }
+  function fraction(s) {
+    const m = /^(\d+)\/(\d+)$/.exec(s || '');
+    return m ? [Number(m[1]), Number(m[2])] : [0, 0];
+  }
+
+  function renderOwner() {
+    const runs = RUNS.filter((r) => r.version === 3);
+    const finished = runs.filter((r) => r.status === 'survey_done');
+    const allCases = runs.flatMap((r) => r.cases || []);
+    const sum = (key) =>
+      runs.reduce(
+        (acc, r) => {
+          const [a, b] = fraction(r.metrics && r.metrics[key]);
+          return [acc[0] + a, acc[1] + b];
+        },
+        [0, 0],
+      );
+    const ofN = ([a, b]) => (b ? b + '건 중 ' + a + '건' : '–');
+    const decide = present(allCases.map((c) => c.decide_sec));
+    const decideMed = median(decide);
+    const comebacks = runs
+      .map((r) => r.metrics && r.metrics.came_back)
+      .filter((x) => x !== null && x !== undefined);
+    const selfBack = runs.filter(
+      (r) => r.metrics && r.metrics.came_back && !r.metrics.came_back_hint,
+    ).length;
+    const stats = $('owner-stats');
+    stats.replaceChildren();
+    const stat = (label, value) => {
+      const s = document.createElement('span');
+      const b = document.createElement('b');
+      b.textContent = value;
+      s.append(label + ' ', b);
+      stats.append(s);
+    };
+    stat('참가', runs.length + '번');
+    stat('끝까지', finished.length + '명');
+    stat('판단 시간 중간값', decideMed === null ? '–' : decideMed + '초');
+    stat(
+      '60초 넘은 답',
+      decide.length
+        ? decide.length + '건 중 ' + decide.filter((x) => x > 60).length + '건'
+        : '–',
+    );
+    stat('무엇이 정답', ofN(sum('what_correct')));
+    stat('왜 정답', ofN(sum('why_correct')));
+    stat(
+      '힌트 없이 다시 돌아옴',
+      comebacks.length ? comebacks.length + '명 중 ' + selfBack + '명' : '–',
+    );
+    const scaleAvg = (key) => {
+      const v = average(runs.map((r) => r.survey && r.survey[key]));
+      return v === null ? '–' : v + '/5';
+    };
+    stat('알아차림 평균', scaleAvg('noticed'));
+    stat('이해 평균', scaleAvg('understood'));
+    stat('덜 귀찮음 평균', scaleAvg('tedious'));
+
+    const box = $('owner-table');
+    box.replaceChildren();
+    $('csv-btn').hidden = !S.downloads || !runs.length;
+    if (!runs.length) {
+      const empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.append(
+        Object.assign(document.createElement('b'), {
+          textContent: '아직 결과가 없어요',
+        }),
+      );
+      empty.append(
+        Object.assign(document.createElement('span'), {
+          textContent:
+            '이 페이지 링크를 참가자에게 보내면, 참가자가 진행한 결과가 여기에 바로 쌓여요. 먼저 "직접 해 보기"로 한 번 돌려 봐도 돼요.',
+        }),
+      );
+      box.append(empty);
+      return;
+    }
+    const table = document.createElement('table');
+    const head = [
+      '시작',
+      '이름',
+      '직군',
+      '사일로',
+      '테마',
+      '상태',
+      '전체 초',
+      '판단 중간값 초',
+      '무엇이',
+      '왜',
+      '안내대로',
+      '다시 돌아온 초',
+      '매끄러움 평균',
+      '알아차림',
+      '이해',
+      '덜 귀찮음',
+      '막힌 순간',
+    ];
+    const thead = document.createElement('thead');
+    const hr = document.createElement('tr');
+    for (const h of head)
+      hr.append(
+        Object.assign(document.createElement('th'), { textContent: h }),
+      );
+    thead.append(hr);
+    table.append(thead);
+    const tbody = document.createElement('tbody');
+    for (const r of runs) {
+      const p = r.participant || {},
+        m = r.metrics || {},
+        s = r.survey || {};
+      const tr = document.createElement('tr');
+      tr.className = 'run';
+      tr.tabIndex = 0;
+      const started = r.started || p.info_at;
+      const back = m.came_back
+        ? (m.came_back_sec ?? '–') + (m.came_back_hint ? ' (힌트)' : '')
+        : m.came_back === false
+          ? '못 돌아옴'
+          : null;
+      const cells = [
+        started
+          ? new Date(started).toLocaleString('ko-KR', {
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : null,
+        (p.name || '–') + (p.is_owner ? ' (내 시험)' : ''),
+        p.role,
+        p.silo,
+        p.theme,
+        null,
+        m.total_sec,
+        m.decide_median_sec,
+        m.what_correct,
+        m.why_correct,
+        m.followed,
+        back,
+        m.smooth_avg,
+        s.noticed,
+        s.understood,
+        s.tedious,
+        s.hardest,
+      ];
+      cells.forEach((v, i) => {
+        const td = document.createElement('td');
+        if (i === 5)
+          td.append(
+            seg(
+              'chip ' + (r.status === 'survey_done' ? 'done' : 'part'),
+              STATUS_TEXT[r.status] || fmt(r.status),
+            ),
+          );
+        else td.textContent = fmt(v);
+        if (i >= 15) td.className = 'wrap-cell';
+        tr.append(td);
+      });
+      const detail = document.createElement('tr');
+      detail.className = 'detail';
+      detail.hidden = true;
+      const dtd = document.createElement('td');
+      dtd.colSpan = head.length;
+      const grid = document.createElement('div');
+      grid.className = 'detail-grid';
+      grid.append(caseTable(r), surveyList(r));
+      dtd.append(grid);
+      detail.append(dtd);
+      const toggle = () => {
+        detail.hidden = !detail.hidden;
+      };
+      tr.addEventListener('click', toggle);
+      tr.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          toggle();
+        }
+      });
+      tbody.append(tr, detail);
+    }
+    table.append(tbody);
+    box.append(table);
+  }
+
+  function mark(isCorrect) {
+    if (isCorrect === null || isCorrect === undefined) return seg('', '–');
+    return seg(isCorrect ? 'ok' : 'no', isCorrect ? '맞음' : '틀림');
+  }
+
+  function caseTable(r) {
+    const box = document.createElement('div');
+    box.style.overflowX = 'auto';
+    const t = document.createElement('table');
+    const head = [
+      '케이스',
+      '고른 길',
+      '안내대로',
+      '직접 쓴 메모',
+      '닫음',
+      '다시 돌아옴',
+      '관계 고르기 초',
+      '판단 초',
+      '이해도 초',
+      '무엇이',
+      '왜',
+      '매끄러움',
+      '소감',
+    ];
+    const hr = document.createElement('tr');
+    for (const h of head)
+      hr.append(
+        Object.assign(document.createElement('th'), { textContent: h }),
+      );
+    t.append(hr);
+    for (const c of r.cases || []) {
+      const tr = document.createElement('tr');
+      const back = c.recalled
+        ? '예 · ' + fmt(c.recall_sec) + '초' + (c.hint_shown ? ' (힌트)' : '')
+        : c.reminders
+          ? '아니오'
+          : '–';
+      const cells = [
+        c.title,
+        c.path_taken,
+        c.followed,
+        c.note,
+        c.closed,
+        back,
+        c.relation_sec,
+        c.decide_sec,
+        c.quiz_sec,
+        null,
+        null,
+        c.smooth,
+        c.smooth_note,
+      ];
+      cells.forEach((v, i) => {
+        const td = document.createElement('td');
+        if (i === 9) td.append(mark(c.what_correct));
+        else if (i === 10) td.append(mark(c.why_correct));
+        else td.textContent = fmt(v);
+        if (i === 3 || i === 12) td.className = 'wrap-cell';
+        tr.append(td);
+      });
+      t.append(tr);
+    }
+    box.append(t);
+    return box;
+  }
+
+  function surveyList(r) {
+    const dl = document.createElement('dl');
+    dl.className = 'answers';
+    const s = r.survey;
+    if (!s) {
+      dl.append(
+        Object.assign(document.createElement('dt'), {
+          textContent: '마지막 질문',
+        }),
+        Object.assign(document.createElement('dd'), {
+          textContent: '아직 답하지 않았어요',
+        }),
+      );
+      return dl;
+    }
+    for (const [key, label] of SURVEY_LABELS) {
+      dl.append(
+        Object.assign(document.createElement('dt'), { textContent: label }),
+        Object.assign(document.createElement('dd'), {
+          textContent: fmt(s[key]),
+        }),
+      );
+    }
+    return dl;
+  }
+
+  function csvCell(v) {
+    const s = Array.isArray(v)
+      ? v.join(' / ')
+      : v === null || v === undefined
+        ? ''
+        : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  }
+
+  function buildCsv() {
+    const runs = RUNS.filter((r) => r.version === 3);
+    const head = [
+      'run_id',
+      '시작',
+      '이름',
+      '직군',
+      '사일로',
+      '테마',
+      '내 시험',
+      '상태',
+      '입력 방식',
+      '화면 가로',
+      '화면 세로',
+      '터미널 칸',
+      '터미널 줄',
+      '전체 초',
+      '끝낸 케이스',
+      '판단 중간값 초',
+      '60초 넘은 답',
+      '이해도 평균 초',
+      '무엇이 정답',
+      '왜 정답',
+      '안내대로',
+      '닫은 횟수',
+      '직접 쓴 횟수',
+      '다시 돌아옴',
+      '다시 돌아온 초',
+      '힌트 봄',
+      '매끄러움 평균',
+    ];
+    for (const k of CASES)
+      head.push(
+        k.id + ' 고른 길',
+        k.id + ' 판단 초',
+        k.id + ' 무엇이',
+        k.id + ' 왜',
+        k.id + ' 매끄러움',
+        k.id + ' 소감',
+      );
+    let lastNo = '';
+    for (const [, label] of SURVEY_LABELS) {
+      const m = /^(\d+)\./.exec(label);
+      if (m) lastNo = m[1];
+      head.push(m ? label : lastNo + '. ' + label.trim());
+    }
+    const yes = (v) => (v === true ? '예' : v === false ? '아니오' : '');
+    const rows = runs.map((r) => {
+      const p = r.participant || {},
+        m = r.metrics || {},
+        s = r.survey || {},
+        v = p.viewport || {};
+      const row = [
+        r.run_id,
+        r.started,
+        p.name,
+        p.role,
+        p.silo,
+        p.theme,
+        yes(p.is_owner),
+        r.status,
+        p.input,
+        v.w,
+        v.h,
+        p.term_cols,
+        p.term_rows,
+        m.total_sec,
+        m.cases_done,
+        m.decide_median_sec,
+        m.decide_over_60,
+        m.quiz_avg_sec,
+        m.what_correct,
+        m.why_correct,
+        m.followed,
+        m.closed,
+        m.typed,
+        yes(m.came_back),
+        m.came_back_sec,
+        yes(m.came_back_hint),
+        m.smooth_avg,
+      ];
+      for (const k of CASES) {
+        const c = (r.cases || []).find((x) => x.case_id === k.id) || {};
+        row.push(
+          c.path_taken,
+          c.decide_sec,
+          yes(c.what_correct),
+          yes(c.why_correct),
+          c.smooth,
+          c.smooth_note,
+        );
+      }
+      for (const [key] of SURVEY_LABELS) row.push(s[key]);
+      return row;
+    });
+    return (
+      '﻿' +
+      [head, ...rows].map((row) => row.map(csvCell).join(',')).join('\r\n')
+    );
+  }
+
+  $('csv-btn').addEventListener('click', async () => {
+    if (!S.downloads) return;
+    try {
+      await S.downloads.save({
+        filename: 'notify-test-summary.csv',
+        data: buildCsv(),
+      });
+    } catch (e) {
+      if (e && e.code !== 'declined')
+        setSaveState(
+          'CSV를 받지 못했어요 (' + (e.code || '알 수 없음') + ')',
+          true,
+        );
+    }
+  });
+
+  $('owner-try').addEventListener('click', () => showScreen('info'));
+  $('back-owner').addEventListener('click', () => {
+    showScreen('owner');
+    renderOwner();
+  });
+
+  function watchResults() {
+    S.db.collection('results').onSnapshot(
+      (snap) => {
+        const runs = [];
+        for (const d of snap.docs) {
+          const body = d.data() || {};
+          for (const r of Object.values(body.runs || {})) runs.push(r);
+        }
+        runs.sort((a, b) =>
+          String(b.started || b.participant?.info_at || '').localeCompare(
+            String(a.started || a.participant?.info_at || ''),
+          ),
+        );
+        RUNS = runs;
+        if (!$('screen-owner').hidden) renderOwner();
+      },
+      (e) => {
+        setSaveState(
+          '결과를 불러오지 못했어요 (' + ((e && e.code) || '알 수 없음') + ')',
+          true,
+        );
+      },
+    );
+  }
+
+  // ---------- 시작 ----------
+  async function boot() {
+    if (!window.claude || typeof window.claude.use !== 'function') {
+      showBlocked('이 페이지는 claude.ai에서 열어야 결과가 저장돼요.');
+      return;
+    }
+    const [db, user, downloads] = await Promise.all([
+      window.claude.use('db'),
+      window.claude.use('user'),
+      window.claude.use('downloads'),
+    ]);
+    S.db = db;
+    S.downloads = downloads;
+    S.uid = user ? await user.id() : null;
+    S.isOwner = user ? await user.isOwner() : false;
+    if (!db || !S.uid) {
+      showBlocked(
+        'claude.ai에 로그인한 상태로 이 페이지를 열어야 결과가 저장돼요. 로그인했는데도 이 화면이 보이면 링크를 준 분께 알려 주세요.',
+      );
+      return;
+    }
+    if (S.isOwner) {
+      watchResults();
+      showScreen('owner');
+      renderOwner();
+    } else {
+      showScreen('info');
+    }
+  }
+  boot();
+</script>
