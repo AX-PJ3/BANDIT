@@ -1,60 +1,86 @@
 # @sil/notify
 
-담당자에게 알리기 (SIL-67). 새 버전이 저장되면 연결된 이슈의 담당자에게 확인할 변경을 만들고, 답을 기록해요.
+담당자에게 알리기 (SIL-67). 기준이 바뀌면 연결된 이슈의 담당자에게 확인할 변경을 만들고, 담당자의 답을 기록해요.
 
-## 지금 있는 것
+## 흐름
 
-### `createPendingChecks` — 확인할 변경 만들기
+```
+새 버전 저장 ──▶ applyNewVersion ──▶ createPendingChecks ──▶ 확인할 변경 저장
+                                    (누구에게 만들고 무엇을 닫을지)
 
-새 버전 하나를 받아 "만들 확인할 변경"과 "닫을 확인할 변경"을 돌려주는 순수 함수예요. 저장은 하지 않아요.
-
-```ts
-import { createPendingChecks } from '@sil/notify';
-
-const result = createPendingChecks({
-  saved: {
-    standardId: 'app.notify.title-length',
-    version: 2,
-    value: '공백 포함 32자 이하',
-    changedBy: '부건',
-    createdAt: '2026-10-13T14:13:00+09:00',
-  },
-  issues, // 이슈 목록 (담당자, 연결된 기준 ID 포함)
-  existing, // 지금까지 만든 확인할 변경
-  history: [{ version: 1, value: '공백 포함 40자 이하' }], // 이 기준의 이전 버전 값
-  now: '2026-10-13T14:13:00+09:00',
-});
-
-result.created; // 새로 만들 확인할 변경 (대기)
-result.closed; // 닫을 기존 확인할 변경 (대체됨 / 자동 닫힘)
-result.skipped; // 만들지 않은 이슈와 이유 (본인 / 담당자 없음 / 되돌려서 같아짐)
+담당자 화면 ──▶ listPending ──▶ 나에게 온 변경 목록
+담당자 답   ──▶ respond     ──▶ 답 저장, 확인할 변경은 "답함"
 ```
 
-규칙은 착수 안내 "6. 개발자 3명"의 예외 처리 4가지를 따라요.
+정민님 DB(SIL-73)에 붙기 전까지는 JSON 파일이나 메모리에 저장해요. 저장소 모양은 `src/store.ts`의 `NotifyStore`이고, DB에 붙일 때 이 부분만 바꿔요.
 
-| 경우                               | 하는 일                                  | 위키 기준                      |
-| ---------------------------------- | ---------------------------------------- | ------------------------------ |
-| 연결된 이슈 (완료된 이슈 포함)     | 이슈마다 확인할 변경 1개                 | notify.pending.one-per-issue   |
-| 기준을 바꾼 본인                   | 만들지 않음                              | notify.target.skip-author      |
-| 담당자 없는 이슈                   | 만들지 않음                              | notify.pending.no-owner        |
-| 답하기 전에 또 바뀜                | 이전 건을 대체됨으로 닫고 새 건 만듦     | notify.pending.merge-versions  |
-| 되돌려서 마지막으로 본 값과 같아짐 | 열린 건을 자동 닫힘으로 닫고 만들지 않음 | notify.pending.close-on-revert |
+## 함수
 
-### 새 버전 저장 신호 (정민님과 맞출 것)
+### `createPendingChecks` — 알릴 담당자 고르기
 
-`saved`가 저장 쪽에서 알리기 쪽으로 넘기는 값이에요. `save_standard`와 `revert`가 새 버전을 저장한 직후 이 모양으로 `createPendingChecks`를 부르고, 돌아온 `created`와 `closed`를 DB에 쓰면 돼요. 칸은 `src/types.ts`의 `SavedVersion`에 있어요.
+새 버전 하나와 이슈 목록을 받아서 목록 세 개를 돌려줘요. 새로 만들 것, 닫을 것, 건너뛴 이슈예요. 저장은 하지 않아요.
+
+| 경우                           | 하는 일                                  | 위키 기준                            |
+| ------------------------------ | ---------------------------------------- | ------------------------------------ |
+| 연결된 이슈 (완료된 이슈 포함) | 이슈마다 확인할 변경 1개                 | notify.pending.one-per-issue         |
+| 기준을 바꾼 본인               | 만들지 않음                              | notify.target.skip-author            |
+| 담당자 없는 이슈               | 만들지 않음                              | notify.pending.no-owner              |
+| 답하기 전에 또 바뀜            | 이전 건을 대체됨으로 닫고 새 건 만듦     | notify.pending.merge-versions        |
+| 마지막으로 본 값과 같아짐      | 열린 건을 자동 닫힘으로 닫고 만들지 않음 | notify.pending.close-on-revert       |
+| 이미 답한 뒤 다른 값으로 바뀜  | 관계와 상관없이 새로 만듦                | notify.pending.renotify-after-answer |
+
+마지막으로 본 버전을 찾는 순서는 notify.pending.last-seen-order를 따라요.
+
+### `applyNewVersion` — 새 버전 기록하기
+
+새 버전을 저장소에 기록하고, `createPendingChecks` 결과대로 확인할 변경을 만들거나 닫아요. 지금은 데모와 테스트가 `save_standard` 대신 불러요. 버전 번호가 다음 번호가 아니면 저장하지 않아요.
+
+### `listPending` — 나에게 온 변경 목록 (MCP 도구 `list_pending`)
+
+```ts
+const result = await listPending(store, { recipient: '민수' });
+// { recipient: '민수', pendingCount: 1, items: [ ... ] }
+```
+
+- 항목마다 제목, 지금 값, 이전 값, 이유, 바꾼 사람과 시각, 출처, 이슈 번호·제목·상태를 붙여서 돌려줘요. 화면이 `get_standard`를 다시 부르지 않아도 돼요.
+- 이전 값은 바로 앞 버전이 아니라 **받는 사람이 마지막으로 본 버전의 값**이에요. 새로 생긴 기준이면 비어 있어요.
+- 기본은 대기만 돌려줘요. `includeClosed: true`면 답함과 대체됨도 답과 함께 돌려줘요. 자동 닫힘은 돌려주지 않아요.
+- 최신 것이 먼저 와요.
+- 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요 (notify.error.not-empty).
+
+### `respond` — 답 저장하기 (MCP 도구 `respond`)
+
+```ts
+const result = await respond(store, {
+  pendingCheckId: 'c-1',
+  answeredBy: '민수',
+  affected: true,
+  known: false,
+  channel: 'terminal',
+});
+// 성공: { ok: true, answer, rereadStandardId: 'app.notify.title-length' }
+// 실패: { ok: false, code: 'missing_fields', message: '빠진 칸이 있어요: …', missingFields: ['known'] }
+```
+
+- 관계있다면 알았나를, 관계없다면 이유(100자 이하)를 꼭 받아요. 맞지 않는 쪽 칸은 비워서 저장해요.
+- 관계있다면 `rereadStandardId`를 돌려줘요. 에이전트는 이 기준을 `get_standard`로 다시 읽어요.
+- 거절하는 경우: 없는 변경, 받는 사람이 아님, 이미 답했거나 닫힘, 답한 곳이 터미널·앱이 아님, 빠진 칸, 이유가 100자 넘음.
+- 한 곳에서 답하면 그 변경은 대기가 아니라서 다른 곳 목록에서 빠져요 (notify.answer.one-place).
 
 ## 실행
 
 ```bash
 pnpm --filter @sil/notify typecheck
 pnpm --filter @sil/notify test
+pnpm --filter @sil/notify demo              # 데모 예시를 처음부터 끝까지
+pnpm --filter @sil/notify demo ./demo.json  # 결과를 이 파일에 남겨요
 ```
 
 테스트는 Node에 들어 있는 `node:test`를 써요. 따로 설치할 것은 없어요.
 
-## 다음에 올 것
+## 아직 없는 것
 
-- `list_pending`, `respond` (PR 2)
-- 터미널 T2~T5 카드 내용 (PR 3)
-- DB 연결과 저장 신호 (PR 4), 웹 앱 OS 알림 (PR 5)
+- MCP 서버에 `list_pending`, `respond` 등록 (정민님 서버 코드가 올라온 뒤)
+- 정민님 DB 연결과 새 버전 저장 신호
+- 터미널 T2~T5 카드 내용, 웹 앱 OS 알림
+- 반영함 표시를 켜고 끄는 기능. 칸(`reflected`, `reflectedAt`)만 있어요
