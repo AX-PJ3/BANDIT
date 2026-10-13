@@ -5,6 +5,7 @@ import {
   renderT1Saved,
   T1_COPY,
 } from './copy.ts';
+import { diffFromPending } from './pending.ts';
 import { buildT1SaveInput } from './save-input.ts';
 
 describe('T1 문구', () => {
@@ -96,5 +97,31 @@ describe('buildT1SaveInput', () => {
       { title: '제목', value: '값', reason: '이유' },
     );
     expect('scope' in input).toBe(false);
+  });
+});
+
+describe('diffFromPending', () => {
+  const pending = {
+    id: 'app.notify.title-length',
+    title: '앱 알림 제목은 32자 이하다',
+    value: '운영체제 알림 창에 뜨는 제목은 공백 포함 32자 이하로 쓴다',
+    reason: 'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘린다',
+    alwaysOn: false,
+  };
+
+  it('③에서 보여 준 값과 같으면 빈 목록이에요', () => {
+    expect(diffFromPending(pending, { ...pending, baseVersion: 1 })).toEqual(
+      [],
+    );
+  });
+
+  it('바뀐 칸 이름을 알려 줘요', () => {
+    expect(
+      diffFromPending(pending, {
+        ...pending,
+        reason: '다른 이유',
+        alwaysOn: true,
+      }),
+    ).toEqual(['reason', 'alwaysOn']);
   });
 });
