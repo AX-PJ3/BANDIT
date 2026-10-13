@@ -4,7 +4,7 @@
   "private": true,
   "description": "MVP 사일로 모노레포: 팀 기준 위키(MCP 서버) · 명령어 · 웹 앱(PWA) · 바뀐 기준 찾기",
   "type": "module",
-  "packageManager": "pnpm@11.18.0",
+  "packageManager": "pnpm@11.25.0",
   "engines": {
     "node": "24.x"
   },
