@@ -330,6 +330,47 @@ def changed_words(old, new):
     return ' '.join(a[p:len(a) - q]), ' '.join(b[p:len(b) - q])
 
 
+DETAIL_LINES = 2     # 상세 줄은 두 줄까지 접고, 넘치면 끝을 … 으로 (값은 최대 120자, 착수 문서 5장)
+
+
+def detail_value_lines(text, color, name='상세'):
+    """값 전체를 낱말 단위로 76칸 안에 접는다. 둘째 줄은 이름표 폭(8칸)만큼 들여 쓴다."""
+    budget = COLS - 8
+    rows, cur = [], ''
+    for word in text.split(' '):
+        nxt = f'{cur} {word}' if cur else word
+        if cur and t2.text_width(nxt) > budget:
+            rows.append(cur)
+            cur = word
+        else:
+            cur = nxt
+    rows.append(cur)
+    if len(rows) > DETAIL_LINES:
+        rows = rows[:DETAIL_LINES]
+        rows[-1] = t2.cut_end(rows[-1] + ' …', budget)
+    return [(f'  {name}  ' if i == 0 else ' ' * 8) + color_line(row, color) for i, row in enumerate(rows)]
+
+
+def summary_lines(c):
+    """v2 (10/13 부건): 종류는 제목 끝 태그가 말하고, 그 아래에 "상세" = 제목이 가리키는 결정 사항의 값 전체.
+    - 변경·되돌림: 바뀐 부분 요약(변경 줄) 또는 크게 바뀌면 이전 값 한 줄 → 상세(지금 값)
+    - 신규: 상세(새 값)만 / 폐기: 상세(없어진 값, 회색)만
+    지금 값이 상세로 들어가서 위키 notify.terminal.show-fields(이전 값·지금 값)와 맞는다.
+    바뀐 부분은 배경 없이 굵게만 강조한다 (10/12 부건, 형광펜에서 바꿈)."""
+    old, new = c['old'], c['new']
+    label = lambda name: f'  {name}  '
+    gap = redo_line(c)             # 이유 위를 한 줄 띄운다. 지난번에 관계있다로 답했으면 그 자리에 안내
+    if c['kind'] == 'deprecated' or new is None:
+        return [*detail_value_lines(old, OLD_COLOR), gap]
+    if c['kind'] == 'new' or old is None:
+        return [*detail_value_lines(new, NEW_COLOR), gap]
+    pre, old_mid, new_mid, suf = t2.find_change(old, new)
+    if t2.is_large_change(old, new, old_mid, new_mid):
+        # 태그가 "(변경)"·"(되돌림)"이라 "문장을 새로 썼어요" 줄은 뺀다. 이전 값은 한 줄, 넘치면 …
+        return [label('이전') + t2.cut_end(old, COLS - 8), *detail_value_lines(new, NEW_COLOR), gap]
+    return [label('변경') + change_what(old, new), *detail_value_lines(new, NEW_COLOR), gap]
+
+
 def redo_line(c):
     """지난번 버전에 "관계있다"로 답한 사람에게만: 지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요.
     상세가 15줄 한도에 꽉 차서 빈 줄 자리에 넣는다 (SIL-77 DRI 결정 9). 서버는 list_pending의 previousAnswer로 준다.
@@ -341,28 +382,14 @@ def redo_line(c):
     return ' ' * 8 + f'지난번 변경({prev})을 반영하셨다면 다시 고쳐야 해요.'
 
 
-def summary_lines(c):
-    """E. 바뀐 부분만 요약하고, 그 아래는 빈 줄 하나. 이름표는 아래 이유·이슈·출처와 같은 모양.
-    "지금" 줄은 두지 않는다: 새 제목이 지금 값의 핵심을 담고 있어서다 (10/12 부건, 위키 notify.terminal.show-fields와 다름).
-    바뀐 부분은 배경 없이 굵게만 강조한다 (10/12 부건, 형광펜에서 바꿈)."""
-    old, new = c['old'], c['new']
-    label = lambda name: f'  {name}  '
-    gap = redo_line(c)             # 이유 위를 한 줄 띄운다. 지난번에 관계있다로 답했으면 그 자리에 안내
-    if c['kind'] == 'deprecated' or new is None:
-        return [label('변경') + '결정 사항을 폐기했어요', label('이전') + t2.cut_end(old, COLS - 8), gap]
-    if c['kind'] == 'new' or old is None:
-        return [label('변경') + '새로 생긴 결정 사항이에요', gap]
-    pre, old_mid, new_mid, suf = t2.find_change(old, new)
-    if t2.is_large_change(old, new, old_mid, new_mid):
-        return [label('변경') + '문장을 새로 썼어요', label('이전') + t2.cut_end(old, COLS - 8), gap]
+def change_what(old, new):
+    """변경 줄: 바뀐 낱말만. 일대일로 바뀌면 이전은 흐리게, 지금은 굵게 (10/12 부건)."""
     old_w, new_w = changed_words(old, new)
     if old_w and new_w:
-        what = f'{dim(old_w)} {ARROW} {bold(new_w)}'   # 일대일로 바뀌면 이전 텍스트는 흐리게 (10/12 부건)
-    elif old_w:
-        what = f'"{bold(old_w)}" 삭제'
-    else:
-        what = f'"{bold(new_w)}" 추가'
-    return [label('변경') + what, gap]
+        return f'{dim(old_w)} {ARROW} {bold(new_w)}'
+    if old_w:
+        return f'"{bold(old_w)}" 삭제'
+    return f'"{bold(new_w)}" 추가'
 
 
 def value_lines(c):
@@ -443,11 +470,21 @@ def count_text(count):
     return f'{esc("1")}{esc(COUNT_COLOR)}{count}{esc(STRONG)}{esc("22")}'
 
 
+# 상태 줄(켤 때 첫 줄, 닫은 뒤 한 줄) 앞에 세우는 노란 막대: 노랑을 반전한 칸 하나 + 빈칸 (v2, 10/13 부건)
+# ●는 Claude가 답할 때 붙이는 점과 모양·색이 같아서 Claude의 말처럼 읽혔다 (v1 피드백 P1·P2 "다른 글과 섞여 몰랐다")
+BAR = f'{esc(COUNT_COLOR)}{esc("7")} {esc("27")}{esc("39")} '
+
+
+def status_line(text):
+    """노란 막대 + 터미널 기본 글자색 문장. 막대와 빈칸이 2칸이라 아래 설명 줄(2칸 들여쓰기)과 글자 시작이 맞는다."""
+    return BAR + color_line(text, NEW_COLOR)
+
+
 def session_notice(changes):
     count = len(changes)
     total = '총 ' if count > 1 else ''
-    # 첫 줄은 터미널 기본 글자색, 숫자만 노란 굵은 글자
-    first = color_line(f'● {area_label(changes)} 결정 사항이 {total}{count_text(count)}건 변경되었어요.', NEW_COLOR)
+    # 첫 줄(상태 줄)에만 노란 막대, 숫자만 노란 굵은 글자. 아래 설명 줄에는 막대를 넣지 않는다 (10/13 부건)
+    first = status_line(f'{area_label(changes)} 결정 사항이 {total}{count_text(count)}건 변경되었어요.')
     return '\n'.join(['', first,
                       '  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.'])
 
@@ -455,11 +492,11 @@ def session_notice(changes):
 # ---------- ② 작업 시작 때: 변경 상세 (UserPromptSubmit / PostToolUse hooks) ----------
 
 def progress(index, total, recall=False):
-    """맨 위 안내: 처음에는 전체 건수, 다음부터는 남은 건수(지금 보는 것 포함)를 문장으로.
+    """머리표 문장: 처음에는 전체 건수, 다음부터는 남은 건수(지금 보는 것 포함).
     "결정 사항 확인"으로 다시 부른 경우에는 기다리는 작업이 없어서 "작업 전에"를 뺀다."""
     if index == 1:
-        return bold(f'{"" if recall else "작업 전에 "}확인할 변경이 {total}건 있어요.')
-    return bold(f'확인할 변경이 {total - index + 1}건 남았어요.')
+        return f'{"" if recall else "작업 전에 "}확인할 변경이 {total}건 있어요'
+    return f'확인할 변경이 {total - index + 1}건 남았어요'
 
 
 def count_chip(index, total):
@@ -467,24 +504,62 @@ def count_chip(index, total):
     return f'{esc(STRONG)}{esc("7")} {index}/{total} {esc("27")}{esc("39")}'
 
 
+# 제목 끝 종류 태그 (흐린 글자). v2에서 일반 변경에도 "(변경)"을 붙여 네 갈래가 모두 태그로 보인다 (10/13 부건)
+# 데이터에서는 이전 값이 없으면 신규, isRevert면 되돌림, 나머지는 변경. 폐기는 코드가 아직 알리지 않지만 시안에는 넣는다
+# 낱말은 신지님과 정할 용어-3 (SIL-68-맞춰야-할-용어.md)
+TAGS = {'change': '변경', 'new': '신규', 'revert': '되돌림', 'deprecated': '폐기'}
+
+
+# 상세 제목 글자: 청록 굵은 글자 (10/13 부건). 청록은 "읽을 정보"라는 중립 안내 색이라
+# 노랑(봐야 할 대기 중인 것: 건수·막대), 초록(완료: ✓)과 뜻이 겹치지 않는다. [영역]과 태그는 그대로 둔다.
+# 밝은 터미널(Tango Light)에서 대비 약 3.5:1이라 굵게를 함께 쓴다. 비교해 보려면 NOTICE_TITLE_COLOR=35(자주)처럼 바꾼다
+TITLE_COLOR = os.environ.get('NOTICE_TITLE_COLOR', '36')
+
+
+def title_text(title):
+    """제목만 색 + 굵게. 끝나면 줄 색(터미널 기본 글자색)으로 돌아가 뒤의 태그가 회색이 되지 않게 한다."""
+    return f'{esc("1")}{esc(TITLE_COLOR)}{title}{esc(STRONG)}{esc("22")}'
+
+
+# 변경 상세 한 건을 위아래 선으로 묶는다 (v2, 10/13 부건). 위 선 안에 머리표(진행 문장 + 몇 번째 칩)를 넣는다.
+# 선은 어느 설정에서나 1칸인 영문 하이픈 (상자 선 ─ 는 한국어 코딩 글꼴에서 2칸, T2-본문 결정기록 3-7)
+RULE = '-'
+
+
+def rule_top(index, total, recall=False):
+    """-- [1/3] 작업 전에 확인할 변경이 3건 있어요 --------  (1건이면 칩 없이)
+    몇 번째 칩은 머리표 문장 왼쪽에 둔다 (10/13 부건).
+    머리표 문장은 Claude Code 기본 회색, 보통 굵기로 낮춘다 (10/13 부건). 진행은 칩이 보여 주고,
+    선과 칩은 기본 글자색으로 남겨 단락 구분은 그대로 둔다. 흐리게(2)는 밝은 터미널에서 거의 사라져서 쓰지 않는다."""
+    lead = f'{RULE * 2} '
+    chip = f'{count_chip(index, total)} ' if total > 1 else ''
+    chip_width = t2.text_width(f' {index}/{total}  ') if total > 1 else 0
+    head = f'{progress(index, total, recall)} '
+    fill = RULE * max(2, COLS - t2.text_width(lead + head) - chip_width)
+    return f'{color_line(lead, NEW_COLOR)}{chip}{head}{color_line(fill, NEW_COLOR)}'
+
+
+def rule_bottom():
+    return color_line(RULE * COLS, NEW_COLOR)
+
+
 def detail_screen(c, index, total, recall=False):
-    """진행 표시 → 제목 → 바꾼 사람·시간(회색) → 바뀐 값 → 이유 · 이슈 · 출처."""
-    tag = t2.TAGS.get(c['kind'])
+    """위 선(머리표) → 제목(+ 종류 태그) → 바꾼 사람·시간(회색) → 변경·상세 → 이유 · 이슈 · 출처 → 아래 선."""
+    tag = TAGS.get(c['kind'])
     tag_text = dim(f' ({tag})') if tag else ''
     tag_width = (t2.text_width(tag) + 3) if tag else 0
     head_width = t2.text_width(c['area']) + 2 + 1          # [영역] + 빈칸
     title = t2.cut_end(c['title'], COLS - head_width - tag_width)
     return '\n'.join([
         '',
-        progress(index, total, recall),
-        '',
-        *([count_chip(index, total)] if total > 1 else []),
-        color_line(f'[{c["area"]}] {bold(title)}{tag_text}', NEW_COLOR),
+        rule_top(index, total, recall),
+        color_line(f'[{c["area"]}] {title_text(title)}{tag_text}', NEW_COLOR),
         ' ' * head_width + color_line(f'{c["who"]}님이 {c["when"]}에 변경했어요.', OLD_COLOR),
         *value_lines(c),          # 15줄 안에 들어가도록 값·이유 묶음은 빈 줄 없이 붙인다 (기록 뒤 화면 14줄, 문장을 새로 쓴 변경 15줄)
         f'  이유  ' + t2.cut_end(c['reason'], COLS - 8),
         f'  이슈  ' + issue_text(c),
         f'  출처  {source_text(c)}',
+        rule_bottom(),
     ])
 
 
@@ -515,10 +590,12 @@ def was_skipped(session_id):
 
 
 def skipped_reminder(count):
-    """닫고 넘어간 뒤 Claude가 작업을 마칠 때마다(Stop hooks) 입력 칸 바로 위에 띄우는 한 줄. 켤 때 알림 첫 줄과 같은 모양에, 입력할 말은 굵게.
+    """닫고 넘어간 뒤 Claude가 작업을 마칠 때마다(Stop hooks) 입력 칸 바로 위에 띄우는 한 줄.
+    켤 때 알림 첫 줄과 같은 상태 줄 모양(노란 막대)에, 입력할 말은 노란 굵은 글자 (10/13 부건. 따옴표는 기본 글자색).
+    노랑은 건수 숫자·막대와 같은 "봐야 할 것"이라 다음에 칠 말에 맞는다. 밝은 터미널에서는 대비가 약 2.5:1로 낮다.
     v1은 작업을 입력할 때 띄워서 작업 결과에 밀려 올라갔다 (v1 피드백 P1·P3, 10/13 부건)."""
-    recall = bold(f'"{RECALL}"')
-    return '\n'.join(['', color_line(f'● 확인할 변경 {count_text(count)}건 · {recall}을 입력하면 변경 내역을 볼 수 있어요.', NEW_COLOR)])
+    recall = f'"{esc("1")}{esc(COUNT_COLOR)}{RECALL}{esc(STRONG)}{esc("22")}"'
+    return '\n'.join(['', status_line(f'확인할 변경 {count_text(count)}건 · {recall}을 입력하면 변경 내역을 볼 수 있어요.')])
 
 
 def nothing_left():
@@ -532,14 +609,18 @@ def answer_text(c, answer):
     return t2.cut_end(' · '.join([c['issue'], answer['relation'], second or '']), COLS - 16)
 
 
-def recorded_line(change_id):
-    """✓ 기록했어요  SIL-34 · 관계있다 · 몰랐다 (+ 관계있다면 다음 작업부터 따른다는 둘째 줄)."""
-    c = next(c for c in load_changes()['changes'] if c['id'] == change_id)
-    answer = load_answers()[change_id]
-    lines = [f'{esc("32")}✓{esc("39")} 기록했어요  {color_line(answer_text(c, answer), NEW_COLOR)}']
+def recorded_lines(c, answer):
+    """✓ 기록했어요  SIL-34 · 관계있다 · 몰랐다 (+ 관계있다면 다음 작업부터 따른다는 둘째 줄).
+    "✓ 기록했어요"는 초록(완료) 글자, 내 답은 터미널 기본 글자색 (10/13 부건, v1은 ✓만 초록)."""
+    lines = [f'{esc(DONE_COLOR)}✓ 기록했어요{esc("39")}  {color_line(answer_text(c, answer), NEW_COLOR)}']
     if answer['relation'] == '관계있다':
         lines.append('  다음 작업부터 바뀐 결정 사항을 따라요.')     # 위키 notify.answer.next-run-context "다음 실행부터"에 맞춤 (착수 문서 T5 문구에서 바꿈)
     return lines
+
+
+def recorded_line(change_id):
+    c = next(c for c in load_changes()['changes'] if c['id'] == change_id)
+    return recorded_lines(c, load_answers()[change_id])
 
 
 def closed_line(change_id):

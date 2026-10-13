@@ -12,12 +12,15 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 켜면 회색 알림이 뜨고, 아무 작업이나 입력하면(예: `로그인 화면 문구 고쳐 줘`) 변경 상세와 질문이 떠요.
 - 답은 `answers.json`에 남아요. 처음부터 다시 보려면 `./reset.sh`.
 - 질문을 Esc로 닫고 넘어가면, 그 세션에서는 다시 묻지 않고 Claude가 작업을 마칠 때마다 입력 칸 바로 위에 한 줄 알림이 떠요(v2, Stop hooks). `결정 사항 확인`만 입력하면 상세와 질문이 다시 떠요. Claude Code를 다시 켜면 처음처럼 물어요.
+- v2 모양(10/13): 켤 때 첫 줄과 닫은 뒤 한 줄은 앞에 노란 막대, 변경 상세는 위아래 선으로 묶고 위 선에 머리표(진행 문장 + 몇 번째 칩)를 넣어요.
+- v2 태그와 상세(10/13): 제목 끝 태그는 `(변경)` `(신규)` `(되돌림)` `(폐기)` 네 갈래, 그 아래 `상세`는 제목이 가리키는 결정 사항의 값 전체(두 줄까지). 네 갈래를 한 번에 보려면 `NOTICE_DATA=changes-v2 claude`
 - 관계·알았나 질문에 직접 글을 쓰면 답으로 기록하지 않고 같은 질문을 다시 물어요. 쓴 글은 `answers.json`의 `note`에 남아요.
 - 비교 방식 바꿔 보기: `NOTICE_DIFF=github|track|color claude` (기본은 summary = E 방식)
 - 화살표 바꿔 보기: `NOTICE_ARROW=➜ claude`
 - SIL-77 예외 보기(10/13): `NOTICE_DATA=changes-sil77 claude`. 첫 변경은 상세를 보는 사이 되돌려진 경우라 답을 눌러도 기록되지 않고 `#5 변경이 되돌려졌어요. 하려던 작업을 계속 진행하시면 돼요.` 한 줄 뒤 다음 변경이 떠요(DRI 결정 8). 둘째 변경은 지난번에 관계있다로 답한 경우라 상세의 빈 줄 자리에 `지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요.`가 나와요(DRI 결정 9). 닫힌 변경은 `closed.json`에 남아요
 - 착수 문서 데모 예시로 보기: `NOTICE_DATA=changes-demo claude` (부건님이 40자 → 32자로 바꾸고 민수님 #5가 받는 경우, 1건)
 - 건수 숫자 색 바꿔 보기: `NOTICE_COUNT_COLOR=36 claude` (기본 33 노랑, 36 청록)
+- 상세 제목 색 바꿔 보기: `NOTICE_TITLE_COLOR=35 claude` (기본 36 청록 굵게, 10/13)
 - 색·강조 비교 미리보기: `count-color-preview.html`(건수 글자색 후보), `emphasis-preview.html`(다시 부르는 말 강조 후보, 당시 문구 "기준 변경 확인")
 
 ## 사내 테스트 (자동 진행)
@@ -66,6 +69,7 @@ cd cli-design-notes/prototype/t1-prototype && ./reset.sh && claude
 | `notify-prototype/proto/changes-sil77.json`       | SIL-77 확인용 2건 (보는 사이 자동으로 닫힘, 관계있다로 답한 뒤 다시 바뀜). 지어낸 예시     |
 | `notify-prototype/proto/changes-sample.json`      | 예전 샘플 (40자 → 32자, 리뷰 규칙 폐기)                                                    |
 | `notify-prototype/proto/changes-test.json`        | 사내 테스트용 예시 시안 3건 (숫자·신규·관계없음) + 관계 정답과 이해도 문제                 |
+| `notify-prototype/proto/changes-v2.json`          | v2 확인용 5건 (변경·신규·되돌림·폐기·크게 바뀐 변경). 되돌림은 지어낸 예시                 |
 | `notify-prototype/test_run.py`                    | 사내 테스트 진행: 참가자 입력 → 테스트 모드 시안 → 설문 → `results/` 저장                  |
 | `notify-prototype/.claude/hooks/after_quiz.py`    | 테스트 모드에서 이해도 기록 뒤 다음 변경 상세                                              |
 | `notify-prototype/.claude/hooks/session_start.py` | ① 켤 때 알림                                                                               |
