@@ -2,7 +2,7 @@
 
 팀이 **함께 쓰는 MCP 서버 하나**예요. Streamable HTTP로 열고, 올린 곳(호스팅)이 HTTPS를 붙여 줘요.
 팀원은 각자 서버를 켜지 않고 `claude mcp add --transport http <주소>` 한 줄로 붙어요.
-위키 도구(정민님, SIL-19)와 알리기 도구(민수님, SIL-29~31)가 이 한 서버에 올라가요.
+위키 도구(정민님, SIL-19)와 알리기 도구(민수님, SIL-67)가 이 한 서버에 올라가요.
 
 ```
 Claude Code ──HTTPS──▶ 호스팅 ──HTTP──▶ haribo MCP 서버(/mcp) ──공용 키──▶ Supabase
@@ -29,19 +29,24 @@ mcp-server/
         ├── _template.ts    새 도구 본보기
         ├── system/         ping (연결 확인)
         ├── wiki/           위키 도구 5개 — 정민님 (SIL-19, wiki.mcp.five-tools)
-        └── notify/         알리기 도구 자리 — 민수님 (SIL-29~31)
+        └── notify/         알리기 도구 2개 — 민수님 (SIL-67). 규칙은 @sil/notify, 여기서는 DB에서 데이터만 모아요
 ```
 
 ## 도구
 
-| 도구               | 하는 일                                                                           | 읽기만 |
-| ------------------ | --------------------------------------------------------------------------------- | ------ |
-| `ping`             | 서버·DB 연결, 누구로 들어왔는지 확인                                              | ✔      |
-| `get_index`        | 목차: 항상 적용 기준, 기준 전체 목록(ID·영역·제목), 영역별 수                     | ✔      |
-| `search_standards` | 키워드, 영역, 코드 경로(glob)로 기준 찾기                                         | ✔      |
-| `get_standard`     | 기준 하나의 최신 내용과 버전 기록 (`currentVersion`)                              | ✔      |
-| `save_standard`    | 새 기준·새 버전 저장. ID·제목·값·이유·항상 적용이 없으면 빠진 칸을 알려 주고 거절 |        |
-| `revert`           | 앞선 버전으로 되돌리기. 되돌림도 새 버전으로 쌓임                                 |        |
+| 도구               | 하는 일                                                                            | 읽기만 |
+| ------------------ | ---------------------------------------------------------------------------------- | ------ |
+| `ping`             | 서버·DB 연결, 누구로 들어왔는지 확인                                               | ✔      |
+| `get_index`        | 목차: 항상 적용 기준, 기준 전체 목록(ID·영역·제목), 영역별 수                      | ✔      |
+| `search_standards` | 키워드, 영역, 코드 경로(glob)로 기준 찾기                                          | ✔      |
+| `get_standard`     | 기준 하나의 최신 내용과 버전 기록 (`currentVersion`)                               | ✔      |
+| `save_standard`    | 새 기준·새 버전 저장. ID·제목·값·이유·항상 적용이 없으면 빠진 칸을 알려 주고 거절  |        |
+| `revert`           | 앞선 버전으로 되돌리기. 되돌림도 새 버전으로 쌓임                                  |        |
+| `list_pending`     | 나(`X-Sil-User`)에게 온 확인할 변경 목록. 제목·이전 값·지금 값·이유·이슈를 붙여 줌 | ✔      |
+| `respond`          | 확인할 변경에 답 저장 (관계, 알았나, 관계없는 이유). 답한 곳은 터미널              |        |
+
+알리기 도구는 `X-Sil-User`의 이름으로만 움직여요. 다른 사람의 목록을 보거나 대신 답할 수 없고, 이름이 없으면 거절해요.
+`respond`는 DB까지 가기 전에 `@sil/notify`의 `checkAnswer`로 먼저 검사해서 빠진 칸을 한국어로 알려 줘요. 이미 닫힌 변경이면 `closedStatus`(답함·대체됨·자동 닫힘)를 돌려줘요. "관계있다"로 저장되면 `rereadStandardId`를 돌려줘서 AI가 그 결정 사항을 `get_standard`로 다시 읽어요.
 
 팀 위키 `wiki.mcp.five-tools`에 따라 위키 도구는 다섯 개예요. 폐기는 사람이 `pnpm sil deprecate`로 해요.
 `save_standard`와 `revert`는 결과에 CHANGELOG 한 줄(`changelogLine`)을 돌려줘요. 작업 중인 저장소에 `team-wiki/CHANGELOG.md`가 있으면 AI가 그 줄을 맨 아래에 붙여요 (`work.wiki.changelog`).
