@@ -8,7 +8,11 @@ export type {
   SkipReason,
   SkippedIssue,
 } from './createPendingChecks.ts';
-export { CLOSED_VISIBLE_DAYS, listPending } from './listPending.ts';
+export {
+  CLOSED_VISIBLE_DAYS,
+  buildPendingList,
+  listPending,
+} from './listPending.ts';
 export type {
   ListPendingInput,
   ListPendingOptions,
@@ -17,10 +21,18 @@ export type {
   PendingItemAnswer,
   PendingItemIssue,
   PendingItemStandard,
+  PreviousAnswer,
 } from './listPending.ts';
-export { MAX_UNAFFECTED_REASON_LENGTH, respond } from './respond.ts';
+export {
+  MAX_UNAFFECTED_REASON_LENGTH,
+  checkAnswer,
+  closedFailure,
+  respond,
+} from './respond.ts';
 export type {
+  CheckedAnswer,
   RespondErrorCode,
+  RespondFailure,
   RespondInput,
   RespondOptions,
   RespondResult,

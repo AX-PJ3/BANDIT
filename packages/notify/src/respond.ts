@@ -3,6 +3,7 @@ import type {
   Answer,
   AnswerChannel,
   IsoDateTime,
+  PendingCheck,
   PendingCheckStatus,
   StandardId,
 } from './types.ts';
@@ -54,14 +55,29 @@ export type RespondResult =
        */
       rereadStandardId: StandardId | null;
     }
-  | {
-      ok: false;
-      code: RespondErrorCode;
-      /** 사람에게 그대로 보여 줄 수 있는 문장 */
-      message: string;
-      /** code가 missing_fields일 때 빠진 칸 */
-      missingFields?: string[];
-    };
+  | RespondFailure;
+
+export interface RespondFailure {
+  ok: false;
+  code: RespondErrorCode;
+  /** 사람에게 그대로 보여 줄 수 있는 문장 */
+  message: string;
+  /** code가 missing_fields일 때 빠진 칸 */
+  missingFields?: string[];
+  /**
+   * code가 already_closed일 때 그 변경이 지금 어떤 상태인지.
+   * auto_closed면 화면이 "되돌려져서 답하지 않아도 돼요" 한 줄을 띄워요 (SIL-77 부건님 의견).
+   */
+  closedStatus?: Exclude<PendingCheckStatus, 'pending'>;
+}
+
+/** checkAnswer가 통과시킨 답. 맞지 않는 쪽 칸은 비워 둬요 */
+export interface CheckedAnswer {
+  ok: true;
+  affected: boolean;
+  known: boolean | null;
+  unaffectedReason: string | null;
+}
 
 const CLOSED_MESSAGES: Record<
   Exclude<PendingCheckStatus, 'pending'>,
@@ -86,7 +102,48 @@ export async function respond(
 ): Promise<RespondResult> {
   const data = await store.read();
   const check = data.pendingChecks.find((c) => c.id === input.pendingCheckId);
+  const checked = checkAnswer(check, input);
+  if (!checked.ok) return checked;
+  // checkAnswer가 통과했으면 check는 있어요
+  const target = check as PendingCheck;
 
+  const answeredAt = options.now ?? new Date().toISOString();
+  const answer: Answer = {
+    id: (options.makeId ?? (() => crypto.randomUUID()))(),
+    pendingCheckId: target.id,
+    answeredBy: input.answeredBy,
+    affected: checked.affected,
+    known: checked.known,
+    unaffectedReason: checked.unaffectedReason,
+    channel: input.channel,
+    answeredAt,
+  };
+
+  await store.write({
+    ...data,
+    pendingChecks: data.pendingChecks.map((c) =>
+      c.id === target.id
+        ? { ...c, status: 'answered' as const, closedAt: answeredAt }
+        : c,
+    ),
+    answers: [...data.answers, answer],
+  });
+
+  return {
+    ok: true,
+    answer,
+    rereadStandardId: answer.affected ? target.standardId : null,
+  };
+}
+
+/**
+ * 답을 저장하기 전에 검사하는 순수 함수예요. 임시 저장소의 respond와 MCP 도구 respond(DB)가 같이 써요.
+ * 없는 변경, 받는 사람이 아님, 이미 닫힘, 답한 곳이 틀림, 빠진 칸, 이유가 너무 김을 차례로 봐요.
+ */
+export function checkAnswer(
+  check: PendingCheck | undefined,
+  input: RespondInput,
+): CheckedAnswer | RespondFailure {
   if (!check) {
     return fail('not_found', '답할 확인할 변경을 찾지 못했어요.');
   }
@@ -97,7 +154,7 @@ export async function respond(
     );
   }
   if (check.status !== 'pending') {
-    return fail('already_closed', CLOSED_MESSAGES[check.status]);
+    return closedFailure(check.status);
   }
   if (!ANSWER_CHANNELS.includes(input.channel)) {
     return fail('invalid_channel', '답한 곳은 터미널이나 앱이어야 해요.');
@@ -129,39 +186,25 @@ export async function respond(
     );
   }
 
-  const answeredAt = options.now ?? new Date().toISOString();
-  const answer: Answer = {
-    id: (options.makeId ?? (() => crypto.randomUUID()))(),
-    pendingCheckId: check.id,
-    answeredBy: input.answeredBy,
+  return {
+    ok: true,
     affected: input.affected,
     known: input.affected ? (input.known as boolean) : null,
     unaffectedReason: input.affected ? null : reason,
-    channel: input.channel,
-    answeredAt,
-  };
-
-  await store.write({
-    ...data,
-    pendingChecks: data.pendingChecks.map((c) =>
-      c.id === check.id
-        ? { ...c, status: 'answered' as const, closedAt: answeredAt }
-        : c,
-    ),
-    answers: [...data.answers, answer],
-  });
-
-  return {
-    ok: true,
-    answer,
-    rereadStandardId: answer.affected ? check.standardId : null,
   };
 }
 
-function fail(
-  code: RespondErrorCode,
-  message: string,
-): Extract<RespondResult, { ok: false }> {
+/** 이미 닫힌 변경에 답했을 때의 결과. 지금 상태를 함께 돌려줘요 */
+export function closedFailure(
+  status: Exclude<PendingCheckStatus, 'pending'>,
+): RespondFailure {
+  return {
+    ...fail('already_closed', CLOSED_MESSAGES[status]),
+    closedStatus: status,
+  };
+}
+
+function fail(code: RespondErrorCode, message: string): RespondFailure {
   return { ok: false, code, message };
 }
 

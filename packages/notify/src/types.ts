@@ -80,10 +80,11 @@ export interface PendingCheck {
 }
 
 /**
- * 출처: AI 대화 / 코드 / 팀 위키 파일.
+ * 출처: AI 대화 / 코드 / Figma / 회의 / Slack / 팀 위키 파일. DB(@sil/core StandardSource)와 같은 값이에요.
  * 화면에는 "AI 대화에서 바꿈", "코드에서 바꿈" 두 가지만 나와요. wiki는 예전 위키에서 가져온 버전이에요.
  */
-export type StandardSource = 'ai_chat' | 'code' | 'wiki';
+export type StandardSource =
+  'ai_chat' | 'code' | 'figma' | 'meeting' | 'slack' | 'wiki';
 
 /**
  * 기준 버전 하나 — 착수 안내 v2 "결정 사항" 표의 한 줄이에요.
