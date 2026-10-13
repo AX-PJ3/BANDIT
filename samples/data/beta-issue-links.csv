@@ -1,9 +1,11 @@
 이슈 번호,이슈 제목,담당자,이슈 상태,기준 ID,연결한 방법
 #1,위키 도구 시험,정민,진행 중,wiki.read.index-first,사람 확인
-#2,바뀐 결정 찾기 시험,경하,진행 중,detect.ask.cancel-keeps-wiki,사람 확인
+#2,바뀐 결정 찾기 시험,경하,진행 중,detect.change.ai-mark,사람 확인
 #3,터미널 알림 화면 시험,부건,진행 중,notify.terminal.one-change,사람 확인
 #3,터미널 알림 화면 시험,부건,진행 중,app.notify.title-length,사람 확인
+#4,담당자 없는 이슈 시험,,진행 중,app.notify.title-length,사람 확인
 #5,답 받기 시험,민수,진행 중,app.notify.title-length,사람 확인
 #5,답 받기 시험,민수,진행 중,notify.answer.two-questions,사람 확인
+#6,끝난 이슈 시험,부건,완료,app.notify.title-length,사람 확인
 #7,앱 받은함 시험,신지,진행 중,app.notify.title-length,사람 확인
 #7,앱 받은함 시험,신지,진행 중,app.screen.inbox-first,사람 확인
