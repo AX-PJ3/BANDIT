@@ -161,7 +161,7 @@ def done_message():
         sent = '연결된 이슈가 없어서 알림을 받는 사람은 없어요.'
     return '\n'.join([
         '',
-        f'{esc("32")}✓{esc("39")} 결정 사항을 등록했어요.',
+        f'{esc("32")}✓ 결정 사항을 등록했어요.{esc("39")}',    # 첫 줄 전체 녹색 (10/13 부건)
         f'  {esc(STRONG)}[{area}] {r["title"]}{esc("39")}  {tag}',
         f'  {sent}',
     ])

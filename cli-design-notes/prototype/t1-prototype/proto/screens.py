@@ -101,21 +101,25 @@ def rule_bottom():
 # "충돌"은 위키 용어집에서 동시 수정(detect.conflict.hold)을 뜻해서 T1은 "달라요"를 써요 (10/13)
 
 KIND_COL = 8
-RED = '31'    # 다른 결정 사항이 있을 때 머리표: 기본 16색 빨강 (부건 지정, 10/12)
+YELLOW = '33'  # 다른 결정 사항이 있을 때 머리표: 기본 16색 노랑 (10/13 부건, 처음엔 빨강)
+GREEN = '32'   # 다른 결정 사항이 없을 때 한 줄: 기본 16색 초록 (10/13)
 
 
-def red(text):
-    return f'{esc(RED)}{text}{esc("39")}'
+def color_bar(color, text):
+    """그 색을 반전한 칸 하나 + 빈칸 + 같은 색 글자. T2~T5 상태 줄의 노란 막대와 같은 모양 (10/13 부건)"""
+    return f'{esc(color)}{esc("7")} {esc("27")} {text}{esc("39")}'
 
 
 def conflicts_screen(kind, request, conflicts):
     """kind: '작업'(경우 1, Claude가 알아챔) / '요청'(경우 2, 사람이 바꿔 달라고 함).
     다른 결정 사항마다 구분 · [영역] 제목, 그 아래에 왜 그렇게 판단했는지 (ID는 보여 주지 않아요, 10/13)."""
-    ask = f'  {kind}  {cut_end(request, COLS - 8)}'
     if not conflicts:
-        return '\n'.join(['', rule_top(strong('요청하신 변경과 다른 결정 사항이 없어요')), ask, rule_bottom()])
+        # 없을 때는 요청 줄 없이 녹색 막대 한 줄만 (10/13 부건)
+        return '\n'.join(['', color_bar(GREEN, '요청하신 변경과 다른 결정 사항이 없어요')])
+    ask = f'  {kind}  {cut_end(request, COLS - 8)}'
     head = '부탁하신 작업이 기존 결정 사항과 달라요' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 달라요'
-    lines = ['', rule_top(red(head)), ask, '']
+    # 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13 부건)
+    lines = ['', color_bar(YELLOW, head), ask, '']
     now = wiki.current_standards()
     body_col = COLS - 2 - KIND_COL
     for c in conflicts:
@@ -123,34 +127,33 @@ def conflicts_screen(kind, request, conflicts):
         for i, t in enumerate(wrap(title, body_col)):
             lines.append('  ' + pad(c['kind'] if i == 0 else '', KIND_COL) + strong(t, True))
         lines += [' ' * (2 + KIND_COL) + w for w in wrap(c['why'], body_col)]
-    lines.append(rule_bottom())
     return '\n'.join(lines)
 
 
 # ---------- ③ 등록될 모습 ----------
 
-TITLE_BAR = f'{esc("36")}{esc("7")} {esc("27")}{esc("39")} '
+CYAN = '36'   # ③ 제목: 기본 16색 청록 굵게. T2~T5 상세 제목과 같은 색 (10/13 부건, 처음엔 청록 막대)
 
 def preview_screen(p):
     now = wiki.current_standards().get(p['id'])
     version = '' if now else '새 결정 사항'    # 고칠 때는 버전을 보여 주지 않아요 (10/12)
     title = f'[{area_of(p["id"])}] {p["title"]}'
     lines = ['', rule_top(strong('결정 사항을 이렇게 등록할까요'))]
-    # 제목 앞 청록 막대: 청록을 반전한 칸 하나 + 빈칸. 제목 글자가 값·이유와 같은 4칸에서 시작해요 (10/13 부건)
-    head = '  ' + TITLE_BAR + strong(title, True)
+    head = '  ' + bold(f'{esc(CYAN)}{title}{esc("39")}')
     if not version:
         lines.append(head)
-    elif width(title) + 2 + width(version) <= COLS - 4:
-        lines.append(head + ' ' * (COLS - 4 - width(title) - width(version)) + version)
+    elif width(title) + 2 + width(version) <= COLS - 2:
+        lines.append(head + ' ' * (COLS - 2 - width(title) - width(version)) + version)
     else:
         lines += [head, ' ' * (COLS - width(version)) + version]
+    # 이름(값·이유·항상 적용)은 회색, 오른쪽 내용은 터미널 기본 글자색 (어두우면 흰색, 밝으면 검정. 10/13 부건)
     for label, text in (('값', p['value']), ('이유', p['reason'])):
         body = wrap(text, COLS - 10)
-        lines.append(f'    {pad(label, 6)}{body[0]}')
-        lines += [' ' * 10 + more for more in body[1:]]
+        lines.append(f'    {pad(label, 6)}{strong(body[0])}')
+        lines += [' ' * 10 + strong(more) for more in body[1:]]
     lines.append('')
-    # 값·이유와 같은 색. 항상 적용이 예일 때만 굵게 (10/13 부건)
-    always = f'항상 적용  {"예" if p["always_on"] else "아니오"}'
+    # 값·이유와 같은 모양. 항상 적용이 예일 때만 줄 전체를 굵게 (10/13 부건)
+    always = f'항상 적용  {strong("예" if p["always_on"] else "아니오")}'
     lines.append('    ' + (bold(always) if p['always_on'] else always))
     lines.append('')
     targets = wiki.notify_targets(p['id']) if now else []
@@ -162,7 +165,6 @@ def preview_screen(p):
     id_col, owner_col = 5, 8
     issue_col = COLS - 2 - id_col - owner_col
     lines.append('  ' + dim(pad('ID', id_col) + pad('담당자', owner_col) + '이슈'))
-    lines.append('  ' + dim(pad(RULE * 3, id_col) + pad(RULE * 6, owner_col) + RULE * 30))
     for i in targets:
         lines.append('  ' + pad(i['number'], id_col) + pad(i['owner'], owner_col) + cut_end(i['title'], issue_col))
     lines.append(rule_bottom())
