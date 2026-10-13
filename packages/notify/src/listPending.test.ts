@@ -59,9 +59,41 @@ describe('listPending', () => {
             status: 'in_progress',
           },
           answer: null,
+          previousAnswer: null,
         },
       ],
     });
+  });
+
+  it('이전 버전에 관계있다고 답했으면 그 답을 함께 돌려준다 (SIL-77 부건님 의견)', async () => {
+    const store = await storeAfterV2();
+    await respond(
+      store,
+      {
+        pendingCheckId: 'c-1',
+        answeredBy: '민수',
+        affected: true,
+        known: false,
+        channel: 'terminal',
+      },
+      { now: '2026-10-13T14:20:00+09:00' },
+    );
+    await applyNewVersion(
+      store,
+      { ...DEMO_V2, version: 3, value: '공백 포함 30자 이하' },
+      { now: LATER, makeId: createIdMaker('v3') },
+    );
+
+    const [minsu] = (await listPending(store, { recipient: '민수' })).items;
+    assert.deepEqual(minsu?.previousAnswer, {
+      version: 2,
+      affected: true,
+      known: false,
+      answeredAt: '2026-10-13T14:20:00+09:00',
+    });
+    // 신지님은 v2에 답하지 않아서 대체됐고, 이전 답이 없어요
+    const [sinji] = (await listPending(store, { recipient: '신지' })).items;
+    assert.equal(sinji?.previousAnswer, null);
   });
 
   it('기준을 바꾼 본인과 연결된 이슈가 없는 사람은 빈 목록이다', async () => {
