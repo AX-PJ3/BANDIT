@@ -54,3 +54,31 @@ export type {
   StandardVersionRecord,
   VersionValue,
 } from './types.ts';
+export {
+  COLS,
+  RECALL_PHRASE,
+  allAnsweredLine,
+  areaOf,
+  autoClosedLine,
+  detailScreen,
+  formatWhen,
+  isRecall,
+  nothingLeft,
+  recordedLines,
+  sessionNotice,
+  skippedReminder,
+  sourceText,
+} from './terminal/screens.ts';
+export type { DetailOptions, RecordedAnswer } from './terminal/screens.ts';
+export {
+  KNOWN_LABELS,
+  RELATION_LABELS,
+  UNAFFECTED_REASONS,
+  questionsFor,
+} from './terminal/questions.ts';
+export type {
+  ChangeQuestions,
+  Question,
+  QuestionOption,
+} from './terminal/questions.ts';
+export { stripAnsi, textWidth } from './terminal/text.ts';
