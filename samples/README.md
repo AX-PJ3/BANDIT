@@ -26,6 +26,7 @@
 | `data/changes.json` | 기준 변경 7건 |
 | `data/pending.json` | 확인할 변경 15건 |
 | `data/responses.csv` | 응답 7건 (응답 기록 열 그대로) |
+| `베타-시험표.md` | **MCP 베타 시험표**: 이슈 7개로 볼 수 있는 케이스와 시험 순서 (A~G) |
 | `data/beta-issue-links.csv` | **MCP 베타 시험용** 이슈 7개 연결 (9번 참고). `gen_samples.py`가 다시 만들지 않아요 |
 
 ## 3. 변경 7건
@@ -183,6 +184,8 @@ pnpm sil import --issues samples/data/beta-issue-links.csv --apply       # 저�
 pnpm mcp:serve                                                           # 서버 켜기
 pnpm mcp:register --local --user 정민                                    # 이름을 바꿔 가며 등록
 ```
+
+케이스별 시험 순서와 기대 결과는 `베타-시험표.md`에 있어요. 아래는 큰 흐름이에요.
 
 1. 정민 이름으로 `save_standard`를 불러 `app.notify.title-length`를 새 버전으로 저장해요. 정민에게는 연결된 이슈가 없어서, 부건(`#3`, `#6` 2건)·민수(`#5`)·신지(`#7`)에게 생겨요. `#4`는 담당자가 없어서 안 생겨요.
 2. 이름을 민수로 바꿔 등록하고(`claude mcp remove haribo --scope user` 뒤 `--user 민수`) `list_pending`으로 봐요. `respond`로 답해요.
