@@ -18,7 +18,7 @@
 | `src/t1/copy.ts`       | T1 문구 (착수 안내 3절 → FigJam "T1 결정 사항 등록" 10/13). 묻기, 아니오, 이유 묻기, ③ 등록될 모습, 취소, ④ 등록 완료. 문구는 여기에만 둬요                 |
 | `src/t1/save-input.ts` | 등록하기를 골랐을 때 저장 값. `source: ai_chat`, `aiDetected: false`(임시), `baseVersion`은 `get_standard`의 `currentVersion`, `alwaysOn`·`scope`는 지금 값 |
 
-흐름: 묻기(예/아니오) → 아니오면 지금 값대로 작업 / 예면 이유(대화에서 알 수 있으면 정리, 아니면 글로 물음) → ③ 등록될 모습(등록하기 / 수정하기 / 취소하기) → 등록하기면 저장하고 CHANGELOG에 한 줄 붙이기(위키 파일은 그대로). 선택 창을 Esc로 닫으면 취소하기와 같아요.
+흐름: 묻기(예/아니오) → 아니오면 작업을 멈추고 사람이 다시 말할 때까지 기다림 / 예면 이유(대화에서 알 수 있으면 정리, 아니면 글로 물음) → ③ 등록될 모습(등록하기 / 수정하기 / 취소하기) → 등록하기면 저장하고 CHANGELOG에 한 줄 붙이기(위키 파일은 그대로). 선택 창을 Esc로 닫으면 취소하기와 같아요.
 
 안전장치로 `.claude/settings.json`의 `permissions.ask`에 `save_standard`와 `revert`를 넣어, 저장하기 전에 Claude Code가 한 번 더 허락을 받아요. auto mode에서도 뜨고, 허락 창에서 "Yes, and don't ask again"을 골라도 다음에 다시 물어요 (10/13 시험).
 

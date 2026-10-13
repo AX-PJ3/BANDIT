@@ -15,7 +15,7 @@
   문구는 `apps/detect/src/t1/copy.ts`의 `T1_COPY`를 글자 그대로 쓴다(바꿔 말하지 않는다). 선택지는 거기 있는 것만 쓰고 새로 만들지 않는다.
   1. haribo `get_standard`로 지금 영역·제목·값·`alwaysOn`·`currentVersion`과 적용 범위(`versions[0].scope`)를 읽는다.
   2. `ask`를 AskUserQuestion으로 묻는다 (예/아니오).
-  3. 아니오면 저장하지 않고 `notChanged`를 보여 준 뒤, 결정 사항의 지금 값대로 하던 작업을 이어간다. 다시 묻지 않는다.
+  3. 아니오면 저장하지 않고 `notChanged`를 보여 준 뒤 작업을 멈추고 기다린다. 지금 값대로도 코드를 쓰지 않는다. 사람이 "40자로 작업해 줘"처럼 어떻게 할지 다시 말할 때만 그대로 진행한다.
   4. 예면 이유를 정한다. 사람이 대화에서 한 말로 이유를 알 수 있으면 그 말을 한 문장으로 정리한다. 알 수 없으면 `reasonPrompt`를 글로 묻고(AskUserQuestion이 아님) 답을 한 문장으로 정리한다. 근거 없이 지어내지 않는다.
   5. `preview`(③ 등록될 모습)를 AskUserQuestion으로 보여 준다. 수정하기면 `editPrompt`를 글로 묻고 고친 뒤 5를 다시 한다. 취소하기면 저장하지 않고 `cancelled`를 보여 준 뒤 하던 작업을 멈추고 사람의 말을 기다린다.
   6. 등록하기면 haribo `save_standard`로 저장하고 `saved`를 보여 준 뒤 바꾼 값으로 하던 작업을 이어간다. `baseVersion`은 1에서 읽은 `currentVersion`, `alwaysOn`과 `scope`는 지금 값 그대로(scope를 비우면 적용 범위가 지워진다. 지금 값이 null이면 칸을 뺀다), `source`는 `ai_chat` (`apps/detect/src/t1/save-input.ts`와 같은 값). 저장 결과의 `changelogLine`을 team-wiki/CHANGELOG.md 맨 아래에 그대로 붙인다(work.wiki.changelog). 위키 파일의 값·버전은 고치지 않는다 (위키 문서 버전과 DB 버전은 별개).
