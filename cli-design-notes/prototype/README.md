@@ -21,6 +21,7 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 착수 문서 데모 예시로 보기: `NOTICE_DATA=changes-demo claude` (부건님이 40자 → 32자로 바꾸고 민수님 #5가 받는 경우, 1건)
 - 건수 숫자 색 바꿔 보기: `NOTICE_COUNT_COLOR=36 claude` (기본 33 노랑, 36 청록)
 - 상세 제목 색 바꿔 보기: `NOTICE_TITLE_COLOR=35 claude` (기본 36 청록 굵게, 10/13)
+- 상세 화면을 추천 순서(제목 → 영향 → 이전·이후 비교 → 이유)로 보기: `NOTICE_LAYOUT=impact claude` (시안, 10/13). 기본은 `v2`
 - 색·강조 비교 미리보기: `count-color-preview.html`(건수 글자색 후보), `emphasis-preview.html`(다시 부르는 말 강조 후보, 당시 문구 "기준 변경 확인")
 
 ## 사내 테스트 (자동 진행)

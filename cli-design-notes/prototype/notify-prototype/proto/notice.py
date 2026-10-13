@@ -392,6 +392,21 @@ def change_what(old, new):
     return f'"{bold(new_w)}" 추가'
 
 
+def compare_lines(c):
+    """추천 순서 시안의 "이전 → 이후 비교" (10/13 부건): 변경 요약 + 지금 값 전체. 이름표는 이전/지금.
+    - 작게 바뀜: 변경 줄 + 지금 / 크게 바뀜: 이전 한 줄 + 지금
+    - 신규: 지금만 / 폐기: 이전만 (회색, 지금 값이 없음)"""
+    old, new = c['old'], c['new']
+    if c['kind'] == 'deprecated' or new is None:
+        return detail_value_lines(old, OLD_COLOR, '이전')
+    if c['kind'] == 'new' or old is None:
+        return detail_value_lines(new, NEW_COLOR, '지금')
+    pre, old_mid, new_mid, suf = t2.find_change(old, new)
+    if t2.is_large_change(old, new, old_mid, new_mid):
+        return ['  이전  ' + t2.cut_end(old, COLS - 8), *detail_value_lines(new, NEW_COLOR, '지금')]
+    return ['  변경  ' + change_what(old, new), *detail_value_lines(new, NEW_COLOR, '지금')]
+
+
 def value_lines(c):
     if DIFF_STYLE == 'github':
         return github_lines(c)
@@ -543,8 +558,43 @@ def rule_bottom():
     return color_line(RULE * COLS, NEW_COLOR)
 
 
+# 상세 화면 배치. v2: 제목 → 바꾼 사람 → 변경·상세 → 이유·이슈·출처
+# impact: 추천 순서 시안 (10/13 부건). 제목 → 영향 → 이전·이후 비교 → 이유 (+ 바꾼 사람·시간·출처 회색 한 줄)
+#   훑어 읽는 사람이 "내 작업에 영향이 있나"를 먼저 보게 영향(이슈)을 제목 바로 아래로 올린다.
+#   조치 줄은 데이터가 없어 두지 않고(조치는 아래 관계 질문이 대신), 마이그레이션·예외·링크를 담는 "상세"도 데이터가 없어 뺀다.
+LAYOUT = os.environ.get('NOTICE_LAYOUT', 'v2')
+
+
+def title_line(c):
+    tag = TAGS.get(c['kind'])
+    tag_text = dim(f' ({tag})') if tag else ''
+    tag_width = (t2.text_width(tag) + 3) if tag else 0
+    head_width = t2.text_width(c['area']) + 2 + 1          # [영역] + 빈칸
+    title = t2.cut_end(c['title'], COLS - head_width - tag_width)
+    return color_line(f'[{c["area"]}] {title_text(title)}{tag_text}', NEW_COLOR)
+
+
+def detail_screen_impact(c, index, total, recall=False):
+    """위 선(머리표) → 제목 → 영향(이슈) → 이전·이후 비교 → 이유 → 바꾼 사람·시간 · 출처(회색) → 아래 선."""
+    meta = t2.cut_end(f'{c["who"]}님이 {c["when"]}에 변경 · {source_text(c)}', COLS - 8)
+    return '\n'.join([
+        '',
+        rule_top(index, total, recall),
+        title_line(c),
+        '  영향  ' + issue_text(c),
+        '',
+        *compare_lines(c),
+        '',
+        '  이유  ' + t2.cut_end(c['reason'], COLS - 8),
+        ' ' * 8 + color_line(meta, OLD_COLOR),
+        rule_bottom(),
+    ])
+
+
 def detail_screen(c, index, total, recall=False):
     """위 선(머리표) → 제목(+ 종류 태그) → 바꾼 사람·시간(회색) → 변경·상세 → 이유 · 이슈 · 출처 → 아래 선."""
+    if LAYOUT == 'impact':
+        return detail_screen_impact(c, index, total, recall)
     tag = TAGS.get(c['kind'])
     tag_text = dim(f' ({tag})') if tag else ''
     tag_width = (t2.text_width(tag) + 3) if tag else 0
