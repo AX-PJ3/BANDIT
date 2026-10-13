@@ -117,7 +117,7 @@ describe('respond', () => {
     assert.deepEqual(second, {
       ok: false,
       code: 'already_closed',
-      message: '이미 답한 변경이에요.',
+      message: '이미 답한 확인할 변경이에요.',
       closedStatus: 'answered',
     });
     assert.equal((await store.read()).answers.length, 1);
@@ -133,7 +133,10 @@ describe('respond', () => {
     const result = await respond(store, minsuAffected, options);
 
     assert.equal(result.ok ? null : result.code, 'already_closed');
-    assert.match(result.ok ? '' : result.message, /최신 변경에 답해 주세요/);
+    assert.match(
+      result.ok ? '' : result.message,
+      /최신 버전의 확인할 변경에 답해 주세요/,
+    );
   });
 
   it('되돌려서 자동으로 닫힌 변경이면 그 상태를 함께 알려 준다 (SIL-77 부건님 의견)', async () => {

@@ -83,9 +83,10 @@ const CLOSED_MESSAGES: Record<
   Exclude<PendingCheckStatus, 'pending'>,
   string
 > = {
-  answered: '이미 답한 변경이에요.',
-  superseded: '새 버전으로 대체된 변경이에요. 최신 변경에 답해 주세요.',
-  auto_closed: '원래 값으로 돌아와서 답하지 않아도 되는 변경이에요.',
+  answered: '이미 답한 확인할 변경이에요.',
+  superseded:
+    '새 버전으로 대체된 확인할 변경이에요. 최신 버전의 확인할 변경에 답해 주세요.',
+  auto_closed: '원래 값으로 돌아와서 답하지 않아도 되는 확인할 변경이에요.',
 };
 
 /**
@@ -145,12 +146,12 @@ export function checkAnswer(
   input: RespondInput,
 ): CheckedAnswer | RespondFailure {
   if (!check) {
-    return fail('not_found', '답할 확인할 변경을 찾지 못했어요.');
+    return fail('not_found', '확인할 변경을 찾지 못했어요.');
   }
   if (check.recipient !== input.answeredBy) {
     return fail(
       'not_recipient',
-      `${check.recipient}님에게 온 변경이라 ${input.answeredBy}님은 답할 수 없어요.`,
+      `${check.recipient}님에게 온 확인할 변경이라 ${input.answeredBy}님은 답할 수 없어요.`,
     );
   }
   if (check.status !== 'pending') {
