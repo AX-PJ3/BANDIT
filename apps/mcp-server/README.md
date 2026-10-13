@@ -102,6 +102,50 @@ pnpm mcp:register --local      # 내 Claude Code에 이 주소로 등록
 - **`SIL_MCP_HOST=0.0.0.0`**: 기본값 `127.0.0.1`이면 호스팅이 서버에 닿지 못해 `/health`부터 실패해요.
 - **한 대면 충분**: 요청마다 서버를 새로 만들어서(무상태) 세션을 기억하지 않아요. 기억하는 건 사람별 안내문 60초뿐이라 두 대 이상 켜도 동작은 같아요.
 
+### Google Cloud Run에 올리기 (지금 쓰는 곳)
+
+팀 서버는 10/13부터 Google Cloud Run(서울)에 올라가 있어요. 정민님 GCP 프로젝트에서 저장소 소스를 올리면 Google이 빌드해서 켜 줘요. Dockerfile은 없어요. 주소와 토큰은 정민님에게 Slack DM으로 받아요.
+
+| 설정        | 값                                                                                                                             |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 서비스 이름 | `haribo-mcp`                                                                                                                   |
+| 지역        | `asia-northeast3` (서울)                                                                                                       |
+| 빌드        | Google 빌드팩. `package.json`의 `packageManager`와 `engines`로 pnpm과 Node 24를 고르고, 맨 위에서 `pnpm install --prod`를 해요 |
+| 실행        | 빌드 환경 변수 `GOOGLE_ENTRYPOINT=node apps/mcp-server/bin/sil-mcp.mjs`. 맨 위 `package.json`에 `start`가 없어서 꼭 넣어요     |
+| 환경 변수   | 위 표와 같아요. 값은 저장소 밖 YAML 파일에 두고 `--env-vars-file`로 넣어요                                                     |
+| 접근        | `--allow-unauthenticated`. Cloud Run은 누구나 부를 수 있게 열고, 서버가 팀 토큰으로 막아요                                     |
+| 대수        | 최대 2대 (`--max-instances 2`), 메모리 512MiB                                                                                  |
+
+처음 한 번은 API를 켜고, 빌드에 쓰는 기본 서비스 계정에 빌드 권한을 줘요.
+
+```bash
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+```
+
+```bash
+gcloud projects add-iam-policy-binding <프로젝트 ID> --member "serviceAccount:<프로젝트 번호>-compute@developer.gserviceaccount.com" --role roles/run.builder
+```
+
+환경 변수 파일은 저장소 밖(예: `$HOME/.haribo/cloudrun-env.yaml`)에 만들어요. 토큰과 키가 들어 있어서 저장소에 넣지 않아요.
+
+```yaml
+SIL_MCP_HOST: '0.0.0.0'
+SIL_MCP_TOKENS: 'haribo:<팀 토큰>'
+SUPABASE_URL: 'https://<프로젝트>.supabase.co'
+SUPABASE_PUBLISHABLE_KEY: '<공용 키>'
+```
+
+올리기는 팀 저장소를 받은 폴더의 맨 위에서 해요. 같은 명령으로 다시 올리면 새 리비전이 생겨요.
+
+```bash
+gcloud run deploy haribo-mcp --source . --region asia-northeast3 --allow-unauthenticated --max-instances 2 --set-build-env-vars "GOOGLE_ENTRYPOINT=node apps/mcp-server/bin/sil-mcp.mjs" --env-vars-file "$HOME/.haribo/cloudrun-env.yaml"
+```
+
+- **main에서 올려요.** 개인 작업 폴더에서 올리면 머지하지 않은 파일이 같이 올라가요. 서버 코드가 main에 머지돼도 다시 올리기 전에는 팀 서버에 반영되지 않아요.
+- **`.gcloudignore`가 `docs/`, `team-wiki/`, `samples/`를 빼요.** 한글 이름 파일이 빌드 중에 깨져서 새 리비전이 "Container import failed"로 켜지지 않거든요. 서버는 위키를 DB에서 읽어서 이 폴더가 필요 없어요. 다른 곳에 한글 이름 파일을 두면 여기에 더해요.
+- **실패한 리비전은 요청을 받지 않아요.** 앞 리비전이 계속 답하니, 로그를 보고 고친 뒤 다시 올리면 돼요.
+- **주소 끝에 `/mcp`를 붙여요.** Cloud Run이 알려 주는 주소는 `https://…run.app`까지라서, 등록할 때 `/mcp`를 빠뜨리기 쉬워요.
+
 ### 올린 뒤 확인
 
 1. 호스팅 로그에 `haribo MCP 서버를 켰어요`가 찍히고 `warn` 줄이 없는지 봐요. 밖에서 받도록 켰는데 `SIL_MCP_TOKENS`나 Supabase 값이 비어 있으면 켜는 순간 `warn`으로 알려요.
