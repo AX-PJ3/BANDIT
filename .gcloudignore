@@ -1,0 +1,11 @@
+# Files NOT uploaded by `gcloud run deploy --source .` (see apps/mcp-server/README.md).
+# Cloud Run rejects images with non-UTF-8 file names, and Korean file names get
+# broken during the build ("Container import failed"). The MCP server reads the
+# wiki from the DB, so these folders are not needed on the server.
+.gcloudignore
+.git
+.gitignore
+#!include:.gitignore
+docs/
+team-wiki/
+samples/
