@@ -515,7 +515,8 @@ def was_skipped(session_id):
 
 
 def skipped_reminder(count):
-    """닫고 넘어간 뒤 작업을 입력할 때마다 띄우는 한 줄. 켤 때 알림 첫 줄과 같은 모양에, 입력할 말은 굵게."""
+    """닫고 넘어간 뒤 Claude가 작업을 마칠 때마다(Stop hooks) 입력 칸 바로 위에 띄우는 한 줄. 켤 때 알림 첫 줄과 같은 모양에, 입력할 말은 굵게.
+    v1은 작업을 입력할 때 띄워서 작업 결과에 밀려 올라갔다 (v1 피드백 P1·P3, 10/13 부건)."""
     recall = bold(f'"{RECALL}"')
     return '\n'.join(['', color_line(f'● 확인할 변경 {count_text(count)}건 · {recall}을 입력하면 변경 내역을 볼 수 있어요.', NEW_COLOR)])
 

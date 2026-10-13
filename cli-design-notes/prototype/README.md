@@ -11,7 +11,7 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 처음 켤 때 폴더를 믿을지 묻는 창이 나오면 허용해요.
 - 켜면 회색 알림이 뜨고, 아무 작업이나 입력하면(예: `로그인 화면 문구 고쳐 줘`) 변경 상세와 질문이 떠요.
 - 답은 `answers.json`에 남아요. 처음부터 다시 보려면 `./reset.sh`.
-- 질문을 Esc로 닫고 넘어가면, 그 세션에서는 작업마다 한 줄 알림만 떠요. `결정 사항 확인`만 입력하면 상세와 질문이 다시 떠요. Claude Code를 다시 켜면 처음처럼 물어요.
+- 질문을 Esc로 닫고 넘어가면, 그 세션에서는 다시 묻지 않고 Claude가 작업을 마칠 때마다 입력 칸 바로 위에 한 줄 알림이 떠요(v2, Stop hooks). `결정 사항 확인`만 입력하면 상세와 질문이 다시 떠요. Claude Code를 다시 켜면 처음처럼 물어요.
 - 관계·알았나 질문에 직접 글을 쓰면 답으로 기록하지 않고 같은 질문을 다시 물어요. 쓴 글은 `answers.json`의 `note`에 남아요.
 - 비교 방식 바꿔 보기: `NOTICE_DIFF=github|track|color claude` (기본은 summary = E 방식)
 - 화살표 바꿔 보기: `NOTICE_ARROW=➜ claude`
@@ -71,6 +71,7 @@ cd cli-design-notes/prototype/t1-prototype && ./reset.sh && claude
 | `notify-prototype/.claude/hooks/session_start.py` | ① 켤 때 알림                                                                               |
 | `notify-prototype/.claude/hooks/prompt_submit.py` | ② 작업 입력 때 첫 변경 상세 + Claude에게 질문 순서 안내                                    |
 | `notify-prototype/.claude/hooks/after_respond.py` | 답 기록 뒤 "✓ 기록했어요" + 다음 변경 상세                                                 |
+| `notify-prototype/.claude/hooks/after_work.py`    | 질문을 닫고 넘어간 뒤 Claude가 작업을 마치면 입력 칸 위에 한 줄 알림 (Stop)                |
 | `preview.py`                                      | A·B·E 비교 방식 미리보기 HTML (`diff-preview.html`)                                        |
 | `theme-preview.py`                                | 어두운·밝은 터미널 미리보기 HTML (`theme-preview.html`)                                    |
 | `show.py`                                         | hooks 출력을 꾸밈 없이 칸 수와 함께 보는 도구 (`... \| python3 show.py`, 시안 폴더 안에서) |

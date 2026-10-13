@@ -49,9 +49,11 @@ if not items:
     sys.exit(0)
 
 if notice.was_skipped(session_id) and not recall:
-    notice.log_event('reminder', count=len(items))
-    send(notice.skipped_reminder(len(items)),
-         '[확인할 변경 시안 규칙] 답하지 않은 변경이 있다는 한 줄은 hooks가 이미 보여 줬다. 그 변경에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.')
+    # 한 줄 알림은 작업을 마친 뒤 Stop hooks(after_work.py)가 입력 칸 바로 위에 띄운다 (v2, 10/13). 여기서는 화면에 아무것도 안 띄운다
+    print(json.dumps({'hookSpecificOutput': {
+        'hookEventName': 'UserPromptSubmit',
+        'additionalContext': '[확인할 변경 시안 규칙] 답하지 않은 변경이 남아 있지만 사용자가 질문을 닫았다. 그 변경에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.'}},
+        ensure_ascii=False))
     sys.exit(0)
 
 guide = GUIDE.replace('{quiz}', QUIZ_STEP if notice.IS_TEST else '').replace('{after}', AFTER_RECALL if recall else AFTER_WORK)
