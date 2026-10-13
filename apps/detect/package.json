@@ -1,0 +1,16 @@
+{
+  "name": "@sil/detect",
+  "version": "0.0.0",
+  "private": true,
+  "description": "바뀐 결정 사항 찾기: 에이전트 경로(T1)와 PR 경로",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sil/core": "workspace:*"
+  }
+}
