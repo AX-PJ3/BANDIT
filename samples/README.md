@@ -26,6 +26,7 @@
 | `data/changes.json` | 기준 변경 7건 |
 | `data/pending.json` | 확인할 변경 15건 |
 | `data/responses.csv` | 응답 7건 (응답 기록 열 그대로) |
+| `data/beta-issue-links.csv` | **MCP 베타 시험용** 이슈 5개 연결 (7번 참고). `gen_samples.py`가 다시 만들지 않아요 |
 
 ## 3. 변경 7건
 
@@ -160,3 +161,32 @@
 - 누구에게 보낼지 (위키의 알리기 기준대로 이미 계산돼 있어요)
 - 데이터 저장 방식 (정민님)
 - 샘플 속 이름 HARIBO는 예시예요. 임시 이름은 SIL-52에서 정해요
+
+## 7. MCP 베타 시험용 이슈 연결 (SIL-88)
+
+`data/beta-issue-links.csv`는 내 컴퓨터에서 MCP 서버를 켜 놓고 혼자 시험할 때 쓰는 이슈 5개예요. 위키만 가져오면 이슈 연결이 없어서 확인할 변경이 0건이에요. 확인할 변경은 연결된 결정 사항의 **새 버전이 저장될 때만** 만들어져요.
+
+| 이슈 | 담당 | 연결한 결정 사항 |
+|---|---|---|
+| `#1` | 정민 | `wiki.read.index-first` |
+| `#2` | 경하 | `detect.ask.cancel-keeps-wiki` |
+| `#3` | 부건 | `notify.terminal.one-change`, `app.notify.title-length` |
+| `#5` | 민수 | `app.notify.title-length`, `notify.answer.two-questions` |
+| `#7` | 신지 | `app.notify.title-length`, `app.screen.inbox-first` |
+
+```bash
+nvm use                                                                  # Node 24.18
+pnpm sil import --issues samples/data/beta-issue-links.csv               # 미리 보기 (DB에 안 써요)
+pnpm sil import --issues samples/data/beta-issue-links.csv --apply       # 저장
+pnpm mcp:serve                                                           # 서버 켜기
+pnpm mcp:register --local --user 정민                                    # 이름을 바꿔 가며 등록
+```
+
+1. 정민 이름으로 `save_standard`를 불러 `app.notify.title-length`를 새 버전으로 저장해요. 정민에게는 연결된 이슈가 없어서, 부건(`#3`)·민수(`#5`)·신지(`#7`)에게 1건씩 생겨요.
+2. 이름을 민수로 바꿔 등록하고(`claude mcp remove haribo --scope user` 뒤 `--user 민수`) `list_pending`으로 봐요. `respond`로 답해요.
+3. 되돌림(이전 값과 같게 저장)과 답하기 전에 또 바꾸기(대체됨)도 같은 방법으로 볼 수 있어요.
+
+- 담당자 이름은 등록하는 이름(`--user`)과 같아야 목록에 보여요.
+- 결정 사항은 지울 수 없어요. **팀 DB가 아니라 시험용 DB**에서만 해요(CLAUDE.md).
+- 위 명령은 코드를 읽고 적은 거예요. 실제 DB에 `--apply`로 돌려 본 결과는 아직 없어요.
+
