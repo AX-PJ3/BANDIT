@@ -73,6 +73,22 @@ const result = await respond(store, {
 - 이미 닫힌 변경이면 `closedStatus`로 지금 상태(답함·대체됨·자동 닫힘)를 알려 줘요. 자동 닫힘이면 화면이 "원래대로 돌아와서 답하지 않아도 돼요"를 띄워요 (SIL-77).
 - 저장 전 검사만 하는 `checkAnswer`도 있어요. MCP 도구 `respond`는 이 함수로 검사한 뒤 DB 함수 `save_answer`로 저장해요.
 
+### 터미널 화면 글 (`src/terminal/`)
+
+list_pending 결과로 터미널 알림 글을 만들어요. 모양과 문구는 부건님 시안(SIL-68, `docs/sil-68-add-cli-design-notes` 브랜치의 `cli-design-notes/`)을 그대로 옮겼어요. hooks가 이 글을 화면에 직접 띄울 거예요.
+
+| 함수                                                                  | 화면                                                                     |
+| --------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `sessionNotice(items)`                                                | ① 켤 때: `● [app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 null |
+| `detailScreen(item, index, total)`                                    | ② 작업 입력 때: 변경 상세 (제목, 바꾼 사람·시각, 변경, 이유, 이슈, 출처) |
+| `questionsFor(item)`                                                  | 선택 화면 질문 3개 (관계, 알았나, 관계없는 이유 보기 3개)                |
+| `recordedLines(item, answer)`                                         | 답한 뒤: `✓ 기록했어요  #5 · 관계있다 · 몰랐다`                          |
+| `allAnsweredLine`, `skippedReminder`, `nothingLeft`, `autoClosedLine` | 마무리, 닫고 넘어간 뒤, 0건, 자동 닫힘 한 줄                             |
+
+- 너비는 76칸이에요. Claude Code가 hooks 글 앞에 2칸을 들여 써요.
+- 이전 버전에 "관계있다"로 답했으면 변경 줄 아래에 "지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요."를 넣어요 (SIL-77).
+- 바꾼 시각은 한국 시각으로, 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13"이에요.
+
 ## 실행
 
 ```bash
@@ -87,5 +103,5 @@ pnpm --filter @sil/notify demo ./demo.json  # 결과를 이 파일에 남겨요
 ## 아직 없는 것
 
 - 정민님 DB 연결과 새 버전 저장 신호
-- 터미널 T2~T5 카드 내용, 웹 앱 OS 알림
+- 터미널 화면 글을 hooks로 띄우기 (Claude Code를 켤 때, 작업을 입력할 때, 답한 뒤), 웹 앱 OS 알림
 - 반영함 표시를 켜고 끄는 기능. 칸(`reflected`, `reflectedAt`)만 있어요
