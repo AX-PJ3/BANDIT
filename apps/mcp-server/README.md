@@ -92,7 +92,7 @@ pnpm mcp:register --local      # 내 Claude Code에 이 주소로 등록
 왜 이렇게 하나요 (D54):
 
 - **설치는 MCP 서버가 쓰는 것만** (`--prod --filter "@sil/mcp..."`): MCP 서버와 core가 실행 때 쓰는 패키지 15개만 받아요(약 3초). 웹 앱(Vite), 테스트 도구, Supabase CLI(설치 때 실행 파일을 따로 내려받아요)는 받지 않아서 설치 스크립트 허락(allowBuilds)도 필요 없어요.
-- **pnpm은 corepack으로**: Node 24.18에 들어 있는 corepack이 `package.json`의 `packageManager`(pnpm 11.18.0)를 받아서 실행해요. 호스팅에 pnpm을 따로 깔지 않아요.
+- **pnpm은 corepack으로**: Node 24.18에 들어 있는 corepack이 `package.json`의 `packageManager`(pnpm 11.25.0)를 받아서 실행해요. 호스팅에 pnpm을 따로 깔지 않아요.
 - **실행은 `node`로 바로**: `pnpm mcp:serve`와 같은 파일을 켜지만, 실행할 때 pnpm이 필요 없고 호스팅이 끌 때 보내는 신호(SIGTERM)를 서버가 바로 받아 정리하고 꺼져요.
 - **`SIL_MCP_HOST=0.0.0.0`**: 기본값 `127.0.0.1`이면 호스팅이 서버에 닿지 못해 `/health`부터 실패해요.
 - **한 대면 충분**: 요청마다 서버를 새로 만들어서(무상태) 세션을 기억하지 않아요. 기억하는 건 사람별 안내문 60초뿐이라 두 대 이상 켜도 동작은 같아요.
