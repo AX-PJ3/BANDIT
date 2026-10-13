@@ -1,5 +1,48 @@
 {
   "permissions": {
     "ask": ["mcp__haribo__save_standard", "mcp__haribo__revert"]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-clear.ts\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-preview.ts\""
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__haribo__save_standard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-clear.ts\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "mcp__haribo__save_standard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-guard.ts\""
+          }
+        ]
+      }
+    ]
   }
 }

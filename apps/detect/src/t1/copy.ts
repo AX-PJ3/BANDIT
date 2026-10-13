@@ -36,6 +36,7 @@ export const T1_COPY = {
   /** ③ 등록될 모습 (AskUserQuestion). 이슈 표는 이슈를 읽는 도구가 생기면 넣어요 */
   preview: {
     header: '등록될 모습',
+    /** hook(`hook-preview.ts`)이 꾸며서 띄우는 ③ 본문 */
     question:
       '이렇게 등록할게요.\n' +
       '[{area}] {title}\n' +
@@ -48,6 +49,8 @@ export const T1_COPY = {
       description: '고칠 내용을 말해 주시면 고쳐서 다시 보여 드려요',
     },
     cancel: { label: '취소하기', description: '등록을 취소해요' },
+    /** ③을 hook이 띄운 뒤 묻는 짧은 선택 창 (AskUserQuestion). ③ 내용을 다시 적지 않아요 */
+    confirm: '이대로 등록할까요?',
   },
   /** 수정하기를 고른 뒤 글로 묻기. 고친 뒤 ③을 다시 보여 줘요. 임시 문구예요 */
   editPrompt: '무엇을 고칠까요?',
