@@ -168,7 +168,7 @@ describe('MCP 도구 (가짜 DB)', () => {
   });
   let rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
 
-  it('위키 도구 5개와 ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools)', async () => {
+  it('위키 도구 5개, 알리기 도구 2개, ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools)', async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(
@@ -179,6 +179,8 @@ describe('MCP 도구 (가짜 DB)', () => {
         'revert',
         'save_standard',
         'search_standards',
+        'list_pending',
+        'respond',
       ].sort(),
     );
     expect(client.getInstructions()).toContain(
