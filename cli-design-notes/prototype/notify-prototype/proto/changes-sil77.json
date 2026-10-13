@@ -1,5 +1,5 @@
 {
-  "_note": "SIL-77 확인용 (10/13). 상세를 보는 사이 되돌려져 자동으로 닫히는 경우(DRI 결정 8)예요. 지어낸 예시예요. closes_while_open은 시안 서버가 답을 받을 때 닫힌 것으로 돌려줄 상태예요.",
+  "_note": "SIL-77 확인용 (10/13). 1은 상세를 보는 사이 되돌려져 자동으로 닫히는 경우(DRI 결정 8), 2는 지난번 버전에 관계있다로 답한 뒤 다시 바뀐 경우(DRI 결정 9)예요. 둘 다 지어낸 예시예요. closes_while_open은 시안 서버가 답을 받을 때 닫힌 것으로 돌려줄 상태, previous_answer는 서버 list_pending의 previousAnswer와 같아요.",
   "changes": [
     {
       "id": "sil77-auto-closed",
@@ -19,6 +19,25 @@
       "issue_title": "담당자에게 알리고 답 기록하기",
       "issue_status": "진행 중",
       "closes_while_open": "auto_closed"
+    },
+    {
+      "id": "sil77-redo",
+      "kind": "change",
+      "area": "app",
+      "who": "부건",
+      "standard_id": "app.notify.title-length",
+      "version": 3,
+      "title": "앱 알림 제목은 28자 이하로 쓴다",
+      "old": "공백 포함 32자 이하",
+      "new": "공백 포함 28자 이하",
+      "reason": "macOS 알림 센터에서 28자를 넘으면 제목 끝이 잘림",
+      "when": "오후 4:25",
+      "source": "AI 대화에서 바꿈",
+      "found_by_ai": false,
+      "issue": "#5",
+      "issue_title": "담당자에게 알리고 답 기록하기",
+      "issue_status": "진행 중",
+      "previous_answer": { "version": 2, "affected": true, "known": false }
     }
   ]
 }

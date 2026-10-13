@@ -15,7 +15,7 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 관계·알았나 질문에 직접 글을 쓰면 답으로 기록하지 않고 같은 질문을 다시 물어요. 쓴 글은 `answers.json`의 `note`에 남아요.
 - 비교 방식 바꿔 보기: `NOTICE_DIFF=github|track|color claude` (기본은 summary = E 방식)
 - 화살표 바꿔 보기: `NOTICE_ARROW=➜ claude`
-- SIL-77 예외 보기(10/13): `NOTICE_DATA=changes-sil77 claude`. 첫 변경은 상세를 보는 사이 되돌려진 경우라 답을 눌러도 기록되지 않고 `#5 변경이 되돌려졌어요. 하려던 작업을 계속 진행하시면 돼요.` 한 줄 뒤 다음 변경이 떠요(DRI 결정 8). 닫힌 변경은 `closed.json`에 남아요
+- SIL-77 예외 보기(10/13): `NOTICE_DATA=changes-sil77 claude`. 첫 변경은 상세를 보는 사이 되돌려진 경우라 답을 눌러도 기록되지 않고 `#5 변경이 되돌려졌어요. 하려던 작업을 계속 진행하시면 돼요.` 한 줄 뒤 다음 변경이 떠요(DRI 결정 8). 둘째 변경은 지난번에 관계있다로 답한 경우라 상세의 빈 줄 자리에 `지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요.`가 나와요(DRI 결정 9). 닫힌 변경은 `closed.json`에 남아요
 - 착수 문서 데모 예시로 보기: `NOTICE_DATA=changes-demo claude` (부건님이 40자 → 32자로 바꾸고 민수님 #5가 받는 경우, 1건)
 - 건수 숫자 색 바꿔 보기: `NOTICE_COUNT_COLOR=36 claude` (기본 33 노랑, 36 청록)
 - 색·강조 비교 미리보기: `count-color-preview.html`(건수 글자색 후보), `emphasis-preview.html`(다시 부르는 말 강조 후보, 당시 문구 "기준 변경 확인")
@@ -63,7 +63,7 @@ cd cli-design-notes/prototype/t1-prototype && ./reset.sh && claude
 | `notify-prototype/proto/mcp_server.py`            | 시안용 MCP 서버. 민수님의 `list_pending`, `respond`를 흉내만 내요 (패키지 없이 Python만)   |
 | `notify-prototype/proto/changes.json`             | 샘플 데이터. Linear SIL-64의 실제 변경 + `samples/data/issue-links.csv` (받는 사람: 부건)  |
 | `notify-prototype/proto/changes-demo.json`        | 착수 문서 데모 예시 (알림 제목 길이 40자 → 32자, 받는 사람 민수 #5)                        |
-| `notify-prototype/proto/changes-sil77.json`       | SIL-77 확인용 (보는 사이 자동으로 닫힘). 지어낸 예시                                       |
+| `notify-prototype/proto/changes-sil77.json`       | SIL-77 확인용 2건 (보는 사이 자동으로 닫힘, 관계있다로 답한 뒤 다시 바뀜). 지어낸 예시     |
 | `notify-prototype/proto/changes-sample.json`      | 예전 샘플 (40자 → 32자, 리뷰 규칙 폐기)                                                    |
 | `notify-prototype/proto/changes-test.json`        | 사내 테스트용 예시 시안 3건 (숫자·신규·관계없음) + 관계 정답과 이해도 문제                 |
 | `notify-prototype/test_run.py`                    | 사내 테스트 진행: 참가자 입력 → 테스트 모드 시안 → 설문 → `results/` 저장                  |

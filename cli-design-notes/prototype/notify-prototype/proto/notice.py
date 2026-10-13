@@ -330,13 +330,24 @@ def changed_words(old, new):
     return ' '.join(a[p:len(a) - q]), ' '.join(b[p:len(b) - q])
 
 
+def redo_line(c):
+    """지난번 버전에 "관계있다"로 답한 사람에게만: 지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요.
+    상세가 15줄 한도에 꽉 차서 빈 줄 자리에 넣는다 (SIL-77 DRI 결정 9). 서버는 list_pending의 previousAnswer로 준다.
+    괄호 안은 지난번 값에서 바뀐 낱말, 크게 바뀌어 낱말로 못 줄이면 지난번 값을 줄여 쓴다. 색은 아직 정하지 않았다."""
+    if not (c.get('previous_answer') or {}).get('affected') or not c['old'] or not c['new']:
+        return ''
+    old_w, _ = changed_words(c['old'], c['new'])
+    prev = t2.cut_end(old_w or c['old'], 20)
+    return ' ' * 8 + f'지난번 변경({prev})을 반영하셨다면 다시 고쳐야 해요.'
+
+
 def summary_lines(c):
     """E. 바뀐 부분만 요약하고, 그 아래는 빈 줄 하나. 이름표는 아래 이유·이슈·출처와 같은 모양.
     "지금" 줄은 두지 않는다: 새 제목이 지금 값의 핵심을 담고 있어서다 (10/12 부건, 위키 notify.terminal.show-fields와 다름).
     바뀐 부분은 배경 없이 굵게만 강조한다 (10/12 부건, 형광펜에서 바꿈)."""
     old, new = c['old'], c['new']
     label = lambda name: f'  {name}  '
-    gap = ''                       # 이유 위를 한 줄 띄운다
+    gap = redo_line(c)             # 이유 위를 한 줄 띄운다. 지난번에 관계있다로 답했으면 그 자리에 안내
     if c['kind'] == 'deprecated' or new is None:
         return [label('변경') + '결정 사항을 폐기했어요', label('이전') + t2.cut_end(old, COLS - 8), gap]
     if c['kind'] == 'new' or old is None:
