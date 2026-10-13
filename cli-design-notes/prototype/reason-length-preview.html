@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>이유 100자 넘음 시안</title>
+    <style>
+      :root {
+        --bg: #16181c;
+        --panel: #1e2227;
+        --text: #d7dce2;
+        --muted: #8a929c;
+        --gray: #9da3ad;
+      }
+      body {
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, sans-serif;
+        margin: 0;
+        padding: 24px 16px;
+      }
+      main {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 18px;
+        margin: 0 0 6px;
+      }
+      h2 {
+        font-size: 15px;
+        margin: 32px 0 4px;
+      }
+      p.sub {
+        color: var(--muted);
+        font-size: 13px;
+        margin: 0 0 10px;
+        line-height: 1.5;
+      }
+      pre {
+        background: var(--panel);
+        margin: 0;
+        padding: 16px 18px;
+        border-radius: 10px;
+        font:
+          14px/1.6 'D2Coding',
+          'SF Mono',
+          Menlo,
+          monospace;
+        white-space: pre;
+        overflow-x: auto;
+      }
+      ul {
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.6;
+        padding-left: 18px;
+      }
+      .g {
+        color: var(--gray);
+      }
+      .w {
+        color: #e5e5e5;
+      }
+      .b {
+        color: #fff;
+        font-weight: 600;
+      }
+      .ok {
+        color: #5fb36b;
+      }
+      .y {
+        color: #d7ba5c;
+        font-weight: 700;
+      }
+      .n {
+        color: #5c6670;
+        font-style: italic;
+      }
+      .chip {
+        background: #9da3ad;
+        color: #16181c;
+      }
+      .case {
+        background: var(--panel);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>관계없는 이유가 100자를 넘을 때 (SIL-80)</h1>
+      <p class="sub">
+        예시: <code>#6</code> 관계 질문에서 관계없다를 고르고, 이유 질문의 Type
+        something.에 114자를 직접 씀. 기울어진 회색 글은 화면에 안 나오는
+        설명이에요. 색과 글꼴 폭은 근사값이에요.
+      </p>
+      <div class="case">
+        쓴 이유 (114자): 이 결정 사항은 v0 시안에만 쓰였고 지금 맡은 #6은 앱
+        알림 본문 줄 수만 다루는 작업이라 제목 길이와는 상관이 없어요. 다만 다음
+        주에 제목 쪽도 손볼 수 있어서 그때 신지님과 같이 다시 확인할게요.<br />줄인
+        이유 예시 (76자): v0 시안에만 쓰인 결정 사항이고, #6은 앱 알림 본문 줄
+        수만 다뤄서 제목 길이와는 상관없어요. 다음 주 제목 작업 때 다시 볼게요.
+      </div>
+      <section>
+        <h2>A. 줄여서 바로 기록 (보드의 지금 안)</h2>
+        <p class="sub">
+          서버가 거절하면 Claude가 100자 안으로 줄여서 다시 기록해요. 사람은 한
+          번만 답해요.
+        </p>
+        <pre><span class="w">● </span><span class="w">User answered Claude&#x27;s questions:</span>
+<span class="g">  ⎿  · 왜 관계없나요? → 이 결정 사항은 v0 시안에만 쓰였고 지금 맡은 #6은 앱 알림 본문 줄 수만</span>
+<span class="g">       다루는 작업이라 제목 길이와는 상관이 없어요. 다만 다음 주에 제목 쪽도</span>
+<span class="g">       손볼 수 있어서 그때 신지님과 같이 다시 확인할게요.</span>
+
+<span class="n">    (Claude가 respond를 부름 → 서버가 &quot;이유는 100자까지예요&quot;로 거절)</span>
+
+<span class="w">● </span><span class="w">이유가 100자를 넘어서 줄여서 기록할게요.</span>
+
+<span class="n">    (Claude가 줄인 이유로 respond를 다시 부름)</span>
+<span class="g">  ⎿ PostToolUse:mcp__notice__respond says:</span>
+<span class="ok">✓</span><span class="g"> 기록했어요  </span><span class="b">#6 · 관계없다 · v0 시안에만 쓰인 결정 사항이고, #6은 앱 알…</span></pre>
+        <ul>
+          <li>
+            기록 줄은 이유를 25자쯤에서 자르기 때문에, 실제로 어떻게 줄여서
+            저장했는지 터미널에서는 보이지 않아요.
+          </li>
+          <li>
+            Claude 말 한 줄은 Claude가 매번 다르게 쓸 수 있어요. 안 쓸 수도
+            있어요.
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>B. 줄여서 바로 기록 + 기록한 이유를 한 번 더 보여 주기</h2>
+        <p class="sub">
+          A와 같지만, 줄였을 때만 기록 줄 아래에 저장한 이유 전체를 보여 줘요.
+          hooks가 띄우는 글이라 늘 같은 모양이에요.
+        </p>
+        <pre><span class="w">● </span><span class="w">User answered Claude&#x27;s questions:</span>
+<span class="g">  ⎿  · 왜 관계없나요? → 이 결정 사항은 v0 시안에만 쓰였고 지금 맡은 #6은 앱 알림 본문 줄 수만</span>
+<span class="g">       다루는 작업이라 제목 길이와는 상관이 없어요. 다만 다음 주에 제목 쪽도</span>
+<span class="g">       손볼 수 있어서 그때 신지님과 같이 다시 확인할게요.</span>
+
+<span class="n">    (Claude가 respond를 부름 → 서버가 &quot;이유는 100자까지예요&quot;로 거절)</span>
+
+<span class="n">    (Claude가 줄인 이유로 respond를 다시 부름)</span>
+<span class="g">  ⎿ PostToolUse:mcp__notice__respond says:</span>
+<span class="ok">✓</span><span class="g"> 기록했어요  </span><span class="b">#6 · 관계없다 · v0 시안에만 쓰인 결정 사항이고, #6은 앱 알…</span>
+<span class="g">  100자가 넘어서 줄여 기록했어요.</span>
+<span class="g">  v0 시안에만 쓰인 결정 사항이고, #6은 앱 알림 본문 줄 수만 다뤄서 제목</span>
+<span class="g">  길이와는 상관없어요. 다음 주 제목 작업 때 다시 볼게요.</span></pre>
+        <ul>
+          <li>사람이 한 번만 답하면서도 무엇이 저장됐는지 볼 수 있어요.</li>
+          <li>
+            틀리게 줄였다면 고칠 방법이 없어요(A7 답 수정 없음과 같은 문제).
+            줄이 2~3줄 늘어요.
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>C. 줄인 문장을 보여 주고 고르게 하기</h2>
+        <p class="sub">
+          Claude가 줄인 문장을 선택 화면에 띄우고, 사람이 고른 뒤에 기록해요.
+        </p>
+        <pre><span class="w">● </span><span class="w">User answered Claude&#x27;s questions:</span>
+<span class="g">  ⎿  · 왜 관계없나요? → 이 결정 사항은 v0 시안에만 쓰였고 지금 맡은 #6은 앱 알림 본문 줄 수만</span>
+<span class="g">       다루는 작업이라 제목 길이와는 상관이 없어요. 다만 다음 주에 제목 쪽도</span>
+<span class="g">       손볼 수 있어서 그때 신지님과 같이 다시 확인할게요.</span>
+
+<span class="n">    (Claude가 respond를 부름 → 서버가 &quot;이유는 100자까지예요&quot;로 거절)</span>
+
+<span class="chip"> #6 </span>
+
+<span class="b">이유가 100자를 넘어서 이렇게 줄였어요. 이대로 기록할까요?</span>
+
+<span class="w">❯ </span><span class="w">1. 이대로 기록해요</span>
+<span class="g">     v0 시안에만 쓰인 결정 사항이고, #6은 앱 알림 본문 줄 수만 다…</span>
+<span class="w">  </span><span class="w">2. 다시 쓸게요</span>
+<span class="g">     이유 질문으로 돌아가요</span>
+<span class="g">  3. Type something.</span>
+
+<span class="g">  Chat about this</span></pre>
+        <ul>
+          <li>저장되는 문장을 사람이 확인해요.</li>
+          <li>
+            질문이 하나 더 늘어요. 선택 화면 보기 설명은 한 줄이라 줄인 문장
+            전체를 다 못 보여 줘요(위는 38자에서 자름).
+          </li>
+        </ul>
+      </section>
+      <section>
+        <h2>D. 다시 쓰게 하기</h2>
+        <p class="sub">
+          줄이지 않고 몇 자인지 알려 준 뒤 이유 질문을 다시 띄워요.
+        </p>
+        <pre><span class="w">● </span><span class="w">User answered Claude&#x27;s questions:</span>
+<span class="g">  ⎿  · 왜 관계없나요? → 이 결정 사항은 v0 시안에만 쓰였고 지금 맡은 #6은 앱 알림 본문 줄 수만</span>
+<span class="g">       다루는 작업이라 제목 길이와는 상관이 없어요. 다만 다음 주에 제목 쪽도</span>
+<span class="g">       손볼 수 있어서 그때 신지님과 같이 다시 확인할게요.</span>
+
+<span class="n">    (Claude가 respond를 부름 → 서버가 &quot;이유는 100자까지예요&quot;로 거절)</span>
+
+<span class="g">  ⎿ PostToolUse:mcp__notice__respond says:</span>
+<span class="g">  이유는 100자까지 기록할 수 있어요. 지금 </span><span class="y">114</span><span class="g">자예요. 줄여서 다시 적어 주세요.</span>
+
+<span class="chip"> #6 </span>
+
+<span class="b">왜 관계없나요?</span>
+
+<span class="w">❯ </span><span class="w">1. 내 작업 범위가 아니에요</span>
+<span class="g">     이 결정 사항이 다루는 화면·기능을 내가 맡고 있지 않아요</span>
+<span class="w">  </span><span class="w">2. 내 이슈와 연결이 잘못됐어요</span>
+<span class="g">     이 결정 사항이 내 이슈에 잘못 이어져 있어요</span>
+<span class="w">  </span><span class="w">3. 바뀐 부분은 내 작업에 안 쓰여요</span>
+<span class="g">     결정 사항은 내 작업과 이어져 있지만, 이번에 바뀐 부분은 영향이 없어요</span>
+<span class="g">  4. Type something.</span>
+
+<span class="g">  Chat about this</span></pre>
+        <ul>
+          <li>Claude가 대신 줄이지 않아서 사람이 쓴 말 그대로 남아요.</li>
+          <li>
+            터미널 입력칸에서는 글자 수를 세면서 쓸 수 없어서, 다시 써도 또 넘을
+            수 있어요. 긴 글을 처음부터 다시 써야 해요.
+          </li>
+        </ul>
+      </section>
+      <h2>참고: 100자 안이어도 기록 줄에서는 잘려요</h2>
+      <pre><span class="ok">✓</span><span class="g"> 기록했어요  </span><span class="b">#6 · 관계없다 · 터미널 화면만 다루는 작업이라 관계없음</span>
+<span class="ok">✓</span><span class="g"> 기록했어요  </span><span class="b">#6 · 관계없다 · v0 시안에만 쓰인 결정 사항이고, #6은 앱 알…</span></pre>
+      <ul>
+        <li>
+          기록 줄은 76칸에 맞춰 이유를 자르기 때문에, 긴 이유는 어느 안이든
+          터미널에서는 앞부분만 보여요. 전체는 앱 A4에서 보여요.
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>
