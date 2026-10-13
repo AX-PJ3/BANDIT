@@ -3,6 +3,7 @@
 Claude Code는 hooks 글 앞에 2칸을 들여 쓰므로 한 줄은 76칸까지 써요(80칸 터미널에서 78칸 안).
 꾸밈 규칙은 notify-prototype/proto/notice.py와 같아요: 끄는 코드는 하나씩 따로 쓴다.
 """
+import re
 import unicodedata
 
 import wiki
@@ -10,7 +11,6 @@ import wiki
 COLS = 76
 ARROW = '⭢'          # 어디서나 1칸
 STRONG = '39;49'      # Claude Code 회색을 풀고 터미널 기본 글자색
-ID_MAX = 24    # 결정 사항 ID가 이보다 길면 가운데(주제)를 줄여요: notify.app-title.from-standard → notify.….from-standard
 
 
 def esc(codes):
@@ -74,84 +74,96 @@ def wrap(text, cols):
     return lines or ['']
 
 
-def short_id(standard_id, cols=ID_MAX):
-    """영역과 규칙은 남기고 가운데 주제를 …로 줄인다. 그래도 길면 끝을 줄인다."""
-    if width(standard_id) <= cols:
-        return standard_id
-    parts = standard_id.split('.')
-    if len(parts) == 3:
-        head = f'{parts[0]}.….'
-        return head + cut_end(parts[2], cols - width(head))
-    return cut_end(standard_id, cols)
-
-
 def area_of(standard_id):
     return standard_id.split('.')[0]
 
 
-# ---------- ①② 충돌 (한 단계로 합침) ----------
+# ---------- 위아래 선 (T2~T5 v2와 같은 틀, 10/13) ----------
+# 위 선 안에 머리표를 넣고 아래 선으로 닫는다. 선은 어디서나 1칸인 영문 하이픈
+# (상자 선 ─ 는 한국어 코딩 글꼴에서 2칸, T2-본문 결정기록 3-7)
+RULE = '-'
 
-KIND_COL, ID_COL = 8, 26
-REASON_COL = COLS - 2 - KIND_COL - ID_COL
-RED = '31'    # 충돌: 기본 16색 빨강 (부건 지정, 10/12)
+
+def rule_top(head_text):
+    """head_text는 이미 꾸민 글. 칸 수는 꾸밈을 뺀 글로 센다.
+    왼쪽 --는 꾸미지 않고(hooks 기본 회색), 머리표 글자도 굵게 하지 않아요 (10/13 부건)."""
+    plain = re.sub(r'\033\[[0-9;]*m', '', head_text)
+    head_width = width(f'{RULE * 2} {plain} ')
+    fill = RULE * max(2, COLS - head_width)
+    return f'{RULE * 2} {head_text}{strong(" " + fill)}'
+
+
+def rule_bottom():
+    return strong(RULE * COLS)
+
+
+# ---------- ①② 다른 결정 사항 확인 (한 단계로 합침) ----------
+# "충돌"은 위키 용어집에서 동시 수정(detect.conflict.hold)을 뜻해서 T1은 "달라요"를 써요 (10/13)
+
+KIND_COL = 8
+RED = '31'    # 다른 결정 사항이 있을 때 머리표: 기본 16색 빨강 (부건 지정, 10/12)
 
 
 def red(text):
-    return f'{esc("1")}{esc(RED)}{text}{esc("39")}{esc("22")}'
+    return f'{esc(RED)}{text}{esc("39")}'
 
 
 def conflicts_screen(kind, request, conflicts):
-    """kind: '작업'(경우 1, Claude가 알아챔) / '요청'(경우 2, 사람이 바꿔 달라고 함)."""
+    """kind: '작업'(경우 1, Claude가 알아챔) / '요청'(경우 2, 사람이 바꿔 달라고 함).
+    다른 결정 사항마다 구분 · [영역] 제목, 그 아래에 왜 그렇게 판단했는지 (ID는 보여 주지 않아요, 10/13)."""
+    ask = f'  {kind}  {cut_end(request, COLS - 8)}'
     if not conflicts:
-        return '\n'.join([
-            '',
-            strong('관련 결정 사항을 찾아봤어요. 충돌하는 결정 사항이 없어요.', True),
-            f'  {kind}  {cut_end(request, COLS - 8)}',
-        ])
-    head = '부탁하신 작업이 기존 결정 사항과 충돌해요.' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 충돌해요.'
-    lines = ['', red(head), f'  {kind}  {cut_end(request, COLS - 8)}', '']
-    lines.append('  ' + dim(pad('구분', KIND_COL) + pad('충돌하는 이유', REASON_COL) + '결정 사항 ID'))
-    lines.append('  ' + dim(pad('─' * 6, KIND_COL) + pad('─' * (REASON_COL - 2), REASON_COL) + '─' * ID_COL))
+        return '\n'.join(['', rule_top(strong('요청하신 변경과 다른 결정 사항이 없어요')), ask, rule_bottom()])
+    head = '부탁하신 작업이 기존 결정 사항과 달라요' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 달라요'
+    lines = ['', rule_top(red(head)), ask, '']
+    now = wiki.current_standards()
+    body_col = COLS - 2 - KIND_COL
     for c in conflicts:
-        reason = wrap(c['why'], REASON_COL - 2)
-        for i, r in enumerate(reason):
-            k = pad(c['kind'] if i == 0 else '', KIND_COL)
-            sid = strong(short_id(c['id'])) if i == 0 else ''
-            lines.append(('  ' + k + pad(r, REASON_COL) + sid).rstrip())
+        title = f'[{area_of(c["id"])}] {now[c["id"]]["title"]}' if c['id'] in now else c['id']
+        for i, t in enumerate(wrap(title, body_col)):
+            lines.append('  ' + pad(c['kind'] if i == 0 else '', KIND_COL) + strong(t, True))
+        lines += [' ' * (2 + KIND_COL) + w for w in wrap(c['why'], body_col)]
+    lines.append(rule_bottom())
     return '\n'.join(lines)
 
 
 # ---------- ③ 등록될 모습 ----------
 
+TITLE_BAR = f'{esc("36")}{esc("7")} {esc("27")}{esc("39")} '
+
 def preview_screen(p):
     now = wiki.current_standards().get(p['id'])
     version = '' if now else '새 결정 사항'    # 고칠 때는 버전을 보여 주지 않아요 (10/12)
     title = f'[{area_of(p["id"])}] {p["title"]}'
-    lines = ['', strong('결정 사항을 이렇게 등록할까요?', True), '']
+    lines = ['', rule_top(strong('결정 사항을 이렇게 등록할까요'))]
+    # 제목 앞 청록 막대: 청록을 반전한 칸 하나 + 빈칸. 제목 글자가 값·이유와 같은 4칸에서 시작해요 (10/13 부건)
+    head = '  ' + TITLE_BAR + strong(title, True)
     if not version:
-        lines.append('  ' + strong(title, True))
-    elif width(title) + 2 + width(version) <= COLS - 2:
-        lines.append('  ' + strong(title, True) + ' ' * (COLS - 2 - width(title) - width(version)) + version)
+        lines.append(head)
+    elif width(title) + 2 + width(version) <= COLS - 4:
+        lines.append(head + ' ' * (COLS - 4 - width(title) - width(version)) + version)
     else:
-        lines += ['  ' + strong(title, True), ' ' * (COLS - width(version)) + version]
+        lines += [head, ' ' * (COLS - width(version)) + version]
     for label, text in (('값', p['value']), ('이유', p['reason'])):
         body = wrap(text, COLS - 10)
         lines.append(f'    {pad(label, 6)}{body[0]}')
         lines += [' ' * 10 + more for more in body[1:]]
     lines.append('')
-    lines.append(f'    {bold("항상 적용")}  {strong("예" if p["always_on"] else "아니오", True)}')
+    # 값·이유와 같은 색. 항상 적용이 예일 때만 굵게 (10/13 부건)
+    always = f'항상 적용  {"예" if p["always_on"] else "아니오"}'
+    lines.append('    ' + (bold(always) if p['always_on'] else always))
     lines.append('')
     targets = wiki.notify_targets(p['id']) if now else []
     if not targets:
-        lines.append('  연결된 이슈가 없어서 알림을 받는 사람은 없어요.')
+        lines += ['  연결된 이슈가 없어서 알림을 받는 사람은 없어요.', rule_bottom()]
         return '\n'.join(lines)
-    id_col, issue_col, owner_col = 5, 32, 8
-    links_col = COLS - 2 - id_col - issue_col - owner_col
-    lines.append('  ' + dim(pad('ID', id_col) + pad('이슈', issue_col) + pad('담당자', owner_col) + '근거 결정 사항'))
-    lines.append('  ' + dim(pad('───', id_col) + pad('─' * (issue_col - 2), issue_col) + pad('─' * 6, owner_col) + '─' * links_col))
+    # 누구에게 알리는지 보는 표. 모든 줄이 이번 결정 사항 때문에 받아서 "근거 결정 사항" 열은 뺐어요 (10/13)
+    # 담당자를 이슈 앞에 둬서 긴 이슈 제목은 끝에서 줄여요
+    id_col, owner_col = 5, 8
+    issue_col = COLS - 2 - id_col - owner_col
+    lines.append('  ' + dim(pad('ID', id_col) + pad('담당자', owner_col) + '이슈'))
+    lines.append('  ' + dim(pad(RULE * 3, id_col) + pad(RULE * 6, owner_col) + RULE * 30))
     for i in targets:
-        others = len([x for x in i['links'] if x != p['id']])
-        links = short_id(p['id'], links_col - (5 if others else 0)) + (f' 외 {others}' if others else '')
-        lines.append('  ' + pad(i['number'], id_col) + pad(cut_end(i['title'], issue_col - 2), issue_col)
-                     + pad(i['owner'], owner_col) + links)
+        lines.append('  ' + pad(i['number'], id_col) + pad(i['owner'], owner_col) + cut_end(i['title'], issue_col))
+    lines.append(rule_bottom())
     return '\n'.join(lines)

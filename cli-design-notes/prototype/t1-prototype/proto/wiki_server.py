@@ -23,7 +23,7 @@ TOOLS = [
     },
     {
         'name': 'show_conflicts',
-        'description': 'T1 ①② 충돌 화면을 띄운다. 화면은 hooks가 사용자에게 직접 보여 주므로 Claude는 같은 내용을 글로 다시 쓰지 않는다.',
+        'description': 'T1 ①② 다른 결정 사항 화면을 띄운다. 화면은 hooks가 사용자에게 직접 보여 주므로 Claude는 같은 내용을 글로 다시 쓰지 않는다.',
         'inputSchema': {
             'type': 'object',
             'properties': {
@@ -31,13 +31,13 @@ TOOLS = [
                 'request': {'type': 'string', 'description': '부탁하신 작업이나 요청을 한 줄로 (예: 알림 제목을 32자에서 자르기)'},
                 'conflicts': {
                     'type': 'array',
-                    'description': '충돌하는 결정 사항. 없으면 빈 배열(경우 2만)',
+                    'description': '부탁·요청과 다른 결정 사항. 없으면 빈 배열(경우 2만)',
                     'items': {
                         'type': 'object',
                         'properties': {
                             'id': {'type': 'string', 'description': 'search_standards 결과의 ID 그대로'},
-                            'kind': {'type': 'string', 'enum': ['바뀜', '어긋남'], 'description': '바뀜: 같은 것을 다르게 정함(새 버전이 됨) / 어긋남: 다른 결정 사항인데 같이 지킬 수 없음'},
-                            'why': {'type': 'string', 'description': '왜 충돌하는지 한 문장. 그 결정 사항의 무엇이 새 값과 부딪히는지 드러나게 (예: 40자 이하로 정한 길이를 32자 이하로 다시 정해요)'},
+                            'kind': {'type': 'string', 'enum': ['변경', '어긋남'], 'description': '변경: 같은 것을 다르게 정함(새 버전이 됨) / 어긋남: 다른 결정 사항인데 같이 지킬 수 없음'},
+                            'why': {'type': 'string', 'description': '왜 그렇게 판단했는지 한 문장. 그 결정 사항의 무엇이 새 값과 맞지 않는지 드러나게 (예: 40자 이하로 정한 길이를 32자 이하로 다시 정해요)'},
                         },
                         'required': ['id', 'kind', 'why'],
                     },

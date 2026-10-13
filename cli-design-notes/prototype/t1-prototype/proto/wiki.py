@@ -103,7 +103,7 @@ def save(args):
 
 
 def check_conflicts(args):
-    """①② 화면에 띄울 충돌 목록을 확인한다. 화면은 hooks가 그린다."""
+    """①② 화면에 띄울 다른 결정 사항 목록을 확인한다. 화면은 hooks가 그린다."""
     if args.get('kind') not in ('작업', '요청'):
         raise ValueError('kind는 "작업"(Claude가 알아챔) 또는 "요청"(사람이 바꿔 달라고 함)이에요.')
     if not args.get('request'):
@@ -112,10 +112,10 @@ def check_conflicts(args):
     for c in args.get('conflicts') or []:
         if c.get('id') not in known:
             raise ValueError(f'없는 결정 사항이에요: {c.get("id")}. search_standards 결과의 ID를 그대로 써 주세요.')
-        if c.get('kind') not in ('바뀜', '어긋남') or not c.get('why'):
-            raise ValueError('충돌마다 kind(바뀜/어긋남)와 why(왜 충돌하는지 한 문장)가 있어야 해요.')
+        if c.get('kind') not in ('변경', '어긋남') or not c.get('why'):
+            raise ValueError('다른 결정 사항마다 kind(변경/어긋남)와 why(왜 그렇게 판단했는지 한 문장)가 있어야 해요.')
     if args['kind'] == '작업' and not args.get('conflicts'):
-        raise ValueError('Claude가 알아챈 경우(작업)는 충돌하는 결정 사항이 1개 이상 있어야 해요.')
+        raise ValueError('Claude가 알아챈 경우(작업)는 다른 결정 사항이 1개 이상 있어야 해요.')
     return {'shown': True, 'count': len(args.get('conflicts') or [])}
 
 
