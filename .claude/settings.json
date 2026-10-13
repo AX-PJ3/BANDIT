@@ -3,16 +3,6 @@
     "ask": ["mcp__haribo__save_standard", "mcp__haribo__revert"]
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-clear.ts\""
-          }
-        ]
-      }
-    ],
     "PostToolUse": [
       {
         "matcher": "Bash",

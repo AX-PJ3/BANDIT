@@ -5,7 +5,7 @@ import {
   renderT1Saved,
   T1_COPY,
 } from './copy.ts';
-import { diffFromPending } from './pending.ts';
+import { diffFromPending, pendingPath } from './pending.ts';
 import { buildT1SaveInput } from './save-input.ts';
 
 describe('T1 문구', () => {
@@ -123,5 +123,18 @@ describe('diffFromPending', () => {
         alwaysOn: true,
       }),
     ).toEqual(['reason', 'alwaysOn']);
+  });
+});
+
+describe('pendingPath', () => {
+  it('결정 사항마다 파일을 따로 둬요', () => {
+    expect(pendingPath('app.notify.title-length')).toMatch(
+      /haribo-t1-pending-app\.notify\.title-length\.json$/,
+    );
+  });
+
+  it('결정 사항 ID 형식이 아니면 파일을 만들지 않아요 (경로 문자 막기)', () => {
+    expect(pendingPath('../../etc.passwd.x')).toBeNull();
+    expect(pendingPath('App.Notify.Title')).toBeNull();
   });
 });

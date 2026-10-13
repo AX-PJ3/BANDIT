@@ -12,8 +12,9 @@ const event = JSON.parse(readFileSync(0, 'utf8')) as {
   tool_input?: Partial<SaveStandardInput>;
 };
 const input = event.tool_input ?? {};
-const pending = readPending();
-if (!pending || pending.id !== input.id) process.exit(0);
+// 임시 값은 결정 사항마다 따로 있어서, 저장하려는 결정 사항의 것만 읽어요
+const pending = readPending(input.id);
+if (!pending) process.exit(0);
 
 const changed = diffFromPending(pending, input);
 if (changed.length > 0) {

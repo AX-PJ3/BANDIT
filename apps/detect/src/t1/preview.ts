@@ -6,7 +6,12 @@
  *   EOF
  */
 import { readFileSync } from 'node:fs';
-import { type T1Pending, writePending } from './pending.ts';
+import {
+  PREVIEW_DONE,
+  pendingPath,
+  type T1Pending,
+  writePending,
+} from './pending.ts';
 
 const pending = JSON.parse(readFileSync(0, 'utf8')) as T1Pending;
 
@@ -20,5 +25,11 @@ if (missing.length > 0 || typeof pending.alwaysOn !== 'boolean') {
   process.exit(1);
 }
 
+if (!pendingPath(pending.id)) {
+  console.error(`결정 사항 ID 형식이 아니에요: ${pending.id}`);
+  process.exit(1);
+}
+
 writePending(pending);
-console.log('③ 등록될 모습 값을 임시로 들고 있어요.');
+// hook-preview.ts가 이 줄의 결정 사항 ID로 파일을 찾아요
+console.log(`${PREVIEW_DONE} ${pending.id}`);

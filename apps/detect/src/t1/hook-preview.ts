@@ -4,16 +4,22 @@
  */
 import { readFileSync } from 'node:fs';
 import { renderT1Preview } from './copy.ts';
-import { readPending } from './pending.ts';
+import { PREVIEW_DONE, readPending } from './pending.ts';
 
 const PREVIEW_COMMAND =
   /^node\s+["']?(\.\/)?apps\/detect\/src\/t1\/preview\.ts/;
 
 const event = JSON.parse(readFileSync(0, 'utf8')) as {
   tool_input?: { command?: string };
+  tool_response?: { stdout?: string };
 };
 const command = String(event.tool_input?.command ?? '').trim();
-const pending = PREVIEW_COMMAND.test(command) ? readPending() : null;
+// preview.ts가 남긴 마지막 줄 "…들고 있어요: <결정 사항 ID>"에서 이번 ③의 결정 사항을 찾아요
+const doneLine = String(event.tool_response?.stdout ?? '')
+  .split('\n')
+  .find((line) => line.startsWith(PREVIEW_DONE));
+const id = doneLine?.slice(PREVIEW_DONE.length).trim();
+const pending = PREVIEW_COMMAND.test(command) ? readPending(id) : null;
 if (!pending) process.exit(0);
 
 const ESC = '\u001b[';
