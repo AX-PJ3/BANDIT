@@ -23,7 +23,27 @@ t2 = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(t2)
 
 # 화면 용어: 위키 항목은 "결정 사항", 답할 항목은 "확인할 변경" (10/12 부건, 위키 copy.term.standard는 나중에 맞춤)
-COLS = 76                      # Claude Code가 앞에 붙이는 들여쓰기를 감안한 너비
+DEFAULT_COLS = 76              # 80칸 터미널에서 Claude Code가 앞에 붙이는 들여쓰기(2칸)와 여유(2칸)를 뺀 너비
+MIN_COLS, MAX_COLS = 40, 100   # 너비를 따라갈 때 한계: 좁아도 이름표와 글이 남게, 넓어도 한 줄이 너무 길지 않게
+
+
+def terminal_cols():
+    """화면 글의 너비. 시험용 (10/13):
+    - NOTICE_COLS=auto: Claude Code가 hooks에 넘겨주는 COLUMNS(그 순간 터미널 너비)에서 4칸을 뺀다. 없으면 76칸
+    - NOTICE_COLS=90 처럼 숫자: 그 너비로 고정
+    - 없으면 76칸 (v2 기본)
+    COLUMNS는 공식 문서에 없는 동작이다. Claude Code 2.1.284에서 창 크기를 바꾸면 다음 hook부터 바뀐 값이 오는 것을 확인했다."""
+    mode = os.environ.get('NOTICE_COLS', '')
+    if mode.isdigit():
+        return int(mode)
+    if mode == 'auto':
+        columns = os.environ.get('COLUMNS', '')
+        if columns.isdigit():
+            return max(MIN_COLS, min(MAX_COLS, int(columns) - 4))
+    return DEFAULT_COLS
+
+
+COLS = terminal_cols()
 QUESTIONS = {
     'relation': {'question': '이 변경이 내 이슈와 관계가 있나요?', 'header': '관계',
                  'options': [('관계있다', '내 이슈 결과물이 이 변경에 맞춰 바뀌어야 해요'),

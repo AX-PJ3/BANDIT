@@ -22,6 +22,7 @@ cd cli-design-notes/prototype/notify-prototype && ./reset.sh && claude
 - 건수 숫자 색 바꿔 보기: `NOTICE_COUNT_COLOR=36 claude` (기본 33 노랑, 36 청록)
 - 상세 제목 색 바꿔 보기: `NOTICE_TITLE_COLOR=35 claude` (기본 36 청록 굵게, 10/13)
 - 상세 화면을 추천 순서(제목 → 영향 → 이전·이후 비교 → 이유)로 보기: `NOTICE_LAYOUT=impact claude` (시안, 10/13). 기본은 `v2`
+- 화면 너비를 터미널에 맞춰 보기: `NOTICE_COLS=auto claude` (시험용, 10/13). Claude Code가 hooks에 넘기는 `COLUMNS`에서 4칸을 빼고 40~100칸 안에서 쓰고, 없으면 76칸이에요. `NOTICE_COLS=90`처럼 숫자를 주면 그 너비로 고정해요. 글을 띄우는 순간의 너비라 창 크기를 바꾸면 다음 화면부터 바뀌어요
 - 색·강조 비교 미리보기: `count-color-preview.html`(건수 글자색 후보), `emphasis-preview.html`(다시 부르는 말 강조 후보, 당시 문구 "기준 변경 확인")
 
 ## 사내 테스트 (자동 진행)
