@@ -10,6 +10,7 @@ from datetime import datetime
 HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, os.environ.get('NOTICE_DATA', 'changes') + '.json')   # NOTICE_DATA=changes-demo 처럼 바꿔 볼 수 있다
 ANSWERS = os.path.join(HERE, '..', 'answers.json')
+CLOSED = os.path.join(HERE, '..', 'closed.json')   # 서버가 답을 받기 전에 닫은 변경: {change_id: closedStatus}
 # 사내 테스트 모드 (test_run.py가 켠다): 사건 시각을 남기고, 변경마다 답한 뒤 이해도를 묻는다
 IS_TEST = bool(os.environ.get('NOTICE_TEST'))
 EVENTS = os.path.join(HERE, '..', '.events.jsonl')
@@ -65,9 +66,34 @@ def load_answers():
         return {}
 
 
+def load_closed():
+    try:
+        with open(CLOSED) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
 def pending():
-    answered = load_answers()
-    return [c for c in load_changes()['changes'] if c['id'] not in answered]
+    done = {**load_answers(), **load_closed()}
+    return [c for c in load_changes()['changes'] if c['id'] not in done]
+
+
+def close_on_respond(change_id):
+    """상세를 보는 사이 서버가 닫은 변경이면 그 상태(auto_closed 등)를 돌려준다. 아니면 None.
+    시안은 데이터의 closes_while_open 값으로 "보는 사이 되돌려짐"을 흉내 낸다 (SIL-77 DRI 결정 8, PR #15의 closedStatus)."""
+    closed = load_closed()
+    if change_id in closed:
+        return closed[change_id]
+    c = find_change(change_id)
+    status = c.get('closes_while_open') if c else None
+    if not status or change_id in load_answers():
+        return None
+    closed[change_id] = status
+    with open(CLOSED, 'w') as f:
+        json.dump(closed, f, ensure_ascii=False, indent=2)
+    log_event('closed', change_id, status=status)
+    return status
 
 
 def check_answer(relation, knew=None, reason=None):
@@ -504,6 +530,13 @@ def recorded_line(change_id):
     return lines
 
 
+def closed_line(change_id):
+    """상세를 보는 사이 되돌려져 자동으로 닫혔을 때, 답을 누른 뒤 띄우는 한 줄 (SIL-77 DRI 결정 8).
+    터미널은 이미 띄운 상세를 고칠 수 없어서 답을 누른 뒤에 나온다. 앞 기호와 색은 아직 정하지 않았다."""
+    c = find_change(change_id)
+    return f'{color_line(c["issue"], NEW_COLOR)} 변경이 되돌려졌어요. 하려던 작업을 계속 진행하시면 돼요.'
+
+
 def next_screen():
     """다음 변경 상세, 또는 남은 변경이 없으면 마무리 한 줄."""
     items = pending()
@@ -527,8 +560,12 @@ def push_away():
 
 def after_answer(change_id):
     """답을 기록한 뒤: 기록 줄 + 다음 변경 상세, 또는 마무리 한 줄. 기록되지 않았으면(보기 밖의 답) 아무것도 띄우지 않는다.
-    테스트 모드에서는 상세를 밀어내고 기록 줄만 띄운다. 다음 상세는 이해도를 기록한 뒤(after_quiz) 띄운다."""
-    if change_id not in load_answers():
+    테스트 모드에서는 상세를 밀어내고 기록 줄만 띄운다. 다음 상세는 이해도를 기록한 뒤(after_quiz) 띄운다.
+    보는 사이 되돌려져 닫혔으면 기록 줄 대신 되돌려졌다는 한 줄 + 다음 변경. 대체됨·이미 답함(B1)은 문장이 미정이라 띄우지 않는다."""
+    status = load_closed().get(change_id)
+    if status == 'auto_closed':
+        return '\n'.join(['', closed_line(change_id), *next_screen()])
+    if status or change_id not in load_answers():
         return None
     done = recorded_line(change_id)
     if has_quiz(change_id):

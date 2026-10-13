@@ -1,0 +1,24 @@
+{
+  "_note": "SIL-77 확인용 (10/13). 상세를 보는 사이 되돌려져 자동으로 닫히는 경우(DRI 결정 8)예요. 지어낸 예시예요. closes_while_open은 시안 서버가 답을 받을 때 닫힌 것으로 돌려줄 상태예요.",
+  "changes": [
+    {
+      "id": "sil77-auto-closed",
+      "kind": "change",
+      "area": "app",
+      "who": "부건",
+      "standard_id": "app.notify.body-lines",
+      "version": 2,
+      "title": "앱 알림 본문은 두 줄까지 보여 준다",
+      "old": "알림 본문은 세 줄까지 보여 주고 넘치면 끝을 줄인다",
+      "new": "알림 본문은 두 줄까지 보여 주고 넘치면 끝을 줄인다",
+      "reason": "세 줄이면 알림 창이 커져서 작업 화면을 가림",
+      "when": "오후 4:10",
+      "source": "AI 대화에서 바꿈",
+      "found_by_ai": false,
+      "issue": "#5",
+      "issue_title": "담당자에게 알리고 답 기록하기",
+      "issue_status": "진행 중",
+      "closes_while_open": "auto_closed"
+    }
+  ]
+}

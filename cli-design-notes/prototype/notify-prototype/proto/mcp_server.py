@@ -70,11 +70,14 @@ def call_tool(name, args):
         ids = {c['id'] for c in notice.load_changes()['changes']}
         if args.get('change_id') not in ids:
             raise ValueError('없는 change_id예요')
+        status = notice.close_on_respond(args['change_id'])
+        if status:      # 이미 닫힌 변경: 답을 기록하지 않는다 (PR #15와 같은 모양)
+            return {'ok': False, 'code': 'already_closed', 'closedStatus': status}
         problem = notice.check_answer(args.get('relation'), args.get('knew'), args.get('reason'))
         if problem:
             raise ValueError(problem)
         notice.save_answer(args['change_id'], args['relation'], args.get('knew'), args.get('reason'), args.get('note'))
-        return {'saved': True}
+        return {'ok': True, 'saved': True}
     if name in ('get_quiz', 'save_quiz') and notice.IS_TEST:
         if not notice.has_quiz(args.get('change_id')):
             raise ValueError('이해도 문제가 없는 change_id예요')
