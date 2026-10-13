@@ -48,6 +48,12 @@ importers:
         specifier: ^15.0.0
         version: 15.0.0
 
+  apps/detect:
+    dependencies:
+      '@sil/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+
   apps/mcp-server:
     dependencies:
       '@hono/node-server':

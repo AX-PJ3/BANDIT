@@ -55,7 +55,7 @@
 - `supabase/migrations` DB 표·함수·권한, `supabase/tests` DB 규칙 검사 (SQL)
 - `apps/cli` `sil` 명령어. `src/commands/`에 파일 하나씩, `index.ts` 배열에 등록
 - `apps/web` 웹 앱(PWA, Vite, D50). 화면은 `src/screens/`, 화면↔데이터 약속은 `src/api/types.ts`, 설치 정보와 서비스 워커는 `public/`
-- `apps/detect` 바뀐 기준 찾기 (경하님 SIL-66, 아직 없음)
+- `apps/detect` 바뀐 기준 찾기 (`@sil/detect`, 경하님 SIL-66). 에이전트 경로 T1 문구와 저장 값은 `src/t1/`. PR 경로는 아직 없음
 
 ## 코드 규칙
 
