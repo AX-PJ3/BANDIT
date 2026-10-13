@@ -89,7 +89,7 @@ screens = [('① 켤 때', 'SessionStart:startup', notice.session_notice(real)),
            ('④ 마지막 기록 뒤', 'PostToolUse:mcp__notice__respond says',
             with_state({real[0]['id']: A1, real[1]['id']: A2}, FLOW, lambda: notice.after_answer(real[1]['id']))),
            ('⑤ 닫고 넘어간 뒤 작업마다', 'UserPromptSubmit', notice.skipped_reminder(2)),
-           ('⑥ "기준 변경 확인"인데 0건', 'UserPromptSubmit', notice.nothing_left())]
+           ('⑥ "결정 사항 확인"인데 0건', 'UserPromptSubmit', notice.nothing_left())]
 cols = []
 for key, t in THEMES.items():
     blocks = []
