@@ -30,6 +30,30 @@ cd cli-design-notes/prototype/notify-prototype && ./test_run.py
 - 마지막 변경까지 답하면 Claude Code가 자동으로 닫히고(중간에 그만하려면 `/exit`) 수고 설문 5개를 묻고, `results/`에 참가자별 JSON과 `summary.csv`를 남겨요. `results/`는 GitHub에 올라가지 않아요.
 - 설계: [../SIL-68-사내테스트-자동화-설계.md](../SIL-68-사내테스트-자동화-설계.md)
 
+## T1 결정 사항 등록 켜 보기
+
+T2~T5 시안과 따로 켜요. 결정은 [../T1-결정-사항-등록-결정기록.md](../T1-결정-사항-등록-결정기록.md)에 있어요.
+
+```
+cd cli-design-notes/prototype/t1-prototype && ./reset.sh && claude
+```
+
+- 경우 1 (Claude가 알아챔): `Windows 알림 창에서 잘리니까 알림 제목을 32자에서 자르게 고쳐 줘` → 충돌 표와 "결정 사항도 바꾸는 작업인가요?"부터 떠요. `src/notify-title.ts`가 결정 사항(40자)을 따르고 있어서예요.
+- 경우 2 (사람이 직접 바꿈): `앱 알림 제목 결정 사항을 32자로 바꿔 줘. Windows 알림 창에서 잘려.` → 충돌 표 다음에 묻지 않고 ③이 떠요.
+- 새 결정 사항: `앱 알림 본문은 2줄 이하로 쓰기로 결정 사항 만들어 줘` → 충돌 없음, 알림 받을 이슈 없음이 떠요.
+- 충돌 화면과 ③ 등록될 모습, ④ 등록 완료는 hooks가 띄워요. Claude는 내용을 도구(`show_conflicts`, `preview_standard`, `save_standard`)에 넘기고 선택 화면만 띄워요(B, 10/12).
+- 등록한 결정 사항은 `saved.json`에 남아요. 처음부터 다시 보려면 `./reset.sh`.
+
+| 파일                                           | 하는 일                                                                                                                                                      |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `t1-prototype/CLAUDE.md`                       | 흐름과 Claude가 쓰는 문구, 선택 화면                                                                                                                         |
+| `t1-prototype/proto/screens.py`                | 충돌 화면과 ③ 등록될 모습 글. 화면 문구·칸 너비는 여기서 고쳐요                                                                                              |
+| `t1-prototype/.claude/hooks/show_screen.py`    | 충돌 화면과 ③을 띄우는 hook                                                                                                                                  |
+| `t1-prototype/proto/wiki_server.py`, `wiki.py` | 시안용 MCP 서버. `search_standards`, `get_standard`, `save_standard`(정민님 도구 흉내)와 `show_conflicts`, `preview_standard`(T1 화면용, 실제로는 아직 없음) |
+| `t1-prototype/proto/standards.json`            | 샘플 데이터. 착수 문서 데모 예시 + 어긋나는 결정 사항을 보여 줄 가상 결정 사항 1개                                                                           |
+| `t1-prototype/.claude/hooks/after_save.py`     | ④ 등록 완료 글                                                                                                                                               |
+| `t1-prototype/src/notify-title.ts`             | 경우 1을 시험할 작업 파일                                                                                                                                    |
+
 ## 구성
 
 | 파일                                              | 하는 일                                                                                    |

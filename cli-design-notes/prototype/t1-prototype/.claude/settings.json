@@ -1,0 +1,34 @@
+{
+  "enableAllProjectMcpServers": true,
+  "permissions": {
+    "allow": [
+      "mcp__wiki__search_standards",
+      "mcp__wiki__get_standard",
+      "mcp__wiki__show_conflicts",
+      "mcp__wiki__preview_standard",
+      "mcp__wiki__save_standard"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "mcp__wiki__show_conflicts|mcp__wiki__preview_standard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/show_screen.py"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__wiki__save_standard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/after_save.py"
+          }
+        ]
+      }
+    ]
+  }
+}

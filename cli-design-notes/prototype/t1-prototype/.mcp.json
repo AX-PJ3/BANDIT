@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "wiki": {
+      "command": "python3",
+      "args": ["proto/wiki_server.py"]
+    }
+  }
+}
