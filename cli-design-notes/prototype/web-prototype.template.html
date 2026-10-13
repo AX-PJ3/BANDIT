@@ -1,0 +1,920 @@
+<title>터미널 알림 v2 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic+Coding:wght@400;700&display=swap"
+/>
+<style>
+  /* 레이아웃: 왼쪽은 Claude Code 터미널 한 창(직접 입력하고 고르는 곳), 오른쪽은 해 볼 것과 조작. 좁으면 위아래로 */
+  :root {
+    --bg: #eceef1;
+    --surface: #ffffff;
+    --ink: #1c2026;
+    --muted: #5b636e;
+    --line: #d2d7dd;
+    --accent: #8a6400;
+    --accent-soft: #f8eed2;
+    --sans:
+      'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
+      sans-serif;
+    --mono: 'Nanum Gothic Coding', 'D2Coding', 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #131619;
+      --surface: #1c2025;
+      --ink: #e6e9ed;
+      --muted: #9aa3ad;
+      --line: #323941;
+      --accent: #e2b84f;
+      --accent-soft: #352c1c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #131619;
+    --surface: #1c2025;
+    --ink: #e6e9ed;
+    --muted: #9aa3ad;
+    --line: #323941;
+    --accent: #e2b84f;
+    --accent-soft: #352c1c;
+    color-scheme: dark;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.6 var(--sans);
+  }
+  .wrap {
+    padding-inline: 16px;
+    padding-block: 24px 48px;
+    max-width: 1240px;
+    margin: 0 auto;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: start;
+  }
+  @media (max-width: 980px) {
+    .wrap {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  /* 터미널: 테마는 터미널 앱의 색이라 페이지 테마와 따로 고른다 (theme-preview.py와 같은 근사값) */
+  .term {
+    --t-bg: #1e2227;
+    --t-fg: #f2f2f2;
+    --t-gray: #9da3ad;
+    --t-y: #d7ba5c;
+    --t-g: #5fb36b;
+    --t-c: #56b6c2;
+    --t-m: #c678dd;
+    --t-k: #000000;
+    --t-sel: #8ab4f8;
+    --t-bar: #2a2f36;
+    background: var(--t-bg);
+    color: var(--t-gray);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #0d0f12;
+    display: flex;
+    flex-direction: column;
+    height: min(82vh, 820px);
+    min-width: 0;
+  }
+  .term[data-term='light'] {
+    --t-bg: #ffffff;
+    --t-fg: #2e3436;
+    --t-gray: #6b6f76;
+    --t-y: #c4a000;
+    --t-g: #4e9a06;
+    --t-c: #06989a;
+    --t-m: #75507b;
+    --t-k: #2e3436;
+    --t-sel: #2f5fbf;
+    --t-bar: #e8eaed;
+    border-color: #c9ced4;
+  }
+  .term-bar {
+    background: var(--t-bar);
+    padding: 8px 12px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    font: 12px var(--sans);
+    color: var(--t-gray);
+    flex: none;
+  }
+  .term-bar i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--t-gray);
+    opacity: 0.45;
+    display: inline-block;
+  }
+  .term-bar span {
+    margin-left: 8px;
+  }
+  .screen {
+    flex: 1;
+    overflow: auto;
+    padding: 14px 16px 6px;
+    font: 13.5px/1.55 var(--mono);
+    white-space: pre;
+    outline: none;
+  }
+  .ln {
+    min-height: 1.55em;
+  }
+  .f-gray {
+    color: var(--t-gray);
+  }
+  .f-fg {
+    color: var(--t-fg);
+  }
+  .f-y {
+    color: var(--t-y);
+  }
+  .f-g {
+    color: var(--t-g);
+  }
+  .f-c {
+    color: var(--t-c);
+  }
+  .f-m {
+    color: var(--t-m);
+  }
+  .f-k {
+    color: var(--t-k);
+  }
+  .r-gray {
+    background: var(--t-gray);
+    color: var(--t-bg);
+  }
+  .r-fg {
+    background: var(--t-fg);
+    color: var(--t-bg);
+  }
+  .r-y {
+    background: var(--t-y);
+    color: var(--t-bg);
+  }
+  .r-g {
+    background: var(--t-g);
+    color: var(--t-bg);
+  }
+  .b {
+    font-weight: 700;
+  }
+  .d {
+    opacity: 0.55;
+  }
+  .sel {
+    color: var(--t-sel);
+  }
+  .banner {
+    display: inline-block;
+    border: 1px solid var(--t-y);
+    border-radius: 6px;
+    padding: 2px 10px;
+    margin-bottom: 4px;
+    white-space: pre;
+  }
+  .think {
+    color: var(--t-y);
+  }
+  .dock {
+    flex: none;
+    padding: 0 16px 12px;
+    font: 13.5px/1.55 var(--mono);
+    white-space: pre;
+  }
+  .inbox {
+    border-top: 1px solid var(--t-gray);
+    border-bottom: 1px solid var(--t-gray);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 6px 2px;
+  }
+  .inbox input,
+  .qtype input {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    outline: none;
+    color: var(--t-fg);
+    font: inherit;
+    caret-color: var(--t-fg);
+    padding: 0;
+  }
+  .inbox input::placeholder,
+  .qtype input::placeholder {
+    color: var(--t-gray);
+    opacity: 0.7;
+  }
+  .hint {
+    color: var(--t-gray);
+    padding: 4px 2px 0;
+    opacity: 0.8;
+  }
+  .qpanel {
+    border-top: 1px solid var(--t-gray);
+    padding-top: 8px;
+  }
+  .qopt {
+    cursor: pointer;
+  }
+  .qopt:hover .qlabel {
+    text-decoration: underline;
+  }
+  .qtype {
+    display: flex;
+    gap: 0;
+  }
+  .term.is-busy .inbox input {
+    opacity: 0.4;
+  }
+
+  /* 오른쪽 패널 */
+  aside {
+    display: grid;
+    gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    display: grid;
+    gap: 10px;
+  }
+  h1 {
+    font-size: 20px;
+    line-height: 1.35;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h2 {
+    font-size: 13px;
+    margin: 0;
+    color: var(--muted);
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  p {
+    margin: 0;
+  }
+  .eyebrow {
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .muted {
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button,
+  select {
+    font: 500 13px var(--sans);
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 5px 10px;
+    cursor: pointer;
+  }
+  button[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  button:focus-visible,
+  select:focus-visible,
+  .screen:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  button.chip {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--accent-soft);
+    border-color: transparent;
+  }
+  ol,
+  ul {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--accent-soft);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+</style>
+
+<div class="wrap">
+  <section
+    class="term"
+    id="term"
+    data-term="dark"
+    aria-label="Claude Code 터미널 흉내"
+  >
+    <div class="term-bar" aria-hidden="true">
+      <i></i><i></i><i></i><span>notify-prototype — claude</span>
+    </div>
+    <div class="screen" id="screen" tabindex="0" aria-live="polite"></div>
+    <div class="dock" id="dock"></div>
+  </section>
+
+  <aside>
+    <div class="card">
+      <p class="eyebrow">SIL-68 · v2 · 10/13</p>
+      <h1>터미널 알림 v2 프로토타입</h1>
+      <p class="muted">
+        알림 글은 notice.py가 만든 hooks 글을 그대로 썼고, 언제 무엇이 뜨는지도
+        시안 hooks와 같은 규칙이에요. 아래 터미널에 직접 입력하고 골라 보세요.
+      </p>
+    </div>
+    <div class="card">
+      <h2>조작</h2>
+      <div class="row">
+        <button type="button" id="btn-reset">처음부터</button>
+        <button type="button" id="btn-restart">Claude Code 다시 켜기</button>
+      </div>
+      <div class="row">
+        <span class="muted">터미널</span>
+        <button
+          type="button"
+          id="term-dark"
+          data-term="dark"
+          aria-pressed="true"
+        >
+          어두움
+        </button>
+        <button
+          type="button"
+          id="term-light"
+          data-term="light"
+          aria-pressed="false"
+        >
+          밝음
+        </button>
+      </div>
+      <div class="row">
+        <label class="muted" for="dataset">변경</label>
+        <select id="dataset"></select>
+      </div>
+    </div>
+    <div class="card">
+      <h2>해 볼 것</h2>
+      <ol>
+        <li>
+          아무 작업이나 입력해요.
+          <button
+            type="button"
+            class="chip"
+            data-fill="로그인 화면 문구 고쳐 줘"
+          >
+            로그인 화면 문구 고쳐 줘
+          </button>
+        </li>
+        <li>
+          질문에 답해요. ↑↓·숫자·클릭으로 고르고 Enter. 보기 대신 직접 써 봐도
+          돼요.
+        </li>
+        <li>
+          중간에 Esc로 닫아요. Claude가 작업을 마치면 입력 칸 바로 위에 한 줄이
+          떠요.
+        </li>
+        <li>
+          다시 불러요.
+          <button type="button" class="chip" data-fill="결정 사항 확인">
+            결정 사항 확인
+          </button>
+        </li>
+        <li>"Claude Code 다시 켜기"를 누르면 남은 변경만 켤 때 알림에 떠요.</li>
+      </ol>
+    </div>
+    <div class="card">
+      <h2>v1에서 바뀐 것</h2>
+      <ul>
+        <li>켤 때 첫 줄과 닫은 뒤 한 줄 앞에 노란 막대</li>
+        <li>
+          변경 상세를 위아래 선으로 묶고, 위 선에 <code>1/5</code> 칩과 머리표
+        </li>
+        <li>
+          제목 끝 태그 <code>(변경)</code> <code>(신규)</code>
+          <code>(되돌림)</code> <code>(폐기)</code>와 <code>상세</code> 줄
+        </li>
+        <li>닫은 뒤 한 줄은 작업을 입력할 때가 아니라 작업을 마친 뒤</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>흉내인 것</h2>
+      <p class="muted">
+        선택 화면 모양, Claude 글과 작업 내용, 생각하는 시간,
+        <code>Stop says:</code> 머리줄(실제 모양은 확인 전)은 근사예요. 되돌림
+        예시는 지어낸 것이에요. 답은 이 창에만 남고 저장되지 않아요.
+      </p>
+    </div>
+  </aside>
+</div>
+
+<script>
+  const DATA = /*__DATA__*/ null;
+  (function () {
+    'use strict';
+    const screen = document.getElementById('screen');
+    const dock = document.getElementById('dock');
+    const term = document.getElementById('term');
+    const Q = DATA.questions;
+
+    // ---------- 상태 (answers.json, .flow.json, 세션 흉내) ----------
+    const S = { ds: 'v2', session: 1, answers: {}, flow: null, busy: false };
+    const ids = () => DATA.datasets[S.ds].ids;
+    const pending = () => ids().filter((id) => !(id in S.answers));
+    const wasSkipped = () =>
+      !!S.flow && S.flow.session === S.session && pending().length > 0;
+    const isRecall = (t) => t.trim().replace(/[.!?]+$/, '') === DATA.recall;
+
+    // ---------- 그리기 ----------
+    function esc(t) {
+      return t.replace(
+        /[&<>"]/g,
+        (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+      );
+    }
+    // theme-preview.py의 to_html과 같은 규칙: 회색으로 감싸고, 혼자 쓴 39는 회색, 39;49는 기본 글자색
+    function ansi(text) {
+      const st = { fg: 'gray', b: false, d: false, r: false };
+      let out = '';
+      for (const part of text.split(/(\x1b\[[0-9;]*m)/)) {
+        const m = part.match(/^\x1b\[([0-9;]*)m$/);
+        if (m) {
+          const codes = m[1].split(';');
+          if (codes.length === 1 && codes[0] === '39') st.fg = 'gray';
+          for (const c of codes) {
+            if (c === '1') st.b = true;
+            else if (c === '2') st.d = true;
+            else if (c === '22') st.b = st.d = false;
+            else if (c === '7') st.r = true;
+            else if (c === '27') st.r = false;
+            else if (c === '30') st.fg = 'k';
+            else if (c === '32') st.fg = 'g';
+            else if (c === '33') st.fg = 'y';
+            else if (c === '35') st.fg = 'm';
+            else if (c === '36') st.fg = 'c';
+          }
+          if (codes.length === 2 && codes[0] === '39' && codes[1] === '49')
+            st.fg = 'fg';
+          continue;
+        }
+        if (!part) continue;
+        const cls = [
+          (st.r ? 'r-' : 'f-') + st.fg,
+          st.b ? 'b' : '',
+          st.d ? 'd' : '',
+        ]
+          .filter(Boolean)
+          .join(' ');
+        out += `<span class="${cls}">${esc(part)}</span>`;
+      }
+      return out;
+    }
+    function line(html) {
+      const div = document.createElement('div');
+      div.className = 'ln';
+      div.innerHTML = html;
+      screen.appendChild(div);
+      screen.scrollTop = screen.scrollHeight;
+      return div;
+    }
+    const blank = () => line('');
+    const gray = (t) => line(`<span class="f-gray">${esc(t)}</span>`);
+    function hook(event, message) {
+      const rows = message.split('\n');
+      if (rows[0] === '') rows.shift();
+      gray(`⎿ ${event} says:`);
+      rows.forEach((r) => line(ansi(r)));
+    }
+    function userLine(text) {
+      blank();
+      line(`<span class="f-fg">&gt; ${esc(text)}</span>`);
+    }
+    function claudeSay(text) {
+      blank();
+      line(`<span class="f-fg">● ${esc(text)}</span>`);
+    }
+    function tool(name, arg, result) {
+      blank();
+      line(
+        `<span class="f-g">●</span> <span class="f-fg"><span class="b">${esc(name)}</span>${arg ? '(' + esc(arg) + ')' : ''}</span>`,
+      );
+      gray(`  ⎿  ${result}`);
+    }
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    async function think(ms = 650) {
+      const el = line('<span class="think">✻ Thinking…</span>');
+      await wait(ms);
+      el.remove();
+    }
+
+    // ---------- 너비 (한글 2칸) ----------
+    function cw(ch) {
+      const c = ch.codePointAt(0);
+      return (c >= 0x1100 && c <= 0x115f) ||
+        (c >= 0x2e80 && c <= 0xa4cf) ||
+        (c >= 0xac00 && c <= 0xd7a3) ||
+        (c >= 0xf900 && c <= 0xfaff) ||
+        (c >= 0xfe30 && c <= 0xfe4f) ||
+        (c >= 0xff00 && c <= 0xff60) ||
+        (c >= 0xffe0 && c <= 0xffe6)
+        ? 2
+        : 1;
+    }
+    function cutEnd(text, budget) {
+      let w = 0,
+        out = '';
+      const chars = Array.from(text);
+      const total = chars.reduce((s, ch) => s + cw(ch), 0);
+      if (total <= budget) return text;
+      for (const ch of chars) {
+        if (w + cw(ch) > budget - 1) break;
+        out += ch;
+        w += cw(ch);
+      }
+      return out + '…';
+    }
+    const width = (t) => Array.from(t).reduce((s, ch) => s + cw(ch), 0);
+
+    // ---------- 선택 화면 (AskUserQuestion 흉내) ----------
+    function ask(cid, key) {
+      const q = Q[key];
+      const issue = DATA.changes[cid].issue;
+      const opts = q.options.map(([label, desc]) => ({ label, desc }));
+      const typeIndex = opts.length; // "Type something." 자리
+      let cur = 0;
+      return new Promise((resolve) => {
+        function finish(result) {
+          document.removeEventListener('keydown', onKey, true);
+          dock.innerHTML = '';
+          resolve(result);
+        }
+        function render() {
+          const rows = [];
+          rows.push(
+            `<span class="r-gray"> ${esc(issue)} </span>`,
+            '',
+            `<span class="f-fg b">${esc(q.question)}</span>`,
+            '',
+          );
+          opts.forEach((o, i) => {
+            const on = i === cur;
+            rows.push(
+              `<span class="qopt" data-i="${i}">${on ? '<span class="sel">❯</span>' : ' '} <span class="${on ? 'sel' : 'f-gray'}">${i + 1}. <span class="qlabel">${esc(o.label)}</span></span></span>`,
+            );
+            rows.push(
+              `<span class="qopt f-gray" data-i="${i}">     ${esc(o.desc)}</span>`,
+            );
+          });
+          const onType = cur === typeIndex;
+          rows.push(
+            `<span class="qopt qtype" data-i="${typeIndex}">${onType ? '<span class="sel">❯</span>' : ' '} <span class="${onType ? 'sel' : 'f-gray'}">${typeIndex + 1}. </span>${onType ? '<input id="qinput" aria-label="직접 쓰기" placeholder="Type something.">' : '<span class="f-gray qlabel">Type something.</span>'}</span>`,
+          );
+          rows.push(
+            '',
+            `<span class="f-gray">  Chat about this</span>`,
+            '',
+            `<span class="f-gray">Enter to select · ↑/↓ to navigate · Esc to cancel</span>`,
+          );
+          dock.innerHTML = `<div class="qpanel">${rows.map((r) => `<div class="ln">${r}</div>`).join('')}</div>`;
+          dock.querySelectorAll('.qopt').forEach((el) =>
+            el.addEventListener('click', () => {
+              const i = Number(el.dataset.i);
+              if (i === cur && i < typeIndex) return choose();
+              cur = i;
+              render();
+            }),
+          );
+          const input = document.getElementById('qinput');
+          if (input) input.focus();
+          else screen.focus({ preventScroll: true });
+          screen.scrollTop = screen.scrollHeight;
+        }
+        function choose() {
+          if (cur < typeIndex)
+            return finish({
+              type: 'option',
+              label: opts[cur].label,
+              question: q.question,
+            });
+          const input = document.getElementById('qinput');
+          const text = ((input && input.value) || '').trim();
+          if (text) finish({ type: 'text', text, question: q.question });
+        }
+        function onKey(e) {
+          if (e.isComposing) return;
+          const inInput = e.target && e.target.id === 'qinput';
+          if (e.key === 'Escape') {
+            e.preventDefault();
+            return finish({ type: 'esc' });
+          }
+          if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            cur = Math.min(typeIndex, cur + 1);
+            return render();
+          }
+          if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            cur = Math.max(0, cur - 1);
+            return render();
+          }
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            return choose();
+          }
+          if (!inInput && /^[1-9]$/.test(e.key)) {
+            const i = Number(e.key) - 1;
+            if (i < typeIndex) {
+              e.preventDefault();
+              cur = i;
+              return choose();
+            }
+            if (i === typeIndex) {
+              e.preventDefault();
+              cur = i;
+              return render();
+            }
+          }
+        }
+        document.addEventListener('keydown', onKey, true);
+        render();
+      });
+    }
+    function answered(question, answer) {
+      blank();
+      line(`<span class="f-fg">● User answered Claude's questions:</span>`);
+      gray(`  ⎿  · ${question} → ${answer}`);
+    }
+
+    // ---------- 입력 칸 ----------
+    function showInput() {
+      S.busy = false;
+      term.classList.remove('is-busy');
+      dock.innerHTML = `<div class="inbox"><span class="f-fg">&gt;</span><input id="prompt" aria-label="작업 입력" autocomplete="off" placeholder='Try "로그인 화면 문구 고쳐 줘"'></div><div class="hint">? for shortcuts</div>`;
+      const input = document.getElementById('prompt');
+      input.addEventListener('keydown', (e) => {
+        if (e.isComposing || e.key !== 'Enter') return;
+        e.preventDefault();
+        const text = input.value.trim();
+        if (text) submit(text);
+      });
+      input.focus({ preventScroll: true });
+      screen.scrollTop = screen.scrollHeight;
+    }
+    function busy() {
+      S.busy = true;
+      term.classList.add('is-busy');
+      dock.innerHTML = '';
+    }
+
+    // ---------- hooks와 같은 흐름 ----------
+    function sessionStart() {
+      screen.innerHTML = '';
+      line(
+        `<span class="banner"><span class="f-y">✻</span> <span class="f-fg">Welcome to Claude Code!</span></span>`,
+      );
+      gray('  cwd: ~/cli-design/cli-design-notes/prototype/notify-prototype');
+      const items = pending();
+      if (items.length) {
+        blank();
+        hook('SessionStart:startup', DATA.frag.session[items.join('|')]);
+      }
+      showInput();
+    }
+    function detail(cid, index, total, recall) {
+      return DATA.frag.detail[`${cid}|${index}|${total}|${recall ? 1 : 0}`];
+    }
+
+    async function doWork(prompt, afterQuestions) {
+      await think(800);
+      if (afterQuestions) claudeSay(`이어서 "${prompt}" 작업을 진행할게요.`);
+      await wait(300);
+      tool('Read', 'login-screen.md', 'Read 7 lines');
+      await wait(500);
+      tool(
+        'Update',
+        'login-screen.md',
+        'Updated login-screen.md with 2 additions and 2 removals',
+      );
+      await think(400);
+      claudeSay(
+        '작업을 마쳤어요. login-screen.md의 문구를 고쳤어요. (시안이라 실제 파일은 그대로예요)',
+      );
+    }
+    function endTurn() {
+      // after_work.py (Stop): 이번 세션에서 질문을 닫고 넘어간 변경이 남아 있으면 입력 칸 바로 위에 한 줄
+      const items = pending();
+      if (items.length && wasSkipped()) {
+        blank();
+        hook('Stop', DATA.frag.reminder[String(items.length)]);
+      }
+      showInput();
+    }
+
+    async function submit(text) {
+      busy();
+      userLine(text);
+      const recall = isRecall(text);
+      const items = pending();
+      if (!items.length) {
+        if (recall) {
+          blank();
+          hook('UserPromptSubmit', DATA.frag.nothing);
+          return endTurn();
+        }
+        await doWork(text, false);
+        return endTurn();
+      }
+      if (wasSkipped() && !recall) {
+        await doWork(text, false);
+        return endTurn();
+      } // 작업 입력 때는 아무것도 안 띄운다 (v2)
+      S.flow = {
+        session: S.session,
+        total: items.length,
+        recall,
+        prompt: text,
+      };
+      blank();
+      hook('UserPromptSubmit', detail(items[0], 1, items.length, recall));
+      await think();
+      tool('notice - list_pending (MCP)', '', `확인할 변경 ${items.length}건`);
+      await think(350);
+      return answerLoop();
+    }
+
+    async function answerLoop() {
+      const flow = S.flow;
+      let cid = pending()[0];
+      while (cid) {
+        // 관계 → 알았나 / 이유
+        let rel;
+        for (;;) {
+          const r = await ask(cid, 'relation');
+          if (r.type === 'esc') return declined();
+          if (r.type === 'option') {
+            answered(r.question, r.label);
+            rel = r.label;
+            break;
+          }
+          answered(r.question, r.text);
+          await think(500);
+          claudeSay(
+            '보기 중 하나로 골라 주시면 기록할게요. 쓰신 글은 메모로 남겨 둘게요.',
+          );
+          await think(300);
+        }
+        let second,
+          isCustom = false;
+        for (;;) {
+          const r = await ask(cid, rel === '관계있다' ? 'knew' : 'reason');
+          if (r.type === 'esc') return declined();
+          if (r.type === 'option') {
+            answered(r.question, r.label);
+            second = r.label;
+            break;
+          }
+          answered(r.question, r.text);
+          if (rel === '관계없다') {
+            second = r.text.slice(0, 100);
+            isCustom = true;
+            break;
+          }
+          await think(500);
+          claudeSay(
+            '보기 중 하나로 골라 주시면 기록할게요. 쓰신 글은 메모로 남겨 둘게요.',
+          );
+          await think(300);
+        }
+        await think(400);
+        tool('notice - respond (MCP)', `change_id: "${cid}"`, '기록했어요');
+        S.answers[cid] = { relation: rel, second };
+        // after_respond.py: 기록 줄 + 다음 변경 상세, 또는 마무리 한 줄
+        let rec =
+          DATA.frag.recorded[`${cid}|${rel}|${isCustom ? '§' : second}`];
+        if (isCustom) {
+          const head = `${DATA.changes[cid].issue} · 관계없다 · `;
+          rec = rec.replace(
+            '§',
+            cutEnd(second, DATA.answerBudget - width(head)),
+          );
+        }
+        const next = pending()[0];
+        let tail;
+        if (next)
+          tail = detail(
+            next,
+            flow.total - pending().length + 1,
+            flow.total,
+            flow.recall,
+          );
+        else
+          tail = '\n' + DATA.frag.done[`${flow.total}|${flow.recall ? 1 : 0}`];
+        blank();
+        hook('PostToolUse:mcp__notice__respond', ['', rec, tail].join('\n'));
+        cid = next;
+        if (cid) await think(450);
+      }
+      if (!flow.recall) await doWork(flow.prompt, true);
+      return endTurn();
+    }
+
+    async function declined() {
+      gray('  ⎿  User declined to answer questions');
+      if (!S.flow.recall) await doWork(S.flow.prompt, true);
+      return endTurn();
+    }
+
+    // ---------- 조작 ----------
+    function reset() {
+      S.answers = {};
+      S.flow = null;
+      S.session += 1;
+      sessionStart();
+    }
+    document.getElementById('btn-reset').addEventListener('click', reset);
+    document.getElementById('btn-restart').addEventListener('click', () => {
+      S.session += 1;
+      sessionStart();
+    });
+    const select = document.getElementById('dataset');
+    Object.entries(DATA.datasets).forEach(([k, d]) => {
+      const o = document.createElement('option');
+      o.value = k;
+      o.textContent = d.name;
+      select.appendChild(o);
+    });
+    select.addEventListener('change', () => {
+      S.ds = select.value;
+      reset();
+    });
+    function setTerm(mode) {
+      term.dataset.term = mode;
+      document
+        .querySelectorAll('button[data-term]')
+        .forEach((b) =>
+          b.setAttribute('aria-pressed', String(b.dataset.term === mode)),
+        );
+      try {
+        localStorage.setItem('v2-proto-term', mode);
+      } catch (_e) {
+        /* 저장 못 해도 화면은 그대로 */
+      }
+    }
+    document
+      .querySelectorAll('button[data-term]')
+      .forEach((b) =>
+        b.addEventListener('click', () => setTerm(b.dataset.term)),
+      );
+    try {
+      const saved = localStorage.getItem('v2-proto-term');
+      if (saved) setTerm(saved);
+    } catch (_e) {
+      /* 기본 어두움 */
+    }
+    document.querySelectorAll('[data-fill]').forEach((b) =>
+      b.addEventListener('click', () => {
+        const input = document.getElementById('prompt');
+        if (!input) return;
+        input.value = b.dataset.fill;
+        input.focus();
+      }),
+    );
+    screen.addEventListener('click', () => {
+      const input =
+        document.getElementById('prompt') || document.getElementById('qinput');
+      if (input && !window.getSelection().toString())
+        input.focus({ preventScroll: true });
+    });
+    sessionStart();
+  })();
+</script>

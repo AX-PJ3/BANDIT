@@ -62,24 +62,25 @@ cd cli-design-notes/prototype/t1-prototype && ./reset.sh && claude
 
 ## 구성
 
-| 파일                                              | 하는 일                                                                                    |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `notify-prototype/proto/notice.py`                | 화면 글을 만드는 곳. 문구·색·순서는 여기서 고쳐요                                          |
-| `notify-prototype/proto/mcp_server.py`            | 시안용 MCP 서버. 민수님의 `list_pending`, `respond`를 흉내만 내요 (패키지 없이 Python만)   |
-| `notify-prototype/proto/changes.json`             | 샘플 데이터. Linear SIL-64의 실제 변경 + `samples/data/issue-links.csv` (받는 사람: 부건)  |
-| `notify-prototype/proto/changes-demo.json`        | 착수 문서 데모 예시 (알림 제목 길이 40자 → 32자, 받는 사람 민수 #5)                        |
-| `notify-prototype/proto/changes-sil77.json`       | SIL-77 확인용 2건 (보는 사이 자동으로 닫힘, 관계있다로 답한 뒤 다시 바뀜). 지어낸 예시     |
-| `notify-prototype/proto/changes-sample.json`      | 예전 샘플 (40자 → 32자, 리뷰 규칙 폐기)                                                    |
-| `notify-prototype/proto/changes-test.json`        | 사내 테스트용 예시 시안 3건 (숫자·신규·관계없음) + 관계 정답과 이해도 문제                 |
-| `notify-prototype/proto/changes-v2.json`          | v2 확인용 5건 (변경·신규·되돌림·폐기·크게 바뀐 변경). 되돌림은 지어낸 예시                 |
-| `notify-prototype/test_run.py`                    | 사내 테스트 진행: 참가자 입력 → 테스트 모드 시안 → 설문 → `results/` 저장                  |
-| `notify-prototype/.claude/hooks/after_quiz.py`    | 테스트 모드에서 이해도 기록 뒤 다음 변경 상세                                              |
-| `notify-prototype/.claude/hooks/session_start.py` | ① 켤 때 알림                                                                               |
-| `notify-prototype/.claude/hooks/prompt_submit.py` | ② 작업 입력 때 첫 변경 상세 + Claude에게 질문 순서 안내                                    |
-| `notify-prototype/.claude/hooks/after_respond.py` | 답 기록 뒤 "✓ 기록했어요" + 다음 변경 상세                                                 |
-| `notify-prototype/.claude/hooks/after_work.py`    | 질문을 닫고 넘어간 뒤 Claude가 작업을 마치면 입력 칸 위에 한 줄 알림 (Stop)                |
-| `preview.py`                                      | A·B·E 비교 방식 미리보기 HTML (`diff-preview.html`)                                        |
-| `theme-preview.py`                                | 어두운·밝은 터미널 미리보기 HTML (`theme-preview.html`)                                    |
-| `show.py`                                         | hooks 출력을 꾸밈 없이 칸 수와 함께 보는 도구 (`... \| python3 show.py`, 시안 폴더 안에서) |
+| 파일                                              | 하는 일                                                                                        |
+| ------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `notify-prototype/proto/notice.py`                | 화면 글을 만드는 곳. 문구·색·순서는 여기서 고쳐요                                              |
+| `notify-prototype/proto/mcp_server.py`            | 시안용 MCP 서버. 민수님의 `list_pending`, `respond`를 흉내만 내요 (패키지 없이 Python만)       |
+| `notify-prototype/proto/changes.json`             | 샘플 데이터. Linear SIL-64의 실제 변경 + `samples/data/issue-links.csv` (받는 사람: 부건)      |
+| `notify-prototype/proto/changes-demo.json`        | 착수 문서 데모 예시 (알림 제목 길이 40자 → 32자, 받는 사람 민수 #5)                            |
+| `notify-prototype/proto/changes-sil77.json`       | SIL-77 확인용 2건 (보는 사이 자동으로 닫힘, 관계있다로 답한 뒤 다시 바뀜). 지어낸 예시         |
+| `notify-prototype/proto/changes-sample.json`      | 예전 샘플 (40자 → 32자, 리뷰 규칙 폐기)                                                        |
+| `notify-prototype/proto/changes-test.json`        | 사내 테스트용 예시 시안 3건 (숫자·신규·관계없음) + 관계 정답과 이해도 문제                     |
+| `notify-prototype/proto/changes-v2.json`          | v2 확인용 5건 (변경·신규·되돌림·폐기·크게 바뀐 변경). 되돌림은 지어낸 예시                     |
+| `notify-prototype/test_run.py`                    | 사내 테스트 진행: 참가자 입력 → 테스트 모드 시안 → 설문 → `results/` 저장                      |
+| `notify-prototype/.claude/hooks/after_quiz.py`    | 테스트 모드에서 이해도 기록 뒤 다음 변경 상세                                                  |
+| `notify-prototype/.claude/hooks/session_start.py` | ① 켤 때 알림                                                                                   |
+| `notify-prototype/.claude/hooks/prompt_submit.py` | ② 작업 입력 때 첫 변경 상세 + Claude에게 질문 순서 안내                                        |
+| `notify-prototype/.claude/hooks/after_respond.py` | 답 기록 뒤 "✓ 기록했어요" + 다음 변경 상세                                                     |
+| `notify-prototype/.claude/hooks/after_work.py`    | 질문을 닫고 넘어간 뒤 Claude가 작업을 마치면 입력 칸 위에 한 줄 알림 (Stop)                    |
+| `preview.py`                                      | A·B·E 비교 방식 미리보기 HTML (`diff-preview.html`)                                            |
+| `theme-preview.py`                                | 어두운·밝은 터미널 미리보기 HTML (`theme-preview.html`)                                        |
+| `web-prototype.py`                                | v2 웹 워킹 프로토타입 (`web-prototype.html`). notice.py 글을 담아 hooks와 같은 흐름으로 돌려요 |
+| `show.py`                                         | hooks 출력을 꾸밈 없이 칸 수와 함께 보는 도구 (`... \| python3 show.py`, 시안 폴더 안에서)     |
 
 `notice.py`는 `cli-design-notes/t2-render-check.py`의 글자 폭·값 비교 함수를 가져다 써요.
