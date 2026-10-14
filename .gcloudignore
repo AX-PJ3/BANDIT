@@ -1,0 +1,21 @@
+# Files NOT uploaded by `gcloud run deploy --source .` (see apps/mcp-server/README.md).
+# gcloud reads this file and the .gitignore below, but NOT .git/info/exclude.
+.gcloudignore
+.git
+.gitignore
+#!include:.gitignore
+
+# Cloud Run rejects images with non-UTF-8 file names, and Korean file names get
+# broken during the build ("Container import failed"). Only these folders have
+# Korean file names. If you add one elsewhere, add it here too.
+# The MCP server reads the wiki from the DB, so these folders are not needed.
+docs/
+team-wiki/
+samples/
+
+# Not needed to run the server: DB schema and SQL checks, CI, AI tool settings.
+# Keep every package.json: the build runs `pnpm install --prod` for the whole workspace.
+supabase/
+.github/
+.claude/
+AGENTS.md
