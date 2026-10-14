@@ -310,6 +310,18 @@ export function skippedReminder(count: number): string {
   ].join('\n');
 }
 
+/**
+ * 확인할 변경을 불러오거나 답을 기록하지 못했을 때 (SIL-80 B4, notify.error.no-block-retry).
+ * "변경 없음"으로 보이지 않게 실패를 알리고, 작업은 막지 않아요. 확인할 변경은 대기로 남아요.
+ */
+export function connectionFailedNotice(): string {
+  return [
+    '',
+    strongLine('● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.'),
+    `  ${bold(`"${RECALL_PHRASE}"`)}을 입력하면 다시 시작해요.`,
+  ].join('\n');
+}
+
 /** "결정 사항 확인"을 입력했는데 답할 변경이 없을 때 */
 export function nothingLeft(): string {
   return ['', `${check} 확인할 변경이 없어요.`].join('\n');
