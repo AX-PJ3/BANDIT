@@ -17,6 +17,7 @@ mcp-server/
 ├── scripts/check.ts        pnpm mcp:check    — Claude Code 없이 HTTP로 붙어 서버를 확인 (--url: 올린 서버)
 ├── scripts/register.ts     pnpm mcp:register — 내 Claude Code에 팀 서버 등록
 ├── scripts/token.ts        pnpm mcp:token    — 팀 토큰 만들기
+├── scripts/status.ts       pnpm mcp:status   — 등록된 haribo 보기 (팀 토큰은 가림, src/mask-secrets.ts)
 └── src/
     ├── index.ts            Node 시작점 (http://SIL_MCP_HOST:PORT/mcp)
     ├── http.ts             웹 표준 fetch 서버: /health, /mcp, Origin·토큰 확인 → SDK createMcpHandler

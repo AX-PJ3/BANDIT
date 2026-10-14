@@ -15,6 +15,7 @@
     "mcp:serve": "pnpm --filter @sil/mcp run start",
     "mcp:dev": "pnpm --filter @sil/mcp run dev",
     "mcp:register": "pnpm --filter @sil/mcp run register",
+    "mcp:status": "pnpm --filter @sil/mcp run status",
     "mcp:token": "pnpm --filter @sil/mcp run token",
     "db:push": "supabase db push",
     "app:web": "pnpm --filter @sil/app run dev",

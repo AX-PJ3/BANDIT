@@ -92,7 +92,7 @@
 ## 확인 명령
 
 - 전체 검사: `pnpm check` (타입, 린트, 포맷, 테스트)
-- MCP 서버: `pnpm mcp:check` (HTTP로 켜서 401·도구 목록·ping 확인), 켜기: `pnpm mcp:serve`. 올린 서버는 `pnpm mcp:check --url https://…/mcp` (토큰은 `.env`의 `SIL_MCP_TOKEN`, 설치·실행 명령은 `apps/mcp-server/README.md` "올리기", D54)
+- MCP 서버: `pnpm mcp:check` (HTTP로 켜서 401·도구 목록·ping 확인), 켜기: `pnpm mcp:serve`. 올린 서버는 `pnpm mcp:check --url https://…/mcp` (토큰은 `.env`의 `SIL_MCP_TOKEN`, 설치·실행 명령은 `apps/mcp-server/README.md` "올리기", D54). 등록 상태는 `pnpm mcp:status`로 본다 (`claude mcp get`은 팀 토큰을 그대로 찍어서 쓰지 않는다)
 - DB 규칙: `psql "<DB 주소>" -v ON_ERROR_STOP=1 -f supabase/tests/wiki.test.sql` (`v2.test.sql`, `compat.test.sql`, `always_on_per_version.test.sql`, `feedback_v2.test.sql`, `notify_rules.test.sql`, `reflected.test.sql`, `ai_detected_t1.test.sql`도 같은 방법)
 - 위키 적용 범위 경로 확인: `pnpm sil scope-check` (맞는 파일이 없는 코드 경로 목록)
 - 위키 불러오기 미리 보기: `pnpm sil import` (저장은 `--apply`)
