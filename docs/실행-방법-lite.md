@@ -29,10 +29,18 @@ claude mcp add --transport http --scope user haribo https://<팀 서버 주소>/
 - 주소 끝의 `/mcp`까지 넣어요. 빠지면 연결되지 않아요.
 - 사용자 범위(`--scope user`)로 등록돼서, 어느 폴더에서 Claude Code를 켜도 `haribo`가 보여요.
 
-**3. 등록됐는지 봐요.**
+**3. 등록됐는지 봐요.** `claude mcp get haribo`는 넣은 팀 토큰을 그대로 보여 줘서, 화면 공유·녹화·채널에 붙인 결과로 토큰이 샐 수 있어요. 토큰을 가려서 봐요.
+
+Windows PowerShell:
+
+```powershell
+claude mcp get haribo | ForEach-Object { $_ -replace '(Bearer\s+)\S+', '$1(가림)' }
+```
+
+macOS·Linux 터미널:
 
 ```bash
-claude mcp get haribo
+claude mcp get haribo | sed -E 's/(Bearer )[^ ]+/\1(가림)/'
 ```
 
 `Status: ✔ Connected`가 나오면 돼요. 서버가 켜져 있는지만 볼 때는 아래처럼 해요. `"ok":true`가 나오면 켜져 있어요. Windows PowerShell에서는 `curl` 대신 `curl.exe`라고 써요.
