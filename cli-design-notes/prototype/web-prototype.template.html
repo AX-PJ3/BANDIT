@@ -448,11 +448,20 @@
     const Q = DATA.questions;
 
     // ---------- 상태 (answers.json, .flow.json, 세션 흉내) ----------
-    const S = { ds: 'v2', session: 1, answers: {}, flow: null, busy: false };
+    // deferred: 이번 세션에서 "잘 모르겠다"로 남긴 변경 (.unsure.json). 세션이 바뀌거나 "결정 사항 확인"으로 다시 부르면 비운다
+    const S = {
+      ds: 'v2',
+      session: 1,
+      answers: {},
+      flow: null,
+      busy: false,
+      deferred: new Set(),
+    };
     const ids = () => DATA.datasets[S.ds].ids;
     const pending = () => ids().filter((id) => !(id in S.answers));
+    const flowPending = () => pending().filter((id) => !S.deferred.has(id));
     const wasSkipped = () =>
-      !!S.flow && S.flow.session === S.session && pending().length > 0;
+      !!S.flow && S.flow.session === S.session && flowPending().length > 0;
     const isRecall = (t) => t.trim().replace(/[.!?]+$/, '') === DATA.recall;
 
     // ---------- 그리기 ----------
@@ -732,7 +741,8 @@
     }
     function endTurn() {
       // after_work.py (Stop): 이번 세션에서 질문을 닫고 넘어간 변경이 남아 있으면 입력 칸 바로 위에 한 줄
-      const items = pending();
+      // 잘 모르겠다로 남긴 변경은 건수에서 빼고, 그것만 남았으면 띄우지 않는다
+      const items = flowPending();
       if (items.length && wasSkipped()) {
         blank();
         hook('Stop', DATA.frag.reminder[String(items.length)]);
@@ -754,10 +764,15 @@
         await doWork(text, false);
         return endTurn();
       }
+      if (!recall && !flowPending().length) {
+        await doWork(text, false);
+        return endTurn();
+      } // 남은 변경이 모두 잘 모르겠다로 남긴 것: 이번 세션에는 다시 알리지 않는다
       if (wasSkipped() && !recall) {
         await doWork(text, false);
         return endTurn();
       } // 작업 입력 때는 아무것도 안 띄운다 (v2)
+      if (recall) S.deferred.clear();
       S.flow = {
         session: S.session,
         total: items.length,
@@ -774,7 +789,7 @@
 
     async function answerLoop() {
       const flow = S.flow;
-      let cid = pending()[0];
+      let cid = flowPending()[0];
       while (cid) {
         // 관계 → 알았나 / 이유
         let rel;
@@ -792,6 +807,33 @@
             '보기 중 하나로 골라 주시면 기록할게요. 쓰신 글은 메모로 남겨 둘게요.',
           );
           await think(300);
+        }
+        if (rel === DATA.unsure) {
+          // 답으로 기록하지 않고 대기로 남긴다 → 한 줄 + 다음 변경 상세 (notify.answer.unsure-later)
+          await think(400);
+          tool(
+            'notice - respond (MCP)',
+            `change_id: "${cid}"`,
+            '남겨 두었어요',
+          );
+          S.deferred.add(cid);
+          const next = flowPending()[0];
+          const tail = next
+            ? detail(
+                next,
+                flow.total - flowPending().length + 1,
+                flow.total,
+                flow.recall,
+              )
+            : '';
+          blank();
+          hook(
+            'PostToolUse:mcp__notice__respond',
+            ['', DATA.frag.unsure, tail].join('\n'),
+          );
+          cid = next;
+          if (cid) await think(450);
+          continue;
         }
         let second,
           isCustom = false;
@@ -828,17 +870,21 @@
             cutEnd(second, DATA.answerBudget - width(head)),
           );
         }
-        const next = pending()[0];
+        const next = flowPending()[0];
         let tail;
         if (next)
           tail = detail(
             next,
-            flow.total - pending().length + 1,
+            flow.total - flowPending().length + 1,
             flow.total,
             flow.recall,
           );
         else
-          tail = '\n' + DATA.frag.done[`${flow.total}|${flow.recall ? 1 : 0}`];
+          tail =
+            '\n' +
+            DATA.frag.done[
+              `${flow.total}|${flow.total - S.deferred.size}|${flow.recall ? 1 : 0}`
+            ];
         blank();
         hook('PostToolUse:mcp__notice__respond', ['', rec, tail].join('\n'));
         cid = next;
@@ -858,11 +904,13 @@
     function reset() {
       S.answers = {};
       S.flow = null;
+      S.deferred.clear();
       S.session += 1;
       sessionStart();
     }
     document.getElementById('btn-reset').addEventListener('click', reset);
     document.getElementById('btn-restart').addEventListener('click', () => {
+      S.deferred.clear();
       S.session += 1;
       sessionStart();
     });

@@ -33,14 +33,10 @@ def recorded(c, relation, second):
     return '\n'.join(n.recorded_lines(c, answer))
 
 
-def done(total, recall):
-    """notice.next_screen의 마무리 한 줄과 같은 규칙."""
-    count = f' {total}건' if total > 1 else ''
-    start_work = '' if recall else ' 이제 작업을 시작할게요.'
-    return n.bold(f'확인할 변경{count}을 모두 답했어요.{start_work}')
 
 
-frag = {'session': {}, 'detail': {}, 'recorded': {}, 'done': {}, 'reminder': {}, 'nothing': n.nothing_left()}
+frag = {'session': {}, 'detail': {}, 'recorded': {}, 'done': {}, 'reminder': {}, 'nothing': n.nothing_left(),
+        'unsure': n.unsure_line()}
 for ds in DATASETS.values():
     ids = ds['ids']
     for r in range(1, len(ids) + 1):
@@ -56,8 +52,9 @@ for cid, c in BY_ID.items():
     for second in REASONS + [CUSTOM]:
         frag['recorded'][f'{cid}|관계없다|{second}'] = recorded(c, '관계없다', second)
 for total in range(1, len(CHANGES) + 1):
-    for recall in (False, True):
-        frag['done'][f'{total}|{int(recall)}'] = done(total, recall)
+    for answered in range(0, total + 1):     # 잘 모르겠다로 남긴 변경이 있으면 답한 건수만 말한다 (notice.done_text)
+        for recall in (False, True):
+            frag['done'][f'{total}|{answered}|{int(recall)}'] = n.bold(n.done_text(total, answered, recall))
     frag['reminder'][str(total)] = n.skipped_reminder(total)
 
 DATA = {
@@ -66,6 +63,7 @@ DATA = {
     'changes': {cid: {'issue': c['issue']} for cid, c in BY_ID.items()},
     'questions': {k: {'question': q['question'], 'options': q['options']} for k, q in n.QUESTIONS.items()},
     'recall': n.RECALL,
+    'unsure': n.UNSURE,
     'answerBudget': n.COLS - 16,
 }
 data_json = json.dumps(DATA, ensure_ascii=False).replace('</', '<\\/')
