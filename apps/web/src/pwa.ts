@@ -118,6 +118,16 @@ export function useNotificationPermission(): {
   return { permission, request };
 }
 
+/** OS 알림 제목 최대 길이 (공백 포함). Windows 알림 창에서 32자를 넘으면 끝이 잘려요 (app.notify.title-length) */
+const MAX_NOTIFICATION_TITLE_LENGTH = 32;
+
+/** 알림 제목이 길면 32자에 맞춰 줄이고 끝에 …을 붙여요 */
+function toNotificationTitle(title: string): string {
+  return title.length <= MAX_NOTIFICATION_TITLE_LENGTH
+    ? title
+    : `${title.slice(0, MAX_NOTIFICATION_TITLE_LENGTH - 1)}…`;
+}
+
 /** OS 알림 한 건이에요. 제목은 결정 사항 제목, 본문은 "이전 값 → 지금 값" 같은 문구예요 (A1) */
 export interface ChangeNotification {
   /** 확인할 변경 ID (PendingCheck.id). 알림을 누르면 이 변경을 열어요 */
@@ -144,10 +154,16 @@ export async function showChangeNotification(
   try {
     const registration = await navigator.serviceWorker?.getRegistration();
     if (registration?.active) {
-      await registration.showNotification(notification.title, options);
+      await registration.showNotification(
+        toNotificationTitle(notification.title),
+        options,
+      );
       return true;
     }
-    const shown = new Notification(notification.title, options);
+    const shown = new Notification(
+      toNotificationTitle(notification.title),
+      options,
+    );
     shown.onclick = () => {
       window.focus();
       shown.close();
