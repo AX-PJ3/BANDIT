@@ -3,23 +3,23 @@
  * 다른 명령이면 아무것도 하지 않아요. hook 글은 도구 직후에만 화면에 보여서 이 자리에 둬요 (10/13 시험).
  */
 import { readFileSync } from 'node:fs';
-import { renderT1Preview } from './copy.ts';
-import { PREVIEW_DONE, readPending } from './pending.ts';
-
-const PREVIEW_COMMAND =
-  /^node\s+["']?(\.\/)?apps\/detect\/src\/t1\/preview\.ts/;
+import { findPreviewId, isPreviewCommand } from './preview-command.ts';
 
 const event = JSON.parse(readFileSync(0, 'utf8')) as {
   tool_input?: { command?: string };
   tool_response?: { stdout?: string };
 };
-const command = String(event.tool_input?.command ?? '').trim();
+if (!isPreviewCommand(String(event.tool_input?.command ?? ''))) {
+  process.exit(0);
+}
+
+// ③ 명령일 때만 패키지(@sil/core)를 불러와요 (preview-command.ts 설명)
+const { readPending } = await import('./pending.ts');
+const { renderT1Preview } = await import('./copy.ts');
 // preview.ts가 남긴 마지막 줄 "…들고 있어요: <결정 사항 ID>"에서 이번 ③의 결정 사항을 찾아요
-const doneLine = String(event.tool_response?.stdout ?? '')
-  .split('\n')
-  .find((line) => line.startsWith(PREVIEW_DONE));
-const id = doneLine?.slice(PREVIEW_DONE.length).trim();
-const pending = PREVIEW_COMMAND.test(command) ? readPending(id) : null;
+const pending = readPending(
+  findPreviewId(String(event.tool_response?.stdout ?? '')),
+);
 if (!pending) process.exit(0);
 
 const ESC = '\u001b[';
