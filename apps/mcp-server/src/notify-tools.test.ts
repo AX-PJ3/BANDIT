@@ -218,6 +218,40 @@ describe('list_pending', () => {
     });
   });
 
+  it('대기 항목에는 AskUserQuestion으로 물을 질문 세 개가 붙어요 (notify.answer.two-questions)', async () => {
+    const result = await call(await connectAs('민수'), 'list_pending');
+    const [item] = result.json().items as {
+      questions: Record<
+        'relation' | 'known' | 'reason',
+        { question: string; header: string; options: { label: string }[] }
+      >;
+    }[];
+    const labels = (key: 'relation' | 'known' | 'reason') =>
+      item!.questions[key].options.map((option) => option.label);
+
+    expect(item!.questions.relation).toMatchObject({
+      question: '이 변경이 내 이슈와 관계가 있나요?',
+      header: '#5',
+    });
+    expect(labels('relation')).toEqual(['관계있다', '관계없다']);
+    expect(labels('known')).toEqual(['알았다', '몰랐다']);
+    expect(labels('reason')).toHaveLength(3);
+  });
+
+  it('답을 기다리는 변경이 있으면 안내문이 첫 요청보다 먼저 물으라고 알려요 (notify.terminal.session-start)', async () => {
+    const minsu = await connectAs('민수');
+    expect(minsu.getInstructions()).toContain(
+      '지금 민수님에게 답을 기다리는 확인할 변경이 1개 있어요.',
+    );
+    expect(minsu.getInstructions()).toContain(
+      '사람이 작업을 시작하면 그 일보다 먼저 list_pending을 불러요',
+    );
+    const bugeon = await connectAs('부건');
+    expect(bugeon.getInstructions()).not.toContain(
+      '답을 기다리는 확인할 변경이',
+    );
+  });
+
   it('바꾼 부건님에게는 아무것도 없어요 (notify.target.skip-author)', async () => {
     const result = await call(await connectAs('부건'), 'list_pending');
     expect(result.json()).toMatchObject({ pendingCount: 0, items: [] });

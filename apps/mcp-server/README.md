@@ -34,16 +34,16 @@ mcp-server/
 
 ## 도구
 
-| 도구               | 하는 일                                                                            | 읽기만 |
-| ------------------ | ---------------------------------------------------------------------------------- | ------ |
-| `ping`             | 서버·DB 연결, 누구로 들어왔는지 확인                                               | ✔      |
-| `get_index`        | 목차: 항상 적용 기준, 기준 전체 목록(ID·영역·제목), 영역별 수                      | ✔      |
-| `search_standards` | 키워드, 영역, 코드 경로(glob)로 기준 찾기                                          | ✔      |
-| `get_standard`     | 기준 하나의 최신 내용과 버전 기록 (`currentVersion`)                               | ✔      |
-| `save_standard`    | 새 기준·새 버전 저장. ID·제목·값·이유·항상 적용이 없으면 빠진 칸을 알려 주고 거절  |        |
-| `revert`           | 앞선 버전으로 되돌리기. 되돌림도 새 버전으로 쌓임                                  |        |
-| `list_pending`     | 나(`X-Sil-User`)에게 온 확인할 변경 목록. 제목·이전 값·지금 값·이유·이슈를 붙여 줌 | ✔      |
-| `respond`          | 확인할 변경에 답 저장 (관계, 알았나, 관계없는 이유). 답한 곳은 터미널              |        |
+| 도구               | 하는 일                                                                                                                    | 읽기만 |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `ping`             | 서버·DB 연결, 누구로 들어왔는지 확인                                                                                       | ✔      |
+| `get_index`        | 목차: 항상 적용 기준, 기준 전체 목록(ID·영역·제목), 영역별 수                                                              | ✔      |
+| `search_standards` | 키워드, 영역, 코드 경로(glob)로 기준 찾기                                                                                  | ✔      |
+| `get_standard`     | 기준 하나의 최신 내용과 버전 기록 (`currentVersion`)                                                                       | ✔      |
+| `save_standard`    | 새 기준·새 버전 저장. ID·제목·값·이유·항상 적용이 없으면 빠진 칸을 알려 주고 거절                                          |        |
+| `revert`           | 앞선 버전으로 되돌리기. 되돌림도 새 버전으로 쌓임                                                                          |        |
+| `list_pending`     | 나(`X-Sil-User`)에게 온 확인할 변경 목록. 제목·이전 값·지금 값·이유·이슈와, 대기 항목에는 물을 질문(`questions`)을 붙여 줌 | ✔      |
+| `respond`          | 확인할 변경에 답 저장 (관계, 알았나, 관계없는 이유). 답한 곳은 터미널                                                      |        |
 
 알리기 도구는 `X-Sil-User`의 이름으로만 움직여요. 다른 사람의 목록을 보거나 대신 답할 수 없고, 이름이 없으면 거절해요.
 `respond`는 DB까지 가기 전에 `@sil/notify`의 `checkAnswer`로 먼저 검사해서 빠진 칸을 한국어로 알려 줘요. 이미 닫힌 변경이면 `closedStatus`(답함·대체됨·자동 닫힘)를 돌려줘요. "관계있다"로 저장되면 `rereadStandardId`를 돌려줘서 AI가 그 결정 사항을 `get_standard`로 다시 읽어요.
@@ -51,12 +51,14 @@ mcp-server/
 팀 위키 `wiki.mcp.five-tools`에 따라 위키 도구는 다섯 개예요. 폐기는 사람이 `pnpm sil deprecate`로 해요.
 `save_standard`와 `revert`는 결과에 CHANGELOG 한 줄(`changelogLine`)을 돌려줘요. 작업 중인 저장소에 `team-wiki/CHANGELOG.md`가 있으면 AI가 그 줄을 맨 아래에 붙여요 (`work.wiki.changelog`).
 `save_standard`는 `check_wiki.py`와 같은 문장 경고(`warnings`)도 돌려줘요. 저장은 막지 않아요.
+`save_standard`의 `aiDetected`(AI가 찾았나)는 에이전트 경로 T1이 `true`로 넣어요. 근거 필수·하루 두 번 제한은 PR에서 찾은 변경(`aiDetected: true` + `source: code`)에만 걸려요 (D61).
 
 쓰기 도구는 모두 `baseVersion`(내가 보고 고친 버전)을 받아요. 그사이 누가 먼저 고쳤으면 `VERSION_CONFLICT`로 거절하고 "최신을 다시 보고 다시 저장하라"고 알려 줘요 (SIL-15 동시 수정). 거절된 변경은 버리지 않고 충돌로 보류해 둬요 (`detect.conflict.hold`).
 거절 문구는 데이터베이스 함수가 만든 한국어 문장이 그대로 AI에게 가요. 문구에 "다음에 할 일"이 들어 있어서 AI가 사람에게 묻고 다시 시도해요.
 
 항상 적용 기준은 **세션 시작 때** 서버 안내문(instructions)으로 들어가요. 서버는 먼저 말을 걸 수 없어서, Claude Code가 연결할 때 받는 안내문에 붙였어요 (사람마다 60초 동안 기억).
 `X-Sil-User`로 들어온 사람이 진행 중인 이슈에서 "관계있다"고 답한 바뀐 기준도 같은 안내문에 넣어요 (`notify.answer.next-run-context`).
+그 사람에게 답을 기다리는 확인할 변경이 있으면 그 수를 안내문 맨 앞에 넣어요. 안내문 7·8번에 따라 Claude는 사람이 작업을 시작하면 그 일보다 먼저 `list_pending`을 부르고, 하나씩 보여 준 뒤 `questions`를 AskUserQuestion으로 글자 그대로 물어요 (`notify.terminal.session-start`, `notify.terminal.one-change`). hooks 없이 서버만으로 돼요. 목록을 못 읽으면 "확인할 변경이 없다고 여기지 말라"고 적어요 (`notify.error.not-empty`).
 
 ## 왜 이렇게 나눴나요
 

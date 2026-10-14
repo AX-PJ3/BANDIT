@@ -36,7 +36,8 @@ export function buildT1SaveInput(
     ...(current.scope ? { scope: current.scope } : {}),
     baseVersion: current.currentVersion,
     source: 'ai_chat',
-    // 임시: "AI가 찾았나"를 T1에서 어떻게 둘지 아직 정하지 않아서 아니오로 둬요 (SIL-66)
-    aiDetected: false,
+    // 에이전트가 먼저 알아채고 물은 변경이라 AI가 찾았나는 예예요 (D61).
+    // 근거 필수·하루 두 번 제한은 PR 경로(출처 code)에만 걸려서 근거 없이 저장돼요
+    aiDetected: true,
   };
 }
