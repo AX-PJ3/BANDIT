@@ -118,6 +118,19 @@ const TAGS: Record<ChangeKind, string | null> = {
 };
 
 /**
+ * 제목 끝의 종류 표시.
+ * - (되돌림)은 괄호 글자에 글자색만 입혀요 (notify.revert.mark-by-screen). 색은 SIL-81에서 정하는 중이라
+ *   부건님과 정한 대로 임시로 회색(테마 16색의 밝은 검정 90)을 써요 (10/14).
+ * - (신규)는 정해진 색이 없어서 시안대로 흐린 글자예요.
+ */
+function tagText(kind: ChangeKind): string {
+  const tag = TAGS[kind];
+  if (!tag) return '';
+  if (kind === 'revert') return `${esc('90')} (${tag})${esc('39')}`;
+  return dim(` (${tag})`);
+}
+
+/**
  * 바꾼 시각: 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13" (착수 안내 5절 "언제").
  * 팀이 한국에 있어서 한국 시각으로 보여 줘요.
  */
@@ -238,7 +251,7 @@ export function detailScreen(
     progress(index, total, options.recall ?? false),
     '',
     ...(total > 1 ? [countChip(index, total)] : []),
-    strongLine(`[${area}] ${bold(title)}${tag ? dim(` (${tag})`) : ''}`),
+    strongLine(`[${area}] ${bold(title)}${tagText(kindOf(item))}`),
     `${' '.repeat(headWidth)}${who}님이 ${formatWhen(item.standard.changedAt, now)}에 변경했어요.`,
     ...changeLines(item),
     reworkLine(item),
@@ -294,6 +307,18 @@ export function skippedReminder(count: number): string {
     strongLine(
       `● 확인할 변경 ${countText(count)}건 · ${bold(`"${RECALL_PHRASE}"`)}을 입력하면 변경 내역을 볼 수 있어요.`,
     ),
+  ].join('\n');
+}
+
+/**
+ * 확인할 변경을 불러오거나 답을 기록하지 못했을 때 (SIL-80 B4, notify.error.no-block-retry).
+ * "변경 없음"으로 보이지 않게 실패를 알리고, 작업은 막지 않아요. 확인할 변경은 대기로 남아요.
+ */
+export function connectionFailedNotice(): string {
+  return [
+    '',
+    strongLine('● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.'),
+    `  ${bold(`"${RECALL_PHRASE}"`)}을 입력하면 다시 시작해요.`,
   ].join('\n');
 }
 

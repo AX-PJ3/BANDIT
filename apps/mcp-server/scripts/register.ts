@@ -11,10 +11,17 @@
  * 팀원은 이 저장소가 아니라 각자 일하는 저장소에서 Claude Code를 켜요. 사용자 범위면 어느 저장소에서든 haribo 도구가 보여요.
  *
  * 저장소가 없는 다른 팀은 이 스크립트 대신, 아래에 찍히는 `claude mcp add` 한 줄만 실행하면 돼요.
+ *
+ * 터미널 알림 hooks도 함께 깔아요 (SIL-67). 서버가 이미 등록돼 있어도 hooks는 새로 깔거나 고쳐요.
+ *   ~/.claude/haribo/hook.mjs, config.json, ~/.claude/settings.json의 hooks 세 개 (src/hooks/install.ts)
+ *   pnpm mcp:register --no-hooks   hooks는 깔지 않아요
  */
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { parseArgs } from 'node:util';
 import { formatCommand, loadEnv, runCommand } from '@sil/core/node';
+import { hooksUrlFrom, installHooks } from '../src/hooks/install.ts';
 import { SERVER_INFO } from '../src/server-info.ts';
 
 const { values } = parseArgs({
@@ -23,6 +30,7 @@ const { values } = parseArgs({
     token: { type: 'string' },
     user: { type: 'string' },
     local: { type: 'boolean', default: false },
+    'no-hooks': { type: 'boolean', default: false },
   },
   allowPositionals: true,
 });
@@ -79,22 +87,61 @@ if (runCommand('claude', ['--version'], { quiet: true }) !== 0) {
 
 if (runCommand('claude', ['mcp', 'get', name], { quiet: true }) === 0) {
   console.log(
-    `이미 '${name}' 서버가 등록돼 있어요. 다시 등록하려면 아래를 실행한 뒤 이 명령을 다시 실행해 주세요.`,
+    `이미 '${name}' 서버가 등록돼 있어요. 서버를 다시 등록하려면 아래를 실행한 뒤 이 명령을 다시 실행해 주세요.`,
   );
   console.log(`  claude mcp remove ${name} --scope user`);
-  process.exit(0);
+} else {
+  if (runCommand('claude', addArgs) !== 0) {
+    console.error('✖ 등록에 실패했어요. 아래 명령을 직접 실행해 주세요.');
+    console.error(`  ${manual}`);
+    process.exit(1);
+  }
+  console.log(`✔ 등록했어요 (${url}${user ? `, 고친 사람: ${user}` : ''}).`);
+  console.log(
+    `  아무 저장소에서 Claude Code를 새로 켜고 /mcp 에서 '${name}'가 connected인지 확인해 주세요.`,
+  );
 }
 
-if (runCommand('claude', addArgs) !== 0) {
-  console.error('✖ 등록에 실패했어요. 아래 명령을 직접 실행해 주세요.');
-  console.error(`  ${manual}`);
-  process.exit(1);
-}
+if (!values['no-hooks']) setUpHooks(url, token, user);
 
-console.log(`✔ 등록했어요 (${url}${user ? `, 고친 사람: ${user}` : ''}).`);
-console.log(
-  `  아무 저장소에서 Claude Code를 새로 켜고 /mcp 에서 '${name}'가 connected인지 확인해 주세요.`,
-);
+/** 터미널 알림 hooks를 사용자 설정에 깔아요. 이름이 없으면 누구에게 온 변경인지 몰라서 건너뛰어요 */
+function setUpHooks(
+  mcpUrl: string,
+  teamToken: string | undefined,
+  person: string | undefined,
+): void {
+  if (!person) {
+    console.warn(
+      '⚠ 이름을 몰라서 터미널 알림 hooks는 깔지 않았어요. 이슈 담당자와 같은 이름으로 다시 실행해 주세요: pnpm mcp:register --user <이름>',
+    );
+    return;
+  }
+  try {
+    const result = installHooks({
+      home: homedir(),
+      hooksUrl: hooksUrlFrom(mcpUrl),
+      token: teamToken,
+      user: person,
+      scriptSource: readFileSync(
+        new URL('../hooks-client/haribo-hook.mjs', import.meta.url),
+        'utf8',
+      ),
+    });
+    console.log(`✔ 터미널 알림 hooks를 깔았어요 (이름: ${person}).`);
+    console.log(`  설정: ${result.settingsPath}`);
+    if (result.backupPath) {
+      console.log(`  고치기 전 설정은 ${result.backupPath}에 남겨 두었어요.`);
+    }
+    console.log(
+      '  Claude Code를 새로 켜면 답할 변경이 있을 때 알림이 떠요. 지우려면 settings.json에서 haribo/hook.mjs가 든 hooks 세 개를 지워요.',
+    );
+  } catch (error) {
+    console.error(
+      `✖ 터미널 알림 hooks를 깔지 못했어요: ${error instanceof Error ? error.message : String(error)}`,
+    );
+    process.exitCode = 1;
+  }
+}
 
 function gitUserName(): string | undefined {
   const result = spawnSync('git', ['config', '--get', 'user.name'], {

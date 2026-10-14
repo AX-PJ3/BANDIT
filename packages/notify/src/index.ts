@@ -60,6 +60,7 @@ export {
   allAnsweredLine,
   areaOf,
   autoClosedLine,
+  connectionFailedNotice,
   detailScreen,
   formatWhen,
   isRecall,

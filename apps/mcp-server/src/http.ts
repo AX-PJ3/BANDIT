@@ -8,6 +8,7 @@
  * 요청 하나가 거치는 순서:
  *   /health → 상태만 알려 줌 (토큰 필요 없음, 호스팅의 상태 확인용)
  *   /mcp    → Origin 확인 → 토큰 확인(auth.ts) → MCP 처리(SDK createMcpHandler, 요청마다 서버 새로 만듦)
+ *   /hooks/<이벤트> → Origin 확인 → 토큰 확인 → 터미널 알림 hooks (hooks/notify-hooks.ts, SIL-67)
  */
 import {
   createMcpHandler,
@@ -21,16 +22,27 @@ import {
   readUser,
   type TokenEntry,
 } from './auth.ts';
+import {
+  HOOK_EVENTS,
+  createNotifyHooks,
+  type HookEvent,
+  type HookInput,
+  type NotifyHooksOptions,
+} from './hooks/notify-hooks.ts';
 import { assertUniqueToolNames, createServer } from './server.ts';
 import { SERVER_INFO } from './server-info.ts';
 
 const log = createLogger('mcp');
 
 export const MCP_PATH = '/mcp';
+/** 터미널 알림 hooks 주소. 팀원 PC의 hooks-client/haribo-hook.mjs가 /hooks/<이벤트>로 보내요 */
+export const HOOKS_PATH = '/hooks';
 
 export interface HttpAppOptions {
   /** 받아 줄 토큰. 비우면 .env의 SIL_MCP_TOKENS를 써요 (검사 스크립트가 임시 토큰을 넣을 때) */
   tokens?: TokenEntry[];
+  /** 터미널 알림 hooks 설정. 테스트에서 데이터 읽기와 시각을 바꿔 끼워요 */
+  hooks?: NotifyHooksOptions;
 }
 
 export interface HttpApp {
@@ -65,6 +77,9 @@ export function createHttpApp(options: HttpAppOptions = {}): HttpApp {
     },
   );
 
+  // 세션 상태("질문을 닫고 넘어갔는지")를 들고 있어서 서버 하나에 하나만 만들어요
+  const hooks = createNotifyHooks(options.hooks);
+
   return {
     tokenCount: tokens.length,
     async fetch(request) {
@@ -75,6 +90,13 @@ export function createHttpApp(options: HttpAppOptions = {}): HttpApp {
           server: SERVER_INFO,
           dataMode: getDataMode(),
         });
+      }
+      if (pathname.startsWith(`${HOOKS_PATH}/`)) {
+        const rejected = originValidationResponse(request, allowedOrigins);
+        if (rejected) return rejected;
+        const auth = authenticate(request, tokens);
+        if (!auth.ok) return auth.response;
+        return handleHook(request, pathname.slice(HOOKS_PATH.length + 1));
       }
       if (pathname !== MCP_PATH) {
         return Response.json(
@@ -97,6 +119,49 @@ export function createHttpApp(options: HttpAppOptions = {}): HttpApp {
     },
     close: () => mcp.close(),
   };
+
+  async function handleHook(
+    request: Request,
+    event: string,
+  ): Promise<Response> {
+    if (request.method !== 'POST' || !isHookEvent(event)) {
+      return Response.json(
+        {
+          error: {
+            message: `hooks 주소는 POST ${HOOKS_PATH}/(${HOOK_EVENTS.join('|')})예요.`,
+          },
+        },
+        { status: 404 },
+      );
+    }
+    const user = readUser(request);
+    if (!user) {
+      return Response.json(
+        {
+          error: {
+            message:
+              'X-Sil-User(이름)가 없어서 누구에게 온 변경인지 알 수 없어요. pnpm mcp:register --user <이름>으로 다시 설치해 주세요.',
+          },
+        },
+        { status: 400 },
+      );
+    }
+    let input: HookInput;
+    try {
+      const text = await request.text();
+      input = text ? (JSON.parse(text) as HookInput) : {};
+    } catch {
+      return Response.json(
+        { error: { message: 'hooks 이벤트(JSON)를 읽지 못했어요.' } },
+        { status: 400 },
+      );
+    }
+    return Response.json(await hooks.handle(event, user, input));
+  }
+}
+
+function isHookEvent(value: string): value is HookEvent {
+  return (HOOK_EVENTS as readonly string[]).includes(value);
 }
 
 function splitList(raw: string | undefined): string[] {

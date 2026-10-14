@@ -52,7 +52,7 @@ export interface StandardVersion {
   changedBy: PersonRef | null;
   /** AI 여부. AI가 고쳤으면 'ai' */
   changedByActor: Actor;
-  /** AI가 찾았나. 사람이 바꾸지 않고 AI가 PR을 읽고 찾아낸 변경이면 true (화면의 "PR에서 찾음" 표시) */
+  /** AI가 찾았나. AI가 먼저 알아챈 변경이면 true: PR에서 찾음(출처 code) 또는 작업 중에 먼저 물은 T1(출처 ai_chat). 화면의 "PR에서 찾음"은 출처가 code일 때만 (D61) */
   aiDetected: boolean;
   /** 되돌림 여부. 새 값이 이전 버전 값과 같으면 true */
   isRevert: boolean;
@@ -144,7 +144,7 @@ export interface SaveStandardInput {
   source?: StandardSource;
   changedByActor?: Actor;
   changedBy?: PersonRef | null;
-  /** AI가 PR을 읽고 찾아낸 변경이면 true (바뀐 기준 찾기) */
+  /** AI가 먼저 알아챈 변경이면 true: PR에서 찾음 또는 T1 (바뀐 기준 찾기, D61) */
   aiDetected?: boolean;
   /** 잠금. 사람만 정할 수 있어요 (예전 위키를 불러올 때). 비우면 그대로 둬요 */
   locked?: boolean;
