@@ -1,4 +1,4 @@
-import type { IsoDateTime } from './common.js';
+import type { IsoDateTime } from './common.ts';
 
 /**
  * 코드 확인 기록 (표 7/7) — 바뀐 기준 찾기가 PR 하나를 보고 내린 판단이에요. 관계없어도 남겨요.

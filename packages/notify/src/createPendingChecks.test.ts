@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { createPendingChecks } from './createPendingChecks.js';
-import type { Issue, PendingCheck, SavedVersion } from './types.js';
+import { createPendingChecks } from './createPendingChecks.ts';
+import type { Issue, PendingCheck, SavedVersion } from './types.ts';
 
 /**
  * 착수 안내 "데모 예시: 알림 제목 길이"를 그대로 써요.

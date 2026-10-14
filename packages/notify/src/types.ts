@@ -24,7 +24,7 @@ export interface SavedVersion {
   version: number;
   /** 방금 저장된 값. 되돌림 자동 닫힘을 판단할 때 이전에 본 값과 비교해요 */
   value: string;
-  /** 바꾼 사람 이름. 본인에게는 확인할 변경을 만들지 않아요. AI가 찾았으면 PR을 만든 사람 */
+  /** 바꾼 사람 이름. 본인에게는 확인할 변경을 만들지 않아요. PR에서 찾았으면 PR을 만든 사람 */
   changedBy: string | null;
   /** 저장한 시각 */
   createdAt: IsoDateTime;
@@ -80,10 +80,11 @@ export interface PendingCheck {
 }
 
 /**
- * 출처: AI 대화 / 코드 / 팀 위키 파일.
+ * 출처: AI 대화 / 코드 / Figma / 회의 / Slack / 팀 위키 파일. DB(@sil/core StandardSource)와 같은 값이에요.
  * 화면에는 "AI 대화에서 바꿈", "코드에서 바꿈" 두 가지만 나와요. wiki는 예전 위키에서 가져온 버전이에요.
  */
-export type StandardSource = 'ai_chat' | 'code' | 'wiki';
+export type StandardSource =
+  'ai_chat' | 'code' | 'figma' | 'meeting' | 'slack' | 'wiki';
 
 /**
  * 기준 버전 하나 — 착수 안내 v2 "결정 사항" 표의 한 줄이에요.
@@ -98,12 +99,12 @@ export interface StandardVersionRecord {
   value: string;
   /** 이유 (최대 120자) */
   reason: string;
-  /** 바꾼 사람 이름. AI가 찾았으면 PR을 만든 사람 */
+  /** 바꾼 사람 이름. PR에서 찾았으면 PR을 만든 사람 */
   changedBy: string | null;
   /** 저장한 시각 */
   changedAt: IsoDateTime;
   source: StandardSource;
-  /** AI가 PR을 읽고 찾아낸 변경이면 true. 화면에 "PR에서 찾음"으로 보여요 */
+  /** AI가 먼저 알아챈 변경이면 true (PR에서 찾음, T1). 출처가 code일 때만 화면에 "PR에서 찾음"으로 보여요 (D61) */
   aiDetected: boolean;
   /** 예전 버전 값으로 되돌린 버전이면 true */
   isRevert: boolean;

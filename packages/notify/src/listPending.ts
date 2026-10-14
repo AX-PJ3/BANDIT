@@ -1,4 +1,4 @@
-import type { NotifyStore } from './store.js';
+import type { NotifyData, NotifyStore } from './store.ts';
 import type {
   AnswerChannel,
   IsoDateTime,
@@ -8,7 +8,7 @@ import type {
   PendingCheckStatus,
   StandardId,
   StandardSource,
-} from './types.js';
+} from './types.ts';
 
 export interface ListPendingInput {
   /** 받는 사람 이름 */
@@ -51,6 +51,19 @@ export interface PendingItem {
   issue: PendingItemIssue;
   /** 대기면 null */
   answer: PendingItemAnswer | null;
+  /**
+   * 같은 이슈에서 이 결정 사항의 이전 버전에 한 마지막 답. 없으면 null.
+   * "관계있다"였으면 화면이 "지난번 변경을 반영하셨다면 다시 고쳐야 해요" 안내를 붙여요 (SIL-77 부건님 의견).
+   */
+  previousAnswer: PreviousAnswer | null;
+}
+
+export interface PreviousAnswer {
+  /** 답했던 버전 */
+  version: number;
+  affected: boolean;
+  known: boolean | null;
+  answeredAt: IsoDateTime;
 }
 
 export interface PendingItemStandard {
@@ -85,18 +98,28 @@ export interface PendingItemAnswer {
 }
 
 /**
- * 한 사람에게 온 확인할 변경 목록을 화면에 바로 쓸 수 있는 모양으로 돌려줘요.
- *
- * 제목, 값, 이유, 이슈 제목까지 붙여서 돌려줘서 화면이 get_standard를 다시 부르지 않아도 돼요.
- * 필요한 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요.
- * 연결 실패를 "변경 없음"으로 보여 주면 담당자가 바뀐 기준을 놓쳐요 (notify.error.not-empty).
+ * 한 사람에게 온 확인할 변경 목록을 화면에 바로 쓸 수 있는 모양으로 돌려줘요. 저장소에서 읽어서 buildPendingList로 만들어요.
  */
 export async function listPending(
   store: NotifyStore,
   input: ListPendingInput,
   options: ListPendingOptions = {},
 ): Promise<ListPendingResult> {
-  const data = await store.read();
+  return buildPendingList(await store.read(), input, options);
+}
+
+/**
+ * 이미 읽어 온 데이터로 목록을 만드는 순수 함수예요. 임시 저장소와 MCP 도구(DB)가 같이 써요.
+ *
+ * 제목, 값, 이유, 이슈 제목까지 붙여서 돌려줘서 화면이 get_standard를 다시 부르지 않아도 돼요.
+ * 필요한 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요.
+ * 연결 실패를 "변경 없음"으로 보여 주면 담당자가 바뀐 기준을 놓쳐요 (notify.error.not-empty).
+ */
+export function buildPendingList(
+  data: NotifyData,
+  input: ListPendingInput,
+  options: ListPendingOptions = {},
+): ListPendingResult {
   const now = Date.parse(options.now ?? new Date().toISOString());
   const closedCutoff = now - CLOSED_VISIBLE_DAYS * DAY_MS;
 
@@ -140,6 +163,7 @@ export async function listPending(
         ? undefined
         : findVersion(check.standardId, check.lastSeenVersion);
     const answer = data.answers.find((a) => a.pendingCheckId === check.id);
+    const previousAnswer = findPreviousAnswer(data, check);
 
     return {
       pendingCheckId: check.id,
@@ -171,6 +195,7 @@ export async function listPending(
             answeredAt: answer.answeredAt,
           }
         : null,
+      previousAnswer,
     };
   });
 
@@ -179,4 +204,33 @@ export async function listPending(
     pendingCount: items.filter((item) => item.status === 'pending').length,
     items,
   };
+}
+
+/** 같은 받는 사람, 같은 이슈, 같은 결정 사항에서 이 버전보다 앞 버전에 한 답 중 가장 최근 것 */
+function findPreviousAnswer(
+  data: NotifyData,
+  check: PendingCheck,
+): PreviousAnswer | null {
+  const earlier = data.pendingChecks
+    .filter(
+      (c) =>
+        c.status === 'answered' &&
+        c.recipient === check.recipient &&
+        c.standardId === check.standardId &&
+        c.issueKey === check.issueKey &&
+        c.version < check.version,
+    )
+    .sort((a, b) => b.version - a.version);
+  for (const c of earlier) {
+    const answer = data.answers.find((a) => a.pendingCheckId === c.id);
+    if (answer) {
+      return {
+        version: c.version,
+        affected: answer.affected,
+        known: answer.known,
+        answeredAt: answer.answeredAt,
+      };
+    }
+  }
+  return null;
 }

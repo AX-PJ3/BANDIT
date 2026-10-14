@@ -1,15 +1,16 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 
-import { applyNewVersion } from './applyNewVersion.js';
-import { respond, type RespondInput } from './respond.js';
-import { MemoryStore } from './store.js';
+import { applyNewVersion } from './applyNewVersion.ts';
+import { respond, type RespondInput } from './respond.ts';
+import { MemoryStore } from './store.ts';
 import {
   DEMO_STANDARD_ID,
+  DEMO_V1,
   DEMO_V2,
   createDemoData,
   createIdMaker,
-} from './demoData.js';
+} from './demoData.ts';
 
 const ANSWERED_AT = '2026-10-13T14:20:00+09:00';
 
@@ -116,7 +117,8 @@ describe('respond', () => {
     assert.deepEqual(second, {
       ok: false,
       code: 'already_closed',
-      message: '이미 답한 변경이에요.',
+      message: '이미 답한 확인할 변경이에요.',
+      closedStatus: 'answered',
     });
     assert.equal((await store.read()).answers.length, 1);
   });
@@ -131,7 +133,23 @@ describe('respond', () => {
     const result = await respond(store, minsuAffected, options);
 
     assert.equal(result.ok ? null : result.code, 'already_closed');
-    assert.match(result.ok ? '' : result.message, /최신 변경에 답해 주세요/);
+    assert.match(
+      result.ok ? '' : result.message,
+      /최신 버전의 확인할 변경에 답해 주세요/,
+    );
+  });
+
+  it('되돌려서 자동으로 닫힌 변경이면 그 상태를 함께 알려 준다 (SIL-77 부건님 의견)', async () => {
+    const store = await storeAfterV2();
+    await applyNewVersion(
+      store,
+      { ...DEMO_V1, version: 3, changedBy: '정민', isRevert: true },
+      { now: '2026-10-13T15:00:00+09:00' },
+    );
+    const result = await respond(store, minsuAffected, options);
+
+    assert.equal(result.ok ? null : result.code, 'already_closed');
+    assert.equal(result.ok ? null : result.closedStatus, 'auto_closed');
   });
 
   it('관계있다인데 알았나가 없으면 빠진 칸을 알려 준다', async () => {

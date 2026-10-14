@@ -1,0 +1,5 @@
+{
+  "permissions": {
+    "ask": ["mcp__haribo__save_standard", "mcp__haribo__revert"]
+  }
+}

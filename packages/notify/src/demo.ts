@@ -10,11 +10,11 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
-import { applyNewVersion } from './applyNewVersion.js';
-import { listPending, type PendingItem } from './listPending.js';
-import { respond, type RespondInput } from './respond.js';
-import { JsonFileStore } from './store.js';
-import { DEMO_V2, createDemoData } from './demoData.js';
+import { applyNewVersion } from './applyNewVersion.ts';
+import { listPending, type PendingItem } from './listPending.ts';
+import { respond, type RespondInput } from './respond.ts';
+import { JsonFileStore } from './store.ts';
+import { DEMO_V2, createDemoData } from './demoData.ts';
 
 const PEOPLE = ['민수', '신지', '부건'];
 

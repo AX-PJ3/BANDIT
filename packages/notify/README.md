@@ -49,6 +49,8 @@ const result = await listPending(store, { recipient: '민수' });
 - 답함과 대체됨은 닫힌 지 7일이 지나면 목록에서 빠져요 (notify.list.closed-7-days). 기록은 지우지 않아요 (data.answer.keep-records). 대기는 오래돼도 계속 보여요.
 - 최신 것이 먼저 와요.
 - 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요 (notify.error.not-empty).
+- `previousAnswer`: 같은 이슈에서 이 결정 사항의 이전 버전에 한 마지막 답이에요. `affected`가 true면 화면이 "지난번 변경을 반영하셨다면 다시 고쳐야 해요"를 붙여요 (SIL-77).
+- 저장소 없이 데이터만으로 만드는 `buildPendingList`도 있어요. MCP 도구 `list_pending`은 DB에서 모은 데이터로 이 함수를 불러요.
 
 ### `respond` — 답 저장하기 (MCP 도구 `respond`)
 
@@ -68,6 +70,24 @@ const result = await respond(store, {
 - 관계있다면 `rereadStandardId`를 돌려줘요. 에이전트는 이 기준을 `get_standard`로 다시 읽어요.
 - 거절하는 경우: 없는 변경, 받는 사람이 아님, 이미 답했거나 닫힘, 답한 곳이 터미널·앱이 아님, 빠진 칸, 이유가 100자 넘음.
 - 한 곳에서 답하면 그 변경은 대기가 아니라서 다른 곳 목록에서 빠져요 (notify.answer.one-place).
+- 이미 닫힌 변경이면 `closedStatus`로 지금 상태(답함·대체됨·자동 닫힘)를 알려 줘요. 자동 닫힘이면 화면이 "원래대로 돌아와서 답하지 않아도 돼요"를 띄워요 (SIL-77).
+- 저장 전 검사만 하는 `checkAnswer`도 있어요. MCP 도구 `respond`는 이 함수로 검사한 뒤 DB 함수 `save_answer`로 저장해요.
+
+### 터미널 화면 글 (`src/terminal/`)
+
+list_pending 결과로 터미널 알림 글을 만들어요. 모양과 문구는 부건님 시안(SIL-68, `docs/sil-68-add-cli-design-notes` 브랜치의 `cli-design-notes/`)을 그대로 옮겼어요. 팀 MCP 서버의 `/hooks/<이벤트>`가 이 함수로 글을 만들고, 팀원 PC의 hooks가 그대로 띄워요 (`apps/mcp-server` README "터미널 알림 hooks").
+
+| 함수                                                                                            | 화면                                                                     |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `sessionNotice(items)`                                                                          | ① 켤 때: `● [app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 null |
+| `detailScreen(item, index, total)`                                                              | ② 작업 입력 때: 변경 상세 (제목, 바꾼 사람·시각, 변경, 이유, 이슈, 출처) |
+| `questionsFor(item)`                                                                            | 선택 화면 질문 3개 (관계, 알았나, 관계없는 이유 보기 3개)                |
+| `recordedLines(item, answer)`                                                                   | 답한 뒤: `✓ 기록했어요  #5 · 관계있다 · 몰랐다`                          |
+| `allAnsweredLine`, `skippedReminder`, `nothingLeft`, `autoClosedLine`, `connectionFailedNotice` | 마무리, 닫고 넘어간 뒤, 0건, 자동 닫힘, 연결 실패 한 줄                  |
+
+- 너비는 76칸이에요. Claude Code가 hooks 글 앞에 2칸을 들여 써요.
+- 이전 버전에 "관계있다"로 답했으면 변경 줄 아래에 "지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요."를 넣어요 (SIL-77).
+- 바꾼 시각은 한국 시각으로, 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13"이에요.
 
 ## 실행
 
@@ -78,11 +98,10 @@ pnpm --filter @sil/notify demo              # 데모 예시를 처음부터 끝�
 pnpm --filter @sil/notify demo ./demo.json  # 결과를 이 파일에 남겨요
 ```
 
-테스트는 Node에 들어 있는 `node:test`를 써요. 따로 설치할 것은 없어요.
+테스트는 Node에 들어 있는 `node:test`를 써요. 따로 설치할 것은 없어요. 빌드하지 않고 Node 24.18이 `src`의 `.ts` 파일을 바로 실행해요. 저장소 루트의 `pnpm test`도 이 테스트를 함께 돌려요.
 
 ## 아직 없는 것
 
-- MCP 서버에 `list_pending`, `respond` 등록 (정민님 서버 코드가 올라온 뒤)
 - 정민님 DB 연결과 새 버전 저장 신호
-- 터미널 T2~T5 카드 내용, 웹 앱 OS 알림
+- 웹 앱 OS 알림
 - 반영함 표시를 켜고 끄는 기능. 칸(`reflected`, `reflectedAt`)만 있어요

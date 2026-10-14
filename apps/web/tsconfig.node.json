@@ -1,0 +1,5 @@
+{
+  "//": "vite.config.ts용. 빌드할 때 Node에서 돌아서 루트 설정(NodeNext)을 그대로 써요.",
+  "extends": "../../tsconfig.base.json",
+  "include": ["vite.config.ts"]
+}
