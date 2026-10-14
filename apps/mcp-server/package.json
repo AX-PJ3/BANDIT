@@ -12,6 +12,7 @@
     "dev": "node --watch src/index.ts",
     "check": "node scripts/check.ts",
     "register": "node scripts/register.ts",
+    "status": "node scripts/status.ts",
     "token": "node scripts/token.ts",
     "typecheck": "tsc -p tsconfig.json"
   },
