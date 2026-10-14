@@ -31,4 +31,4 @@
 
 안전장치로 `.claude/settings.json`의 `permissions.ask`에 `save_standard`와 `revert`를 넣어, 저장하기 전에 Claude Code가 한 번 더 허락을 받아요. auto mode에서도 뜨고, 허락 창에서 "Yes, and don't ask again"을 골라도 다음에 다시 물어요 (10/13 시험).
 
-아직 없는 것: ③의 이슈 표와 ④의 "확인할 변경을 보낸 이슈 수"(이슈를 읽는 도구가 필요해요), ④를 hooks로 띄우기, `detect.ask.rollback-if-applied`(이미 코드에 들어간 값 되돌리기), `detect.ask.direct-request-skip-warn`(직접 바꿔 달라는 요청).
+아직 없는 것: ③의 이슈 표, 연결된 이슈가 있을 때의 등록하기 설명(`registerWithIssues`, 문구만 있음), ④의 "확인할 변경을 보낸 이슈 수"(셋 다 이슈를 읽는 도구가 필요해요), ④를 hooks로 띄우기, `detect.ask.rollback-if-applied`(이미 코드에 들어간 값 되돌리기), `detect.ask.direct-request-skip-warn`(직접 바꿔 달라는 요청).

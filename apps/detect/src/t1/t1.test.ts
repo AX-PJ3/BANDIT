@@ -50,6 +50,31 @@ describe('T1 문구', () => {
     expect(T1_COPY.preview.header.length).toBeLessThanOrEqual(12);
   });
 
+  it('선택지 설명은 마침표로 끝나지 않고, Claude 글은 마침표로 끝나요', () => {
+    const { ask, preview } = T1_COPY;
+    const descriptions = [
+      ask.yes,
+      ask.no,
+      preview.register,
+      preview.registerWithIssues,
+      preview.edit,
+      preview.cancel,
+    ].map((option) => option.description);
+    for (const description of descriptions) {
+      expect(description).not.toMatch(/\.$/);
+    }
+    const messages = [
+      T1_COPY.notChanged,
+      T1_COPY.reasonPrompt,
+      T1_COPY.cancelled.withTask,
+      T1_COPY.cancelled.noTask,
+    ];
+    for (const message of messages) {
+      expect(message).toMatch(/\.$/);
+    }
+    expect(T1_COPY.editPrompt).toMatch(/\?$/);
+  });
+
   it('화면 문구에 "기준" 대신 "결정 사항"을 써요 (copy.term.standard)', () => {
     expect(JSON.stringify(T1_COPY)).not.toContain('기준');
   });
