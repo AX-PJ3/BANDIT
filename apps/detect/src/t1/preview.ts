@@ -6,12 +6,8 @@
  *   EOF
  */
 import { readFileSync } from 'node:fs';
-import {
-  PREVIEW_DONE,
-  pendingPath,
-  type T1Pending,
-  writePending,
-} from './pending.ts';
+import { pendingPath, type T1Pending, writePending } from './pending.ts';
+import { PREVIEW_DONE } from './preview-command.ts';
 
 const pending = JSON.parse(readFileSync(0, 'utf8')) as T1Pending;
 
