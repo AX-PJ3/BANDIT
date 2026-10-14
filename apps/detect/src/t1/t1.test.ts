@@ -5,6 +5,7 @@ import {
   renderT1Saved,
   T1_COPY,
 } from './copy.ts';
+import { diffFromPending, pendingPath } from './pending.ts';
 import { buildT1SaveInput } from './save-input.ts';
 
 describe('T1 문구', () => {
@@ -47,6 +48,31 @@ describe('T1 문구', () => {
   it('AskUserQuestion 이름표는 12자 이하예요', () => {
     expect(T1_COPY.ask.header.length).toBeLessThanOrEqual(12);
     expect(T1_COPY.preview.header.length).toBeLessThanOrEqual(12);
+  });
+
+  it('선택지 설명은 마침표로 끝나지 않고, Claude 글은 마침표로 끝나요', () => {
+    const { ask, preview } = T1_COPY;
+    const descriptions = [
+      ask.yes,
+      ask.no,
+      preview.register,
+      preview.registerWithIssues,
+      preview.edit,
+      preview.cancel,
+    ].map((option) => option.description);
+    for (const description of descriptions) {
+      expect(description).not.toMatch(/\.$/);
+    }
+    const messages = [
+      T1_COPY.notChanged,
+      T1_COPY.reasonPrompt,
+      T1_COPY.cancelled.withTask,
+      T1_COPY.cancelled.noTask,
+    ];
+    for (const message of messages) {
+      expect(message).toMatch(/\.$/);
+    }
+    expect(T1_COPY.editPrompt).toMatch(/\?$/);
   });
 
   it('화면 문구에 "기준" 대신 "결정 사항"을 써요 (copy.term.standard)', () => {
@@ -98,5 +124,44 @@ describe('buildT1SaveInput', () => {
       { title: '제목', value: '값', reason: '이유' },
     );
     expect('scope' in input).toBe(false);
+  });
+});
+
+describe('diffFromPending', () => {
+  const pending = {
+    id: 'app.notify.title-length',
+    title: '앱 알림 제목은 32자 이하다',
+    value: '운영체제 알림 창에 뜨는 제목은 공백 포함 32자 이하로 쓴다',
+    reason: 'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘린다',
+    alwaysOn: false,
+  };
+
+  it('③에서 보여 준 값과 같으면 빈 목록이에요', () => {
+    expect(diffFromPending(pending, { ...pending, baseVersion: 1 })).toEqual(
+      [],
+    );
+  });
+
+  it('바뀐 칸 이름을 알려 줘요', () => {
+    expect(
+      diffFromPending(pending, {
+        ...pending,
+        reason: '다른 이유',
+        alwaysOn: true,
+      }),
+    ).toEqual(['reason', 'alwaysOn']);
+  });
+});
+
+describe('pendingPath', () => {
+  it('결정 사항마다 파일을 따로 둬요', () => {
+    expect(pendingPath('app.notify.title-length')).toMatch(
+      /haribo-t1-pending-app\.notify\.title-length\.json$/,
+    );
+  });
+
+  it('결정 사항 ID 형식이 아니면 파일을 만들지 않아요 (경로 문자 막기)', () => {
+    expect(pendingPath('../../etc.passwd.x')).toBeNull();
+    expect(pendingPath('App.Notify.Title')).toBeNull();
   });
 });
