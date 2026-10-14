@@ -138,13 +138,24 @@ describe('변경 상세 (T3)', () => {
     assert.equal(lines[5], '  변경  새로 생긴 결정 사항이에요');
   });
 
-  it('되돌림은 (되돌림) 표시를 붙인다', () => {
+  it('되돌림은 (되돌림)을 회색 글자색으로 붙인다 (notify.revert.mark-by-screen, 임시 회색)', () => {
     const item = demoItem();
     item.standard = { ...item.standard, isRevert: true };
-    assert.match(
-      plain(detailScreen(item, 1, 1, { now: SAME_DAY }))[3] ?? '',
-      /\(되돌림\)$/,
-    );
+    const text = detailScreen(item, 1, 1, { now: SAME_DAY });
+    assert.match(plain(text)[3] ?? '', /\(되돌림\)$/);
+    const grayRevert = '\u001b[90m (되돌림)\u001b[39m';
+    assert.ok(text.includes(grayRevert), '회색(90) 글자색이 아니에요');
+  });
+
+  it('(신규)는 지금처럼 흐린 글자다', () => {
+    const item = demoItem();
+    item.standard = {
+      ...item.standard,
+      previousValue: null,
+      previousVersion: null,
+    };
+    const dimNew = '\u001b[2m (신규)\u001b[22m';
+    assert.ok(detailScreen(item, 1, 1, { now: SAME_DAY }).includes(dimNew));
   });
 
   it('지운 말과 넣은 말은 따옴표로 보여 준다', () => {

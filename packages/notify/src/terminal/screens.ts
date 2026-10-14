@@ -118,6 +118,19 @@ const TAGS: Record<ChangeKind, string | null> = {
 };
 
 /**
+ * 제목 끝의 종류 표시.
+ * - (되돌림)은 괄호 글자에 글자색만 입혀요 (notify.revert.mark-by-screen). 색은 SIL-81에서 정하는 중이라
+ *   부건님과 정한 대로 임시로 회색(테마 16색의 밝은 검정 90)을 써요 (10/14).
+ * - (신규)는 정해진 색이 없어서 시안대로 흐린 글자예요.
+ */
+function tagText(kind: ChangeKind): string {
+  const tag = TAGS[kind];
+  if (!tag) return '';
+  if (kind === 'revert') return `${esc('90')} (${tag})${esc('39')}`;
+  return dim(` (${tag})`);
+}
+
+/**
  * 바꾼 시각: 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13" (착수 안내 5절 "언제").
  * 팀이 한국에 있어서 한국 시각으로 보여 줘요.
  */
@@ -238,7 +251,7 @@ export function detailScreen(
     progress(index, total, options.recall ?? false),
     '',
     ...(total > 1 ? [countChip(index, total)] : []),
-    strongLine(`[${area}] ${bold(title)}${tag ? dim(` (${tag})`) : ''}`),
+    strongLine(`[${area}] ${bold(title)}${tagText(kindOf(item))}`),
     `${' '.repeat(headWidth)}${who}님이 ${formatWhen(item.standard.changedAt, now)}에 변경했어요.`,
     ...changeLines(item),
     reworkLine(item),
