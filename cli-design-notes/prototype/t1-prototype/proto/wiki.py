@@ -59,6 +59,8 @@ def with_issues(s):
 
 
 def search(query):
+    if os.environ.get('T1_FAIL') == 'search':      # 예외 3 시험용: 조사 실패를 흉내 낸다
+        raise ValueError('결정 사항 서버에 연결하지 못해서 결정 사항을 불러오지 못했어요.')
     words = [w for w in re.split(r'\s+', (query or '').strip()) if w]
     found = []
     for s in current_standards().values():
