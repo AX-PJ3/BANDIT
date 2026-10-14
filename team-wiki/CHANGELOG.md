@@ -142,6 +142,9 @@
 2026-10-13 16:24 | 호윤 | detect.ask.rollback-if-applied new→1 | (없음) → 사람이 진행하지 않겠다고 한 요청 값이 코드의 지금 값과 같으면 기존 값으로 되돌리라는 지시를 같은 세션의 에이전트에게 전달한다 | 이미 요청 값으로 바뀐 코드는 되돌리라는 지시를 같은 세션의 에이전트에게 전달하기로 정함 (SIL-86) | AI 대화
 2026-10-13 16:27 | 호윤 | detect.ask.confirm-before-register new→1 | (없음) → 결정 사항을 등록하기 전에 사람에게 등록할지 한 번 더 묻는다 | 팀에 공유되는 결정 사항이라 등록 전에 한 번 더 확인하기로 정함 (SIL-86) | AI 대화
 2026-10-13 16:27 | 호윤 | detect.ask.direct-request-skip-warn new→1 | (없음) → 사람이 결정 사항을 직접 바꿔 달라고 요청하면 진행 여부는 묻지 않고 달라지게 되는 기존 결정 사항 내역과 함께 등록 여부를 묻는다 | 사람이 직접 요청한 변경은 진행 여부 질문 없이 등록 확인으로 가기로 정함 (SIL-86) | AI 대화
+2026-10-14 11:28 | 민수 | notify.error.no-block-retry new→1 | (없음) → 터미널에서 확인할 변경을 불러오거나 답을 기록하지 못하면 작업은 막지 않고, "결정 사항 확인"을 입력해 다시 시작하는 방법을 한 줄로 알린다 | 서버 문제로 작업이 멈추지 않게 하고 다시 시작하는 방법을 알리기로 정함 (SIL-80 B4) | AI 대화
+2026-10-14 11:28 | 민수 | notify.terminal.new-after-answered new→1 | (없음) → 같은 세션에서 모두 답한 뒤 새 확인할 변경이 생기면 상세와 질문을 바로 띄우지 않고, 작업을 입력할 때마다 남은 건수와 "결정 사항 확인"을 알리는 한 줄만 보여 준다 | 작업 흐름이 계속 끊기지 않게 한 줄 알림으로 정함 (SIL-80 B5) | AI 대화
+2026-10-14 11:28 | 민수 | notify.answer.reason-over-limit new→1 | (없음) → 관계없는 이유가 100자를 넘으면 서버가 거절하고, Claude가 100자 안으로 줄인 문장을 보여 주어 사람이 고른 뒤에 기록한다 | 말없이 줄여 저장하지 않고 확인받기로 정함 (SIL-80) | AI 대화
 2026-10-14 11:45 | 호윤 | work.wiki.changelog 1→2 | 적용 범위: 문서: CHANGELOG.md / 문서: 각자 CLAUDE.md → 문서: CHANGELOG.md / 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
 2026-10-14 11:45 | 호윤 | work.wiki.ask-before-change 1→2 | 적용 범위: 문서: 각자 CLAUDE.md → 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
 2026-10-14 11:45 | 호윤 | wiki.ask.when-missing 1→2 | 적용 범위: 코드: packages/mcp/src/tools/save_standard* / 문서: 각자 CLAUDE.md → 코드: packages/mcp/src/tools/save_standard* / 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
