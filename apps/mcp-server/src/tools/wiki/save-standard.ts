@@ -12,6 +12,7 @@ import {
 /**
  * 새 기준 저장, 새 버전 저장 (SIL-19, SIL-65).
  * 필수 칸은 ID, 제목, 값, 이유, 항상 적용 5개예요. 근거와 적용 범위는 있으면 저장만 해요.
+ * AI가 찾았나(aiDetected)는 에이전트 경로 T1이 true로 넣어요 (SIL-66, D61). 비우면 아니오예요.
  * 형식 검사는 두 번 해요: 여기 입력 모양(zod)에서 한 번, 데이터베이스 함수에서 한 번.
  * 그래서 앱이나 GitHub Actions처럼 이 도구를 거치지 않는 저장도 같은 규칙을 지켜요.
  *
@@ -86,6 +87,12 @@ export const saveStandard = defineTool({
         '영역 이름. 비우면 새 결정 사항은 ID 앞부분(예: app)으로 정해요',
       ),
     source: sourceSchema,
+    aiDetected: z
+      .boolean()
+      .optional()
+      .describe(
+        'AI가 먼저 알아챈 변경이면 true. 작업 중에 결정 사항과 다르게 만들게 돼서 먼저 물었으면(T1) true, 사람이 직접 바꿔 달라고 했으면 비워요',
+      ),
   }),
   annotations: {
     readOnlyHint: false,

@@ -55,7 +55,7 @@ describe('T1 문구', () => {
 });
 
 describe('buildT1SaveInput', () => {
-  it('get_standard의 currentVersion, alwaysOn, scope를 그대로 넣고 출처는 AI 대화예요', () => {
+  it('get_standard의 currentVersion, alwaysOn, scope를 그대로 넣고 출처는 AI 대화, AI가 찾았나는 예예요', () => {
     const scope = {
       code: ['packages/app/src/notify/**'],
       api: [],
@@ -81,8 +81,10 @@ describe('buildT1SaveInput', () => {
       alwaysOn: false,
       scope,
       source: 'ai_chat',
-      aiDetected: false,
+      aiDetected: true,
     });
+    // 근거는 넣지 않아요. 근거 필수는 PR 경로(출처 코드) 규칙이에요 (D61)
+    expect('evidence' in input).toBe(false);
   });
 
   it('적용 범위가 없으면(null) scope 칸을 빼요 (save_standard 도구는 null을 받지 않아요)', () => {

@@ -51,6 +51,7 @@ mcp-server/
 팀 위키 `wiki.mcp.five-tools`에 따라 위키 도구는 다섯 개예요. 폐기는 사람이 `pnpm sil deprecate`로 해요.
 `save_standard`와 `revert`는 결과에 CHANGELOG 한 줄(`changelogLine`)을 돌려줘요. 작업 중인 저장소에 `team-wiki/CHANGELOG.md`가 있으면 AI가 그 줄을 맨 아래에 붙여요 (`work.wiki.changelog`).
 `save_standard`는 `check_wiki.py`와 같은 문장 경고(`warnings`)도 돌려줘요. 저장은 막지 않아요.
+`save_standard`의 `aiDetected`(AI가 찾았나)는 에이전트 경로 T1이 `true`로 넣어요. 근거 필수·하루 두 번 제한은 PR에서 찾은 변경(`aiDetected: true` + `source: code`)에만 걸려요 (D61).
 
 쓰기 도구는 모두 `baseVersion`(내가 보고 고친 버전)을 받아요. 그사이 누가 먼저 고쳤으면 `VERSION_CONFLICT`로 거절하고 "최신을 다시 보고 다시 저장하라"고 알려 줘요 (SIL-15 동시 수정). 거절된 변경은 버리지 않고 충돌로 보류해 둬요 (`detect.conflict.hold`).
 거절 문구는 데이터베이스 함수가 만든 한국어 문장이 그대로 AI에게 가요. 문구에 "다음에 할 일"이 들어 있어서 AI가 사람에게 묻고 다시 시도해요.

@@ -269,7 +269,31 @@ describe('MCP 도구 (가짜 DB)', () => {
         p_source: 'ai_chat',
         p_always_on: false,
         p_scope: { code: ['src/order/**'], api: [], screen: [], doc: [] },
+        p_ai_detected: false,
       },
+    });
+  });
+
+  it('save_standard: AI가 찾았나(aiDetected)를 DB 함수까지 넘겨요 (SIL-66 에이전트 경로 T1)', async () => {
+    const client = await connect();
+    const result = await client.callTool({
+      name: 'save_standard',
+      arguments: {
+        id: 'order.coupon.nullable',
+        title: '쿠폰 값은 비어 있을 수 있다',
+        value: 'coupon 칸은 빈 문자열일 수 있다',
+        reason: '앱이 빈 문자열을 보냄',
+        alwaysOn: false,
+        baseVersion: 2,
+        source: 'ai_chat',
+        aiDetected: true,
+      },
+    });
+    expect(result.isError).toBeFalsy();
+    expect(rpcCalls[0]?.args).toMatchObject({
+      p_source: 'ai_chat',
+      p_ai_detected: true,
+      p_evidence: null,
     });
   });
 
