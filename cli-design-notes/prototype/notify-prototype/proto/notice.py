@@ -11,6 +11,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA = os.path.join(HERE, os.environ.get('NOTICE_DATA', 'changes') + '.json')   # NOTICE_DATA=changes-demo 처럼 바꿔 볼 수 있다
 ANSWERS = os.path.join(HERE, '..', 'answers.json')
 CLOSED = os.path.join(HERE, '..', 'closed.json')   # 서버가 답을 받기 전에 닫은 변경: {change_id: closedStatus}
+DEFERRED = os.path.join(HERE, '..', '.unsure.json')   # 이번 세션에서 "잘 모르겠다"로 남긴 변경: {session, ids}
 # 사내 테스트 모드 (test_run.py가 켠다): 사건 시각을 남기고, 변경마다 답한 뒤 이해도를 묻는다
 IS_TEST = bool(os.environ.get('NOTICE_TEST'))
 EVENTS = os.path.join(HERE, '..', '.events.jsonl')
@@ -47,7 +48,9 @@ COLS = terminal_cols()
 QUESTIONS = {
     'relation': {'question': '이 변경이 내 이슈와 관계가 있나요?', 'header': '관계',
                  'options': [('관계있다', '내 이슈 결과물이 이 변경에 맞춰 바뀌어야 해요'),
-                             ('관계없다', '내 이슈와는 상관없는 변경이에요')]},
+                             ('관계없다', '내 이슈와는 상관없는 변경이에요'),
+                             # 바로 판단하기 어려울 때 Esc나 Chat about this 대신 고르는 보기 (위키 notify.answer.two-questions v2, 10/12)
+                             ('잘 모르겠다', '지금은 판단하기 어려워요. 나중에 답할게요')]},
     # 같은 변경이 이슈 두 개에 걸리면 두 번째 화면에서 "방금 봤으니 알았다"로 답하기 쉬워서, 기준 시점을 "오늘 알림"으로 적는다
     'knew': {'question': '이 변경을 이미 알고 있었나요?', 'header': '알았나',
              'options': [('알았다', '오늘 알림을 보기 전에 알고 있었어요'),
@@ -57,7 +60,8 @@ QUESTIONS = {
                            ('내 이슈와 연결이 잘못됐어요', '이 결정 사항이 내 이슈에 잘못 이어져 있어요'),
                            ('바뀐 부분은 내 작업에 안 쓰여요', '결정 사항은 내 작업과 이어져 있지만, 이번에 바뀐 부분은 영향이 없어요')]},
 }
-RELATIONS = ('관계있다', '관계없다')
+RELATIONS = ('관계있다', '관계없다')     # 답으로 기록하는 관계
+UNSURE = '잘 모르겠다'                    # 답으로 기록하지 않고 대기로 남긴다 (위키 notify.answer.unsure-later)
 KNEW = ('알았다', '몰랐다')
 RECALL = '결정 사항 확인'        # 질문을 닫고 넘어간 뒤 다시 답하려고 입력하는 말 (입력 전체가 같을 때만)
 
@@ -119,7 +123,7 @@ def close_on_respond(change_id):
 def check_answer(relation, knew=None, reason=None):
     """지표를 바로 셀 수 있게 관계·알았나는 보기 중 하나만 받는다. 직접 쓴 글은 note로 따로 남긴다."""
     if relation not in RELATIONS:
-        return '관계는 관계있다 / 관계없다 중 하나만 기록해요. 쓴 글은 note에 넣고 같은 질문을 다시 물어 주세요.'
+        return '관계는 관계있다 / 관계없다 / 잘 모르겠다 중 하나만 받아요. 쓴 글은 note에 넣고 같은 질문을 다시 물어 주세요.'
     if relation == '관계있다' and knew not in KNEW:
         return '알았나는 알았다 / 몰랐다 중 하나만 기록해요. 쓴 글은 note에 넣고 같은 질문을 다시 물어 주세요.'
     if relation == '관계없다' and not (reason or '').strip():
@@ -137,11 +141,52 @@ def save_answer(change_id, relation, knew=None, reason=None, note=None):
     log_event('answered', change_id, relation=relation)
 
 
+# ---------- "잘 모르겠다": 답으로 기록하지 않고 대기로 남긴다 (위키 notify.answer.unsure-later, 10/13 부건) ----------
+# 이번 세션에서는 다시 알리지 않는다. 그래서 이번 세션의 흐름(다음 상세, 작업 뒤 한 줄의 건수)에서만 뺀다.
+# 답으로 기록하지 않았으니 다음 세션 켤 때 알림, "결정 사항 확인", 앱 "나에게 온 변경"에는 확인할 변경으로 다시 나온다.
+
+def load_deferred():
+    try:
+        with open(DEFERRED) as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def deferred_ids(session_id=None):
+    """이번 세션에서 잘 모르겠다로 남긴 변경. 세션을 주지 않으면 지금 흐름의 세션."""
+    sid = session_id or load_flow().get('session')
+    data = load_deferred()
+    return set(data.get('ids', [])) if sid and data.get('session') == sid else set()
+
+
+def defer(change_id):
+    """잘 모르겠다를 고름: 답으로 기록하지 않고, 이번 세션 흐름에서만 뺀다. 어느 변경에서 판단이 어려웠는지 세도록 사건은 늘 남긴다."""
+    sid = load_flow().get('session')
+    ids = sorted(deferred_ids(sid) | {change_id})
+    with open(DEFERRED, 'w') as f:
+        json.dump({'session': sid, 'ids': ids}, f, ensure_ascii=False)
+    log_event('unsure', change_id, always=True)
+
+
+def clear_deferred():
+    """"결정 사항 확인"으로 다시 부르면 잘 모르겠다로 남긴 변경도 함께 다시 묻는다."""
+    if os.path.exists(DEFERRED):
+        os.remove(DEFERRED)
+
+
+def flow_pending(session_id=None):
+    """이번 세션 흐름에서 물을 변경: 답하지 않은 변경 중 이번 세션에 잘 모르겠다로 남긴 것을 뺀다."""
+    skip = deferred_ids(session_id)
+    return [c for c in pending() if c['id'] not in skip]
+
+
 # ---------- 사내 테스트: 사건 시각과 이해도 ----------
 
-def log_event(event, change_id=None, **extra):
-    """테스트 모드일 때만 사건을 초 단위(밀리초까지) 시각과 함께 한 줄씩 남긴다. test_run.py가 이걸로 시간을 잰다."""
-    if not IS_TEST:
+def log_event(event, change_id=None, always=False, **extra):
+    """테스트 모드일 때만 사건을 초 단위(밀리초까지) 시각과 함께 한 줄씩 남긴다. test_run.py가 이걸로 시간을 잰다.
+    always=True면 테스트 모드가 아니어도 남긴다 ("잘 모르겠다"처럼 답 기록에 남지 않는 사건을 세려고)."""
+    if not (IS_TEST or always):
         return
     row = {'at': datetime.now().isoformat(timespec='milliseconds'), 'event': event}
     if change_id:
@@ -646,7 +691,9 @@ def load_flow():
 
 def start_flow(session_id=None, recall=False):
     """작업을 입력했을 때: 이번 세션에서 질문을 띄웠다고 적어 두고 첫 변경 상세를 돌려준다."""
-    items = pending()
+    if recall:
+        clear_deferred()
+    items = flow_pending(session_id)
     with open(FLOW, 'w') as f:
         json.dump({'session': session_id, 'total': len(items), 'recall': recall}, f)
     log_event('detail_shown', items[0]['id'], recall=recall)
@@ -664,8 +711,17 @@ def skipped_reminder(count):
     켤 때 알림 첫 줄과 같은 상태 줄 모양(노란 막대)에, 입력할 말은 노란 굵은 글자 (10/13 부건. 따옴표는 기본 글자색).
     노랑은 건수 숫자·막대와 같은 "봐야 할 것"이라 다음에 칠 말에 맞는다. 밝은 터미널에서는 대비가 약 2.5:1로 낮다.
     v1은 작업을 입력할 때 띄워서 작업 결과에 밀려 올라갔다 (v1 피드백 P1·P3, 10/13 부건)."""
-    recall = f'"{esc("1")}{esc(COUNT_COLOR)}{RECALL}{esc(STRONG)}{esc("22")}"'
-    return '\n'.join(['', status_line(f'확인할 변경 {count_text(count)}건 · {recall}을 입력하면 변경 내역을 볼 수 있어요.')])
+    return '\n'.join(['', status_line(f'확인할 변경 {count_text(count)}건 · {recall_word()}을 입력하면 변경 내역을 볼 수 있어요.')])
+
+
+def recall_word():
+    """다시 부르는 말: 노란 굵은 글자, 따옴표는 기본 글자색."""
+    return f'"{esc("1")}{esc(COUNT_COLOR)}{RECALL}{esc(STRONG)}{esc("22")}"'
+
+
+def unsure_line():
+    """잘 모르겠다를 고른 직후 한 줄. 이번 세션에 다시 알리지 않으니 다시 부르는 방법을 한 번은 알려 준다 (10/13 부건, 76칸)."""
+    return status_line(f'나중에 답할 수 있게 남겨 두었어요. {recall_word()}으로 다시 볼 수 있어요.')
 
 
 def nothing_left():
@@ -702,18 +758,37 @@ def closed_line(change_id):
 
 def next_screen():
     """다음 변경 상세, 또는 남은 변경이 없으면 마무리 한 줄."""
-    items = pending()
+    items = flow_pending()
     flow = load_flow()
     total_at_start = flow.get('total', len(items))
     if not items:
         log_event('all_done')
-        count = f' {total_at_start}건' if total_at_start > 1 else ''     # 1건에 "1건을 모두"는 어색해서 뺀다
+        answered = total_at_start - len(deferred_ids())
         if IS_TEST:     # 테스트는 여기서 끝난다. test_run.py가 Claude Code를 닫고 마지막 질문으로 넘어간다
-            return ['', bold(f'확인할 변경{count}을 모두 답했어요.'), '  테스트가 끝났어요. 잠시 뒤 마지막 질문으로 넘어가요.']
-        start_work = '' if flow.get('recall') else ' 이제 작업을 시작할게요.'
-        return ['', bold(f'확인할 변경{count}을 모두 답했어요.{start_work}')]
+            return ['', bold(done_text(total_at_start, answered, True)), '  테스트가 끝났어요. 잠시 뒤 마지막 질문으로 넘어가요.']
+        return ['', bold(done_text(total_at_start, answered, flow.get('recall')))]
     log_event('detail_shown', items[0]['id'])
     return [detail_screen(items[0], total_at_start - len(items) + 1, total_at_start, flow.get('recall'))]
+
+
+def done_text(total, answered, recall=False):
+    """마무리 한 줄. 잘 모르겠다로 남긴 변경이 있으면 "모두"라고 하지 않고 답한 건수만 말한다."""
+    start_work = '' if recall else ' 이제 작업을 시작할게요.'
+    if answered < total:
+        return f'확인할 변경 {answered}건을 답했어요.{start_work}'
+    count = f' {total}건' if total > 1 else ''     # 1건에 "1건을 모두"는 어색해서 뺀다
+    return f'확인할 변경{count}을 모두 답했어요.{start_work}'
+
+
+def after_unsure():
+    """잘 모르겠다를 고른 뒤: 한 줄 + 남은 변경이 있으면 다음 상세. 없으면 한 줄만 띄우고 하던 작업을 그대로 진행한다."""
+    items = flow_pending()
+    if not items:
+        return ['', unsure_line()]
+    flow = load_flow()
+    total_at_start = flow.get('total', len(items))
+    log_event('detail_shown', items[0]['id'])
+    return ['', unsure_line(), detail_screen(items[0], total_at_start - len(items) + 1, total_at_start, flow.get('recall'))]
 
 
 def push_away():
@@ -728,6 +803,8 @@ def after_answer(change_id):
     status = load_closed().get(change_id)
     if status == 'auto_closed':
         return '\n'.join(['', closed_line(change_id), *next_screen()])
+    if change_id in deferred_ids() and change_id not in load_answers():
+        return '\n'.join(after_unsure())
     if status or change_id not in load_answers():
         return None
     done = recorded_line(change_id)

@@ -1,6 +1,7 @@
 # 시안을 돌리면 생기는 기록 (GitHub에 올리지 않음)
 answers.json
 closed.json
+.unsure.json
 quiz.json
 .flow.json
 .events.jsonl

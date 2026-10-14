@@ -9,7 +9,8 @@ sys.path.insert(0, os.path.join(os.environ.get('CLAUDE_PROJECT_DIR', '.'), 'prot
 import notice  # noqa: E402
 
 event = json.load(sys.stdin)
-items = notice.pending()
+# 이번 세션에 잘 모르겠다로 남긴 변경은 건수에서 뺀다. 그것만 남았으면 띄우지 않는다 (10/13 부건)
+items = notice.flow_pending(event.get('session_id'))
 if items and notice.was_skipped(event.get('session_id')):
     notice.log_event('reminder', count=len(items))
     print(json.dumps({'systemMessage': notice.skipped_reminder(len(items))}, ensure_ascii=False))

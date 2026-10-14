@@ -18,12 +18,12 @@ TOOLS = [
     },
     {
         'name': 'respond',
-        'description': '확인할 변경 하나에 대한 사용자의 답을 기록한다. 기록 결과와 다음 변경 상세는 hooks가 사용자에게 직접 보여 준다.',
+        'description': '확인할 변경 하나에 대한 사용자의 답을 기록한다. 잘 모르겠다는 답으로 기록하지 않고 나중에 답하도록 남긴다. 기록 결과와 다음 변경 상세는 hooks가 사용자에게 직접 보여 준다.',
         'inputSchema': {
             'type': 'object',
             'properties': {
                 'change_id': {'type': 'string'},
-                'relation': {'type': 'string', 'enum': ['관계있다', '관계없다']},
+                'relation': {'type': 'string', 'enum': ['관계있다', '관계없다', '잘 모르겠다'], 'description': '잘 모르겠다면 knew·reason 없이 넘긴다'},
                 'knew': {'type': 'string', 'enum': ['알았다', '몰랐다'], 'description': '관계있다일 때만'},
                 'reason': {'type': 'string', 'description': '관계없다일 때만: 고른 이유 또는 사용자가 직접 입력한 이유 (100자 이하)'},
                 'note': {'type': 'string', 'description': '관계·알았나 질문에서 보기 대신 사용자가 직접 쓴 글. 여러 번이면 줄바꿈으로 이어 붙인다'},
@@ -60,7 +60,7 @@ if notice.IS_TEST:
 
 def call_tool(name, args):
     if name == 'list_pending':
-        items = notice.pending()
+        items = notice.flow_pending()     # 이번 세션에 잘 모르겠다로 남긴 변경은 다시 묻지 않는다
         return {
             'count': len(items),
             'changes': [{'change_id': c['id'], 'issue': c['issue'], 'title': c['title'], 'questions': notice.questions_for(c)}
@@ -73,6 +73,9 @@ def call_tool(name, args):
         status = notice.close_on_respond(args['change_id'])
         if status:      # 이미 닫힌 변경: 답을 기록하지 않는다 (PR #15와 같은 모양)
             return {'ok': False, 'code': 'already_closed', 'closedStatus': status}
+        if args.get('relation') == notice.UNSURE:     # 답으로 기록하지 않고 대기로 남긴다 (notify.answer.unsure-later)
+            notice.defer(args['change_id'])
+            return {'ok': True, 'saved': False, 'deferred': True}
         problem = notice.check_answer(args.get('relation'), args.get('knew'), args.get('reason'))
         if problem:
             raise ValueError(problem)
