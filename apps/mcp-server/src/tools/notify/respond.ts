@@ -17,8 +17,8 @@ export const respondTool = defineTool({
   title: '변경에 답하기',
   description:
     'list_pending으로 본 확인할 변경 하나에 담당자의 답을 저장해요. ' +
-    '먼저 사람에게 "이 변경이 내 이슈와 관계가 있나요?"를 묻고, 관계있다면 "이 변경을 미리 알고 있었나요?"를, 관계없다면 이유 한 줄을 받아요. ' +
-    '답을 지어내지 말고 사람이 고른 그대로 넣어요. ' +
+    '먼저 list_pending 항목의 questions를 AskUserQuestion으로 글자 그대로 물어요: questions.relation을 묻고, 관계있다면 questions.known을, 관계없다면 questions.reason을 물어요. ' +
+    '답을 지어내지 말고 사람이 고른 그대로 넣어요. 관계없다의 이유는 고른 보기의 label을, 직접 쓴 글이면 그 글을 unaffectedReason에 넣어요. ' +
     'ok가 true이고 rereadStandardId가 있으면 그 결정 사항을 get_standard로 다시 읽고 이후 작업에 따라요. ' +
     'ok가 false면 message를 그대로 보여 줘요. closedStatus가 auto_closed면 "원래대로 돌아와서 답하지 않아도 돼요"라고 알리고 다음 변경으로 넘어가요.',
   inputSchema: z.object({
