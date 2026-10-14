@@ -12,3 +12,35 @@ supabase/.temp/
 # sil backup, sil export 결과 (DB 내용이 들어 있어요)
 /backup/
 sil-export-*.csv
+
+# 개인 Claude Code 설정 (개인 권한·경로·메모가 들어가요)
+.claude/settings.local.json
+CLAUDE.local.md
+
+# 맨 위 .mcp.json: `claude mcp add --scope project`가 팀 토큰을 글자 그대로 적어요. haribo는 --scope user로 등록해요
+/.mcp.json
+
+# 배포 환경 변수·인증 파일 (토큰과 키가 들어 있어요. 저장소 밖에 두지만, 실수로 넣어도 안 올라가게)
+cloudrun-env.yaml
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+gha-creds-*.json
+*service-account*.json
+client_secret*.json
+
+# 운영체제·도구가 만드는 파일
+.DS_Store
+Thumbs.db
+*.log
+coverage/
+*.tsbuildinfo
+.eslintcache
+.vercel/
+.idea/
+vite.config.*.timestamp-*
+__pycache__/
+*.pyc
+.venv/
