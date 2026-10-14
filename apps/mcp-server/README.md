@@ -15,7 +15,8 @@ Claude Code ──HTTPS──▶ 호스팅 ──HTTP──▶ haribo MCP 서버
 mcp-server/
 ├── bin/sil-mcp.mjs         서버를 켜는 파일 (Node가 TypeScript를 읽는지 확인한 뒤 src/index.ts 실행). 내 컴퓨터·호스팅 모두 이걸로
 ├── scripts/check.ts        pnpm mcp:check    — Claude Code 없이 HTTP로 붙어 서버를 확인 (--url: 올린 서버)
-├── scripts/register.ts     pnpm mcp:register — 내 Claude Code에 팀 서버 등록
+├── scripts/register.ts     pnpm mcp:register — 내 Claude Code에 팀 서버 등록 + 터미널 알림 hooks 설치
+├── hooks-client/haribo-hook.mjs  팀원 PC에서 도는 hooks 스크립트 (register가 ~/.claude/haribo/에 복사)
 ├── scripts/token.ts        pnpm mcp:token    — 팀 토큰 만들기
 ├── scripts/status.ts       pnpm mcp:status   — 등록된 haribo 보기 (팀 토큰은 가림, src/mask-secrets.ts)
 └── src/
@@ -31,6 +32,7 @@ mcp-server/
         ├── system/         ping (연결 확인)
         ├── wiki/           위키 도구 5개 — 정민님 (SIL-19, wiki.mcp.five-tools)
         └── notify/         알리기 도구 2개 — 민수님 (SIL-67). 규칙은 @sil/notify, 여기서는 DB에서 데이터만 모아요
+    └── hooks/              터미널 알림 hooks — 민수님 (SIL-67). /hooks/<이벤트> 처리(notify-hooks.ts), 사용자 설정에 깔기(install.ts)
 ```
 
 ## 도구
@@ -60,6 +62,28 @@ mcp-server/
 항상 적용 기준은 **세션 시작 때** 서버 안내문(instructions)으로 들어가요. 서버는 먼저 말을 걸 수 없어서, Claude Code가 연결할 때 받는 안내문에 붙였어요 (사람마다 60초 동안 기억).
 `X-Sil-User`로 들어온 사람이 진행 중인 이슈에서 "관계있다"고 답한 바뀐 기준도 같은 안내문에 넣어요 (`notify.answer.next-run-context`).
 그 사람에게 답을 기다리는 확인할 변경이 있으면 그 수를 안내문 맨 앞에 넣어요. 안내문 7·8번에 따라 Claude는 사람이 작업을 시작하면 그 일보다 먼저 `list_pending`을 부르고, 하나씩 보여 준 뒤 `questions`를 AskUserQuestion으로 글자 그대로 물어요 (`notify.terminal.session-start`, `notify.terminal.one-change`). hooks 없이 서버만으로 돼요. 목록을 못 읽으면 "확인할 변경이 없다고 여기지 말라"고 적어요 (`notify.error.not-empty`).
+
+## 터미널 알림 hooks (SIL-67)
+
+부건님 시안(SIL-68)대로 터미널 알림 화면 글은 Claude가 옮겨 쓰지 않고 **hooks가 직접** 띄워요. Claude가 옮기면 줄이거나 건너뛰었기 때문이에요.
+
+```
+Claude Code hooks ──stdin──▶ ~/.claude/haribo/hook.mjs ──POST /hooks/<이벤트>──▶ 이 서버 ──▶ DB
+       ▲                        (Node만 있으면 돌아요)        토큰 + X-Sil-User       @sil/notify가 화면 글을 만듦
+       └──────────── 서버가 돌려준 JSON(systemMessage 등)을 그대로 출력 ◀─────────────┘
+```
+
+| Claude Code 이벤트                     | 서버 주소                   | 띄우는 것                                                                                                                                 |
+| -------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `SessionStart` (startup)               | `POST /hooks/session-start` | 켤 때 알림 `● [app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 아무것도                                                            |
+| `UserPromptSubmit`                     | `POST /hooks/prompt-submit` | 첫 변경 상세 + Claude에게 질문 순서 안내. 같은 세션에서 닫고 넘어갔으면 한 줄 알림만 (SIL-80 B5). `결정 사항 확인`을 입력하면 다시 물어요 |
+| `PostToolUse` (`mcp__haribo__respond`) | `POST /hooks/after-respond` | `✓ 기록했어요` + 다음 변경 상세, 또는 마무리 한 줄                                                                                        |
+
+- **설치:** `pnpm mcp:register --user <이름>`이 서버 등록과 함께 hooks를 사용자 설정(`~/.claude/settings.json`)에 깔아요. 서버가 이미 등록돼 있어도 hooks는 깔아요. 다른 hooks와 설정은 그대로 두고, 고치기 전 설정은 `settings.json.bak-haribo`에 남겨요. 깔지 않으려면 `--no-hooks`.
+- **Windows와 Mac:** hooks 명령은 `node "<경로>/hook.mjs" <이벤트>` 한 줄이에요. 경로를 슬래시로 쓰고 따옴표로 감싸서 cmd, PowerShell, Git Bash, Mac에서 같아요.
+- **실패해도 작업은 막지 않아요:** 서버에 못 붙으면 "서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요."를 띄우고, Claude는 요청을 그대로 처리해요 (`notify.error.no-block-retry`). 스크립트는 언제나 0으로 끝나요.
+- **세션 상태**("이번 세션에서 이미 물었는지")는 서버 메모리에 사람·세션별로 둬요. 서버를 다시 켜면 처음처럼 물어요.
+- **안내문 7·8번과의 관계:** hooks가 없는 사람은 안내문대로 Claude가 표로 보여 주고 물어요. hooks가 있으면 작업을 입력할 때 hooks의 안내가 "표를 다시 그리지 말고 질문만"을 덧붙여서 같은 내용이 두 번 나오지 않아요.
 
 ## 왜 이렇게 나눴나요
 
