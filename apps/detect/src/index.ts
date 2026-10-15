@@ -1,9 +1,4 @@
-export {
-  renderT1Saved,
-  T1_COPY,
-  type T1PreviewValues,
-  type T1SavedValues,
-} from './t1/copy.ts';
+export { T1_COPY, type T1PreviewValues } from './t1/copy.ts';
 export {
   buildT1NewSaveInput,
   buildT1SaveInput,

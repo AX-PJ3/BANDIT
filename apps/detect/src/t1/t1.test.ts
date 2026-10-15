@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { renderT1Saved, T1_COPY } from './copy.ts';
+import { T1_COPY } from './copy.ts';
 import {
   clearPending,
   conflictsPath,
@@ -17,6 +18,7 @@ import {
   findPreviewId,
   isConflictsCommand,
   isPreviewCommand,
+  isSavedResponse,
   PREVIEW_DONE,
   SCREEN_SHOWN_CONTEXT,
 } from './preview-command.ts';
@@ -25,6 +27,7 @@ import {
   COLS,
   conflictsScreen,
   previewScreen,
+  savedScreen,
   type T1ConflictsInput,
 } from './screens.ts';
 import { textWidth, wrap } from './text.ts';
@@ -83,10 +86,12 @@ describe('T1 문구', () => {
     expect(T1_COPY.preview.newTag).toBe('새 결정 사항');
   });
 
-  it('④ 등록 완료에 버전과 항상 적용을 넣어요', () => {
-    expect(renderT1Saved({ version: 2, alwaysOn: false })).toBe(
-      '✓ 결정 사항을 등록했어요 (v2) · 항상 적용 아니오',
-    );
+  it('④ 등록 완료 문구는 프로토타입에 적힌 말 그대로예요', () => {
+    expect(T1_COPY.saved.head).toBe('✓ 결정 사항을 등록했어요.');
+    expect(T1_COPY.saved.next).toEqual({
+      withTask: '하던 작업을 이어갈게요.',
+      noTask: '등록을 마쳤어요.',
+    });
   });
 
   it('AskUserQuestion 이름표는 12자 이하예요', () => {
@@ -688,5 +693,121 @@ describe('hooks 첫 줄', () => {
     } finally {
       clearPending(id);
     }
+  });
+});
+
+describe('savedScreen (④ 등록 완료)', () => {
+  const values = {
+    area: 'app',
+    title: '앱 알림 제목은 32자 이하로 쓴다',
+    alwaysOn: false,
+  };
+  const targets = [
+    { key: '#5', assignee: '민수', title: '담당자에게 알리고 답 기록하기' },
+    { key: '#7', assignee: '신지', title: '앱 알림과 나에게 온 변경 화면' },
+  ];
+
+  it('프로토타입 경우 1·2처럼 초록 첫 줄, 제목과 항상 적용, 보낸 이슈 수예요', () => {
+    expect(stripAnsi(savedScreen(values, targets)).split('\n')).toEqual([
+      '✓ 결정 사항을 등록했어요.',
+      '  [app] 앱 알림 제목은 32자 이하로 쓴다  항상 적용 아니오',
+      '  연결된 이슈 2개의 담당자에게 확인할 변경을 보냈어요.',
+    ]);
+    // 첫 줄 전체 초록 (10/15 ANSI 토큰 32)
+    expect(savedScreen(values, targets).startsWith('\u001b[0;32m✓')).toBe(true);
+  });
+
+  it('새 결정 사항이면 "새 결정 사항 · 항상 적용"이고 받는 사람이 없다는 줄이에요', () => {
+    expect(stripAnsi(savedScreen(values, [], true)).split('\n')).toEqual([
+      '✓ 결정 사항을 등록했어요.',
+      '  [app] 앱 알림 제목은 32자 이하로 쓴다  새 결정 사항 · 항상 적용 아니오',
+      '  연결된 이슈가 없어서 알림을 받는 사람은 없어요.',
+    ]);
+  });
+
+  it('받는 이슈를 읽지 못했으면(null) 이슈 줄을 빼요', () => {
+    expect(stripAnsi(savedScreen(values, null)).split('\n')).toHaveLength(2);
+  });
+});
+
+describe('isSavedResponse', () => {
+  const result = { standardId: 'app.notify.title-length', version: 2 };
+
+  it('MCP 결과가 어떤 겉모양이든 저장 결과를 찾아요', () => {
+    const text = JSON.stringify(result);
+    expect(isSavedResponse({ content: [{ type: 'text', text }] })).toBe(true);
+    expect(isSavedResponse([{ type: 'text', text }])).toBe(true);
+    expect(isSavedResponse(text)).toBe(true);
+  });
+
+  it('오류이거나 저장 결과가 없으면 false예요', () => {
+    expect(
+      isSavedResponse({
+        isError: true,
+        content: [{ type: 'text', text: '[CONFLICT] 그사이 바뀌었어요' }],
+      }),
+    ).toBe(false);
+    expect(isSavedResponse([{ type: 'text', text: '저장하지 못했어요' }])).toBe(
+      false,
+    );
+    expect(isSavedResponse(undefined)).toBe(false);
+  });
+});
+
+describe('hook-saved.ts', () => {
+  const runHook = (id: string, response: unknown) =>
+    execFileSync(
+      process.execPath,
+      [fileURLToPath(new URL('./hook-saved.ts', import.meta.url))],
+      {
+        input: JSON.stringify({
+          tool_input: { id },
+          tool_response: response,
+        }),
+        encoding: 'utf8',
+      },
+    );
+  const saved = (id: string) => [
+    { type: 'text', text: JSON.stringify({ standardId: id, version: 2 }) },
+  ];
+
+  it('③을 거친 저장이 성공하면 ④를 띄우고 임시 값을 지워요', () => {
+    const id = 'test.t1.hook-saved';
+    writePending({
+      id,
+      title: '시험 제목',
+      value: '시험 값',
+      reason: '시험 이유',
+      alwaysOn: false,
+      targets: [],
+    });
+    const output = JSON.parse(runHook(id, saved(id))) as {
+      systemMessage: string;
+      hookSpecificOutput: { additionalContext: string };
+    };
+    expect(stripAnsi(output.systemMessage)).toContain(
+      '✓ 결정 사항을 등록했어요.',
+    );
+    expect(output.hookSpecificOutput.additionalContext).toBe(
+      SCREEN_SHOWN_CONTEXT,
+    );
+    expect(existsSync(pendingPath(id) ?? '')).toBe(false);
+  });
+
+  it('저장이 실패하면 ④를 띄우지 않아요', () => {
+    const id = 'test.t1.hook-saved-fail';
+    writePending({
+      id,
+      title: '시험 제목',
+      value: '시험 값',
+      reason: '시험 이유',
+      alwaysOn: false,
+    });
+    expect(runHook(id, { isError: true, content: [] })).toBe('');
+    clearPending(id);
+  });
+
+  it('③을 거치지 않은 저장에는 아무것도 띄우지 않아요', () => {
+    expect(runHook('test.t1.no-pending', saved('test.t1.no-pending'))).toBe('');
   });
 });

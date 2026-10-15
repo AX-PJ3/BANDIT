@@ -46,6 +46,31 @@ export function isConflictsCommand(command: string): boolean {
   return CONFLICTS_COMMAND.test(command);
 }
 
+/**
+ * save_standard 결과가 저장에 성공했는지 봐요. Claude Code가 MCP 결과를 어떤 겉모양(배열·content·글)으로
+ * 넘겨도 찾게, 안쪽 글이 JSON이면 풀어서 standardId와 version이 있는 결과를 찾아요. 오류(isError)면 false
+ */
+export function isSavedResponse(response: unknown): boolean {
+  if (typeof response === 'string') {
+    try {
+      return isSavedResponse(JSON.parse(response));
+    } catch (_error) {
+      return false;
+    }
+  }
+  if (Array.isArray(response)) return response.some(isSavedResponse);
+  if (typeof response !== 'object' || response === null) return false;
+  const record = response as Record<string, unknown>;
+  if (record.isError === true) return false;
+  if (
+    typeof record.standardId === 'string' &&
+    typeof record.version === 'number'
+  ) {
+    return true;
+  }
+  return Object.values(record).some(isSavedResponse);
+}
+
 /** 명령 출력에서 표시 줄 뒤의 값을 찾아요. 없으면 undefined */
 function findAfter(stdout: string, marker: string): string | undefined {
   const doneLine = stdout.split('\n').find((line) => line.startsWith(marker));

@@ -1,4 +1,4 @@
-import type { SaveStandardResult, Standard, StandardVersion } from '@sil/core';
+import type { Standard, StandardVersion } from '@sil/core';
 
 /**
  * T1 "결정 사항 변경 확인" 문구. 착수 안내 3절 T1에서 시작해 FigJam "T1 결정 사항 등록"(10/13)에 맞췄어요.
@@ -105,31 +105,20 @@ export const T1_COPY = {
     confirm:
       '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
   },
-  /** ④ 등록 완료 (FigJam). 확인할 변경을 보낸 이슈 수는 이슈를 읽는 도구가 생기면 넣어요 */
-  saved: '✓ 결정 사항을 등록했어요 (v{version}) · 항상 적용 {alwaysOn}',
+  /**
+   * ④ 등록 완료. 저장 직후 hook(`hook-saved.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 10/14).
+   * 받는 이슈 수는 ③에서 `preview.ts`가 읽어 둔 값이에요. 못 읽었으면 그 줄을 빼요
+   */
+  saved: {
+    head: '✓ 결정 사항을 등록했어요.',
+    sent: '연결된 이슈 {count}개의 담당자에게 확인할 변경을 보냈어요.',
+    /** ④ 뒤 Claude가 쓰는 한 줄. 하던 작업이 있으면 withTask를 쓰고 그 작업을 이어가요 */
+    next: { withTask: '하던 작업을 이어갈게요.', noTask: '등록을 마쳤어요.' },
+  },
 } as const;
 
 // 문구에 넣을 값의 모양은 core 타입에서 골라 써요 (타입은 core에만)
 export type T1PreviewValues = Pick<Standard, 'area'> &
   Pick<StandardVersion, 'title' | 'value' | 'reason' | 'alwaysOn'>;
 
-export type T1SavedValues = Pick<SaveStandardResult, 'version'> &
-  Pick<StandardVersion, 'alwaysOn'>;
-
 export const yesNo = (value: boolean) => (value ? '예' : '아니오');
-
-/** {자리}를 값으로 채워요 */
-function fill(template: string, values: Record<string, string>): string {
-  return template.replace(
-    /\{(\w+)\}/g,
-    (slot, key: string) => values[key] ?? slot,
-  );
-}
-
-/** ④ 등록 완료 문구 */
-export function renderT1Saved(values: T1SavedValues): string {
-  return fill(T1_COPY.saved, {
-    version: String(values.version),
-    alwaysOn: yesNo(values.alwaysOn),
-  });
-}
