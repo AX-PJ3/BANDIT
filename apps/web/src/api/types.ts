@@ -77,7 +77,7 @@ export interface SilApi {
   ): Promise<SaveReflectedResult>;
   /**
    * 내 확인할 변경이 생기거나 바뀌면 onChange를 부르는 구독 (app.notify.realtime). 돌려준 함수로 끊어요.
-   * 구독이 끊기면 onError로 이유를 알려 줘요.
+   * 구독이 끊기면 onError로 이유를 알려 주고, 다시 연결되면 onChange를 불러요.
    */
   watchMyChanges(
     me: string,

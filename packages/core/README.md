@@ -55,7 +55,7 @@
 - **쓰기는 데이터베이스 함수로만**: `saveStandard`, `revertStandard`, `deprecateStandard`, `saveIssue`, `resolveConflict`, `saveAnswer`, `saveReflected`는 `save_standard`, `save_answer`, `save_reflected` 등 SQL 함수를 불러요. 형식 검사, 잠금, 버전 충돌(`baseVersion`), 되돌림 표시가 함수 안에 있어요. 거절하면 hint에 우리 에러 코드를 담아 보내고, `toSilError`가 같은 코드의 `SilError`로 바꿔요.
 - **DB가 돌려준 모양은 zod로 한 번 더 확인해요.** 스키마와 코드가 어긋나면 엉뚱한 값 대신 "마이그레이션을 확인해 주세요"라고 알려요.
 - 스키마는 저장소 맨 위 `supabase/migrations/`, 규칙 검사는 `supabase/tests/`의 `wiki.test.sql`, `v2.test.sql`(SIL-65 조건, 데모 순서), `compat.test.sql`(팀 위키 기준), `always_on_per_version.test.sql`(항상 적용 버전마다)에 있어요. 루트 README의 "데이터베이스" 절을 봐 주세요.
-- **실시간 구독**: `watchPendingChecks({ recipient, onChange, onError })`는 그 사람의 확인할 변경이 생기거나 바뀌면 알려 줘요 (Realtime, app.notify.realtime). 웹 앱이 OS 알림(A1)에 써요. 돌려준 함수로 끊어요.
+- **실시간 구독**: `watchPendingChecks({ recipient, onChange, onError })`는 그 사람의 확인할 변경이 생기거나 바뀌면 알려 줘요 (Realtime, app.notify.realtime). 웹 앱이 OS 알림(A1)에 써요. 끊기면 `onError`로 알리고, 다시 연결되면 `onChange`를 불러서 새로 고치지 않아도 목록이 이어져요. 돌려준 함수로 끊어요.
 - **불러오지 못하면 빈 목록 대신 에러를 던져요.** 화면이 실패를 "변경 없음"으로 보여 주면 안 돼요 (`notify.error.not-empty`).
 
 ### 함수 추가하기
