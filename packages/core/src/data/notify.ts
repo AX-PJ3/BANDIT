@@ -154,9 +154,15 @@ export async function listPendingChecks(
 export interface WatchPendingChecksInput {
   /** 받는 사람 이름. 이 사람의 확인할 변경이 생기거나 바뀔 때만 알려 줘요 */
   recipient: string;
-  /** 바뀌었을 때 불러요. 무엇이 바뀌었는지는 넘기지 않아요. 목록을 다시 읽어요 */
+  /**
+   * 바뀌었을 때 불러요. 무엇이 바뀌었는지는 넘기지 않아요. 목록을 다시 읽어요.
+   * 끊겼다가 다시 연결됐을 때도 불러요. 끊긴 사이에 온 변경을 놓치지 않게요.
+   */
   onChange: () => void;
-  /** 구독이 끊기거나 연결하지 못했을 때 불러요. 끊긴 것을 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty) */
+  /**
+   * 구독이 끊기거나 연결하지 못했을 때 불러요. 끊긴 것을 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty).
+   * 다시 연결은 Supabase가 알아서 해요. 다시 연결되면 onChange를 불러요.
+   */
   onError?: (message: string) => void;
 }
 
@@ -167,6 +173,7 @@ export interface WatchPendingChecksInput {
  */
 export function watchPendingChecks(input: WatchPendingChecksInput): () => void {
   const db = getDb();
+  let hasFailed = false;
   const channel = db
     .channel(`pending_checks:${input.recipient}`)
     .on(
@@ -181,9 +188,16 @@ export function watchPendingChecks(input: WatchPendingChecksInput): () => void {
     )
     .subscribe((status, error) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        hasFailed = true;
         input.onError?.(
-          `새 확인할 변경을 바로 받지 못하고 있어요 (${error?.message ?? status}). 새로 고치면 다시 연결해요.`,
+          `새 확인할 변경을 바로 받지 못하고 있어요 (${error?.message ?? status}). 다시 연결하고 있어요.`,
         );
+        return;
+      }
+      // 노트북 잠자기·와이파이 변경·뒤에 둔 탭에서 끊겼다가 다시 붙은 경우예요 (1006). 새로 고치지 않아도 이어지게 해요
+      if (status === 'SUBSCRIBED' && hasFailed) {
+        hasFailed = false;
+        input.onChange();
       }
     });
   return () => {
