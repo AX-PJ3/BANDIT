@@ -73,6 +73,25 @@ const result = await respond(store, {
 - 이미 닫힌 변경이면 `closedStatus`로 지금 상태(답함·대체됨·자동 닫힘)를 알려 줘요. 자동 닫힘이면 화면이 "원래대로 돌아와서 답하지 않아도 돼요"를 띄워요 (SIL-77).
 - 저장 전 검사만 하는 `checkAnswer`도 있어요. MCP 도구 `respond`는 이 함수로 검사한 뒤 DB 함수 `save_answer`로 저장해요.
 
+### `checkReflect` — 작업 반영 표시 검사 (MCP 도구 `mark_reflected`)
+
+"작업 반영"은 담당자가 바뀐 결정 사항을 자기 작업에 적용했다는 뜻이에요. 저장 전에 검사만 해요 (SIL-93).
+
+```ts
+checkReflect(check, answer, {
+  pendingCheckId: 'c-1',
+  markedBy: '민수',
+  reflected: true,
+});
+// 통과: { ok: true }
+// 거절: { ok: false, code: 'not_affected', message: '관계없다로 답한 확인할 변경이라 …' }
+```
+
+- 관계있다로 답한 변경에만 표시할 수 있어요 (notify.check.reflected v2). DB 함수 `save_reflected`는 답했는지만 봐서 이 규칙은 여기서 봐요.
+- 표시 풀기는 관계없다로 답한 변경에도 받아요.
+- 거절하는 경우: 없는 변경, 받는 사람이 아님, 답하지 않음(대기·대체됨·자동 닫힘), 답을 찾지 못함, 관계없다로 답함.
+- 브라우저 입구(`@sil/notify/browser`)에서도 가져올 수 있어요.
+
 ### 터미널 화면 글 (`src/terminal/`)
 
 list_pending 결과로 터미널 알림 글을 만들어요. 모양과 문구는 부건님 시안(SIL-68, `docs/sil-68-add-cli-design-notes` 브랜치의 `cli-design-notes/`)을 그대로 옮겼어요. 팀 MCP 서버의 `/hooks/<이벤트>`가 이 함수로 글을 만들고, 팀원 PC의 hooks가 그대로 띄워요 (`apps/mcp-server` README "터미널 알림 hooks").

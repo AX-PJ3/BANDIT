@@ -168,7 +168,7 @@ describe('MCP 도구 (가짜 DB)', () => {
   });
   let rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
 
-  it('위키 도구 5개, 알리기 도구 2개, ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools)', async () => {
+  it('위키 도구 5개, 알리기 도구 3개, ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools)', async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(
@@ -181,6 +181,7 @@ describe('MCP 도구 (가짜 DB)', () => {
         'search_standards',
         'list_pending',
         'respond',
+        'mark_reflected',
       ].sort(),
     );
     expect(client.getInstructions()).toContain(
@@ -558,14 +559,18 @@ describe('MCP 도구 (가짜 DB)', () => {
     expect(minsu.getInstructions()).toContain(
       '- order.coupon.nullable (v2): coupon 칸은 null일 수 있다 (이슈 #5)',
     );
-    // 완료된 이슈는 다음 작업이 없어서 넣지 않아요
+    // 완료된 이슈는 다음 작업이 없어서 넣지 않아요. 사용법 9번(mark_reflected)에도 '관계있다'가 있어서 칸 제목으로 확인해요
     const sinji = await connect({
       Authorization: `Bearer ${TOKEN}`,
       'X-Sil-User': encodeURIComponent('신지'),
     });
-    expect(sinji.getInstructions()).not.toContain('관계있다');
+    expect(sinji.getInstructions()).not.toContain(
+      '내가 "관계있다"고 답한 바뀐 결정 사항',
+    );
     const anonymous = await connect();
-    expect(anonymous.getInstructions()).not.toContain('관계있다');
+    expect(anonymous.getInstructions()).not.toContain(
+      '내가 "관계있다"고 답한 바뀐 결정 사항',
+    );
     expect(anonymous.getInstructions()).toContain(
       'wiki.save.required-fields (v1)',
     );

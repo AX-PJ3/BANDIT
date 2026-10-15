@@ -44,6 +44,8 @@ export type {
   RespondOptions,
   RespondResult,
 } from './respond.ts';
+export { checkReflect } from './reflect.ts';
+export type { ReflectErrorCode, ReflectFailure } from './reflect.ts';
 export { JsonFileStore, MemoryStore, createEmptyData } from './store.ts';
 export type { NotifyData, NotifyStore } from './store.ts';
 export type {

@@ -47,9 +47,11 @@ mcp-server/
 | `revert`           | 앞선 버전으로 되돌리기. 되돌림도 새 버전으로 쌓임                                                                          |        |
 | `list_pending`     | 나(`X-Sil-User`)에게 온 확인할 변경 목록. 제목·이전 값·지금 값·이유·이슈와, 대기 항목에는 물을 질문(`questions`)을 붙여 줌 | ✔      |
 | `respond`          | 확인할 변경에 답 저장 (관계, 알았나, 관계없는 이유). 답한 곳은 터미널                                                      |        |
+| `mark_reflected`   | 관계있다로 답한 변경을 내 작업에 반영했다고 표시하거나 풀기. 사람이 직접 말했을 때만                                       |        |
 
 알리기 도구는 `X-Sil-User`의 이름으로만 움직여요. 다른 사람의 목록을 보거나 대신 답할 수 없고, 이름이 없으면 거절해요.
 `respond`는 DB까지 가기 전에 `@sil/notify`의 `checkAnswer`로 먼저 검사해서 빠진 칸을 한국어로 알려 줘요. 이미 닫힌 변경이면 `closedStatus`(답함·대체됨·자동 닫힘)를 돌려줘요. "관계있다"로 저장되면 `rereadStandardId`를 돌려줘서 AI가 그 결정 사항을 `get_standard`로 다시 읽어요.
+`mark_reflected`는 사람이 "작업에 반영했어요"라고 말했을 때만 불러요 (SIL-93). 관계있다로 답한 변경에만 표시할 수 있고(notify.check.reflected v2), 이 규칙은 `@sil/notify`의 `checkReflect`가 DB까지 가기 전에 봐요. 표시를 풀어도 이슈는 다시 열리지 않아요. DB가 거절하면 거절 문장을 그대로 돌려줘요.
 
 팀 위키 `wiki.mcp.five-tools`에 따라 위키 도구는 다섯 개예요. 폐기는 사람이 `pnpm sil deprecate`로 해요.
 `save_standard`와 `revert`는 결과에 CHANGELOG 한 줄(`changelogLine`)을 돌려줘요. 작업 중인 저장소에 `team-wiki/CHANGELOG.md`가 있으면 AI가 그 줄을 맨 아래에 붙여요 (`work.wiki.changelog`).
