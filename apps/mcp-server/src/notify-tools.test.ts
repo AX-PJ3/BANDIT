@@ -109,6 +109,69 @@ function demoTables() {
   };
 }
 
+/** save_reflected를 흉내 내요. DB처럼 받은 사람·답한 변경만 받아요 (notify.check.reflected) */
+function fakeSaveReflected(
+  tables: ReturnType<typeof demoTables>,
+  args: Record<string, unknown>,
+) {
+  const row = tables.pending_checks.find(
+    (c) => c.id === args.p_pending_check_id,
+  );
+  if (!row || row.recipient !== args.p_marked_by) {
+    return {
+      data: null,
+      error: {
+        message: '받은 사람만 반영함을 표시할 수 있어요.',
+        hint: 'FORBIDDEN',
+      },
+    };
+  }
+  if (row.status !== 'answered') {
+    return {
+      data: null,
+      error: {
+        message: '답한 확인할 변경에만 반영함을 표시할 수 있어요.',
+        hint: 'VALIDATION_FAILED',
+      },
+    };
+  }
+  const reflected = args.p_reflected === true;
+  Object.assign(row, {
+    reflected,
+    reflected_at: reflected
+      ? (row.reflected_at ?? '2026-10-15T03:00:00+00:00')
+      : null,
+  });
+  return {
+    data: { pendingCheckId: row.id, reflected, reflectedAt: row.reflected_at },
+    error: null,
+  };
+}
+
+/** 민수님이 c-5에 답한 기록 (answer_records 보기의 한 줄) */
+function answerRecordRow(affected: boolean) {
+  return {
+    answer_id: 'a-0',
+    answered_at: '2026-10-13T04:00:00+00:00',
+    standard_id: STANDARD,
+    version: 2,
+    previous_value: '공백 포함 40자 이하',
+    value: '공백 포함 32자 이하',
+    changed_by: '부건',
+    changed_by_actor: 'ai',
+    ai_detected: false,
+    evidence: null,
+    issue_key: '#5',
+    answered_by: '민수',
+    affected,
+    known: affected ? false : null,
+    elapsed_seconds: null,
+    unaffected_reason: affected ? null : '화면 문구만 다루는 이슈라 관계없음',
+    rework_note: null,
+    channel: 'terminal',
+  };
+}
+
 let app: HttpApp;
 let clients: Client[] = [];
 let fake: FakeDb;
@@ -116,6 +179,7 @@ let fake: FakeDb;
 /** save_answer를 흉내 내요. 대기가 아니면 DB처럼 PENDING_CLOSED로 거절해요 */
 function installFakeDb(tables = demoTables()) {
   fake = createFakeDb(tables, (name, args) => {
+    if (name === 'save_reflected') return fakeSaveReflected(tables, args);
     if (name !== 'save_answer') {
       return {
         data: null,
@@ -446,5 +510,132 @@ describe('respond', () => {
       code: 'already_closed',
       closedStatus: 'answered',
     });
+  });
+});
+
+describe('mark_reflected (SIL-93)', () => {
+  function answeredTables(affected: boolean) {
+    const tables = demoTables();
+    tables.pending_checks = [checkRow('c-5', '민수', '#5', 'answered')];
+    tables.answer_records = [answerRecordRow(affected)];
+    return tables;
+  }
+
+  it('관계있다로 답한 변경에 작업 반영을 표시하고, list_pending에도 보여요', async () => {
+    installFakeDb(answeredTables(true));
+    const minsu = await connectAs('민수');
+
+    const result = await call(minsu, 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: true,
+    });
+    expect(result.json()).toEqual({
+      ok: true,
+      pendingCheckId: 'c-5',
+      issueKey: '#5',
+      standardId: STANDARD,
+      reflected: true,
+      reflectedAt: '2026-10-15T03:00:00+00:00',
+    });
+    expect(fake.rpcCalls).toEqual([
+      {
+        name: 'save_reflected',
+        args: {
+          p_pending_check_id: 'c-5',
+          p_marked_by: '민수',
+          p_reflected: true,
+        },
+      },
+    ]);
+
+    const list = await call(minsu, 'list_pending', { includeClosed: true });
+    expect(list.json().items).toMatchObject([
+      {
+        pendingCheckId: 'c-5',
+        reflected: true,
+        reflectedAt: '2026-10-15T03:00:00+00:00',
+      },
+    ]);
+  });
+
+  it('서버 안내문이 사람이 말했을 때만 표시하라고 알려요', async () => {
+    const minsu = await connectAs('민수');
+    expect(minsu.getInstructions()).toContain(
+      '"작업에 반영했어요"라고 말하면 mark_reflected로 표시해요',
+    );
+  });
+
+  it('표시를 풀 수 있어요', async () => {
+    const tables = answeredTables(true);
+    Object.assign(tables.pending_checks[0]!, {
+      reflected: true,
+      reflected_at: '2026-10-15T03:00:00+00:00',
+    });
+    installFakeDb(tables);
+
+    const result = await call(await connectAs('민수'), 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: false,
+    });
+    expect(result.json()).toMatchObject({
+      ok: true,
+      reflected: false,
+      reflectedAt: null,
+    });
+  });
+
+  it('관계없다로 답한 변경이면 DB까지 가지 않고 이유를 알려 줘요 (notify.check.reflected v2)', async () => {
+    installFakeDb(answeredTables(false));
+    const result = await call(await connectAs('민수'), 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: true,
+    });
+    expect(result.json()).toMatchObject({ ok: false, code: 'not_affected' });
+    expect(fake.rpcCalls).toEqual([]);
+  });
+
+  it('아직 답하지 않은 변경이면 먼저 답하라고 알려 줘요', async () => {
+    const result = await call(await connectAs('민수'), 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: true,
+    });
+    expect(result.json()).toMatchObject({ ok: false, code: 'not_answered' });
+    expect(result.json().message).toContain('먼저 관계있다/관계없다로 답해');
+    expect(fake.rpcCalls).toEqual([]);
+  });
+
+  it('다른 사람에게 온 변경은 내 목록에 없어서 표시할 수 없어요', async () => {
+    installFakeDb(answeredTables(true));
+    const result = await call(await connectAs('신지'), 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: true,
+    });
+    expect(result.json()).toMatchObject({ ok: false, code: 'not_found' });
+    expect(fake.rpcCalls).toEqual([]);
+  });
+
+  it('검사 뒤 DB가 거절하면 거절 문장을 그대로 전해요 (notify.error.not-empty)', async () => {
+    const tables = answeredTables(true);
+    installFakeDb(tables);
+    const minsu = await connectAs('민수');
+    // 검사는 통과했는데 저장 순간 다른 곳에서 상태가 바뀐 경우를 흉내 내요
+    fake = createFakeDb(tables, () => ({
+      data: null,
+      error: {
+        message:
+          '답한 확인할 변경에만 반영함을 표시할 수 있어요 (지금 상태: 대체됨).',
+        hint: 'VALIDATION_FAILED',
+      },
+    }));
+    setDbForTesting(fake.client);
+
+    const result = await call(minsu, 'mark_reflected', {
+      pendingCheckId: 'c-5',
+      reflected: true,
+    });
+    expect(result.isError).toBe(true);
+    expect(result.text).toBe(
+      '[VALIDATION_FAILED] 답한 확인할 변경에만 반영함을 표시할 수 있어요 (지금 상태: 대체됨).',
+    );
   });
 });

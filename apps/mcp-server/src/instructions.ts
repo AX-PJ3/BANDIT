@@ -35,6 +35,8 @@ const USAGE = [
   // 일반 세션에서도 확인할 변경을 묻게 해요. hooks 없이 서버 안내문과 list_pending 결과(questions)만으로 돼요
   '7. 사람이 작업을 시작하면 그 일보다 먼저 list_pending을 불러요 (notify.terminal.session-start). 한 세션에서 한 번 확인했으면 사람이 다시 묻기 전에는 또 부르지 않아요.',
   '8. 대기 중인 확인할 변경이 있으면 하나씩 차례로 다뤄요 (notify.terminal.one-change). 결정 사항 제목, 이전 값, 지금 값, 이유, 바꾼 사람과 시각, 내 이슈를 표로 보여 주고(notify.terminal.show-fields), 바로 이어서 그 항목의 questions를 AskUserQuestion으로 글자 그대로 물어요. 고른 답으로 respond를 부르고 다음 변경으로 넘어가요. 다 끝나면 원래 하려던 일을 이어서 해요.',
+  // 작업 반영 표시는 사람이 말했을 때만 해요. AI가 코드를 보고 짐작하지 않아요 (SIL-93, notify.check.reflected)
+  '9. 사람이 관계있다로 답한 변경을 "작업에 반영했어요"라고 말하면 mark_reflected로 표시해요. 표시를 풀어 달라고 하면 reflected를 false로 불러요. 코드를 보고 반영했다고 짐작해서 표시하지 않아요.',
 ].join('\n');
 
 const cache = new Map<string, { at: number; text: string }>();
