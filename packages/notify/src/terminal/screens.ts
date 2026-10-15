@@ -421,3 +421,123 @@ export function autoClosedLine(issueKey: string): string {
 export function isRecall(prompt: string | null | undefined): boolean {
   return (prompt ?? '').trim().replace(/[.!?]+$/, '') === RECALL_PHRASE;
 }
+
+// ---------------------------------------------------------------------------
+// 이슈 반영 (SIL-93, 부건님 10/15 시안 notice.py "이슈 반영")
+// 관계있다로 답한 변경을 내 이슈에 반영했다고 사람이 직접 표시해요 (notify.check.reflected v2).
+// 말은 위키 app.card.three-steps v2의 "이슈 반영"과 같아요. 터미널에서 "작업"은 지금 하는 코드 작업이라서요.
+// ---------------------------------------------------------------------------
+
+/** 이슈 반영을 부르는 말 (입력 전체가 이 말일 때만) */
+export const REFLECT_PHRASE = '이슈 반영';
+
+/** 입력 전체가 "이슈 반영"인지 (끝의 . ! ? 는 봐줘요) */
+export function isReflectPrompt(prompt: string | null | undefined): boolean {
+  return (prompt ?? '').trim().replace(/[.!?]+$/, '') === REFLECT_PHRASE;
+}
+
+/** 이슈 반영할 수 있는 변경: 관계있다로 답했고 아직 표시하지 않은 것 */
+export function reflectableItems(items: PendingItem[]): PendingItem[] {
+  return items.filter(
+    (item) =>
+      item.status === 'answered' &&
+      item.answer?.affected === true &&
+      !item.reflected,
+  );
+}
+
+/** 제목 줄: [영역] 청록 제목 (태그). 상세와 같아요 */
+function titleLine(item: PendingItem): string {
+  const area = areaOf(item);
+  const kind = kindOf(item);
+  const tagWidth = textWidth(TAGS[kind]) + 3;
+  const title = cutEnd(
+    item.standard.title,
+    COLS - (textWidth(area) + 3) - tagWidth,
+  );
+  return strongLine(`[${area}] ${titleText(title)}${tagText(kind)}`);
+}
+
+/** 목록에서 무엇이 바뀌었는지 한 줄: 작게 바뀌면 변경 줄, 크게 바뀌거나 신규면 지금 값 */
+function reflectValueLine(item: PendingItem): string {
+  const previous = item.standard.previousValue;
+  const current = item.standard.value;
+  if (previous === null || isLargeChange(previous, current)) {
+    return `${label('상세')}${strongLine(cutEnd(current, COLS - 8))}`;
+  }
+  return `${label('변경')}${changeWhat(previous, current)}`;
+}
+
+/**
+ * "이슈 반영"을 입력했을 때 목록. 상세와 같은 위아래 선으로 묶고, 한 건은 제목 · 바뀐 것 · 이슈 세 줄이에요.
+ * 고르는 것은 바로 아래 선택 화면이 해요. 목록과 선택 화면의 순서가 같아요.
+ * 여러 건이면 아래 선 밑에 "하나도 없으면 Esc" 한 줄을 둬요. 시안은 질문 아래에 두지만 선택 화면에는 글을 더할 수 없어서예요.
+ */
+export function reflectScreen(items: PendingItem[]): string {
+  const lead = `${RULE.repeat(2)} `;
+  const head = `관계있다로 답한 변경이 ${items.length}건 있어요 `;
+  const top = `${strongLine(lead)}${head}${strongLine(
+    RULE.repeat(Math.max(2, COLS - textWidth(lead + head))),
+  )}`;
+  const rows = items.flatMap((item) => [
+    titleLine(item),
+    reflectValueLine(item),
+    `${label('이슈')}${issueText(item)}`,
+  ]);
+  const help =
+    items.length > 1
+      ? ['  반영한 변경이 하나도 없으면 Esc를 눌러 닫아 주세요.']
+      : [];
+  return ['', top, ...rows, ruleBottom(), ...help].join('\n');
+}
+
+/** "✓ 이슈에 반영했어요  #7 · 앱 알림 제목은 32자 이하로 쓴다". 기록 줄과 같은 모양이에요 */
+export function reflectedLine(item: PendingItem): string {
+  const done = '✓ 이슈에 반영했어요';
+  const rest = cutEnd(
+    `${item.issue.key} · ${item.standard.title}`,
+    COLS - textWidth(done) - 2,
+  );
+  return `${green(done)}  ${strongLine(rest)}`;
+}
+
+/** 이슈 반영할 변경이 없을 때. 관계있다로 답한 변경만 등록할 수 있다는 것을 함께 알려요 */
+export function nothingToReflect(): string {
+  return [
+    '',
+    `${check} 이슈 반영할 변경이 없어요.`,
+    '  관계있다로 답한 변경만 이슈 반영으로 등록할 수 있어요.',
+  ].join('\n');
+}
+
+/** 안내 줄 앞 회색 막대: 글자색 없이 반전만 해서 Claude Code 회색이 칸 바탕이 돼요 */
+const GRAY_BAR = `${esc('7')} ${esc('27')} `;
+
+/**
+ * 이슈 반영할 변경이 남았을 때 작업을 입력하면 띄우는 안내 한 줄. 한 세션에 한 번만 (10/15 부건).
+ * 상태 줄이 아니라 안내라서 노란 막대 대신 회색 막대를 쓰고, 건수는 넣지 않아요. 입력할 말만 노란 굵은 글자예요.
+ */
+export function reflectReminder(): string {
+  const word = `${esc('1')}${esc(YELLOW)}${REFLECT_PHRASE}${esc('39')}${esc('22')}`;
+  return [
+    '',
+    `${GRAY_BAR}확인한 결정 사항을 이슈에도 반영했다면, "${word}"을 입력해 주세요.`,
+  ].join('\n');
+}
+
+/** 선택 화면 보기에 쓰는 바뀐 것 (색 없이) */
+export function reflectWhatText(item: PendingItem): string {
+  const previous = item.standard.previousValue;
+  const current = item.standard.value;
+  if (previous === null) return '새로 생긴 결정 사항이에요';
+  const [oldWords, newWords] = changedWords(previous, current);
+  if (isLargeChange(previous, current) || !(oldWords && newWords)) {
+    return '문장을 새로 썼어요';
+  }
+  return `${oldWords} ${ARROW} ${newWords}`;
+}
+
+/** 선택 화면 보기 설명 앞의 종류 낱말 (변경·신규·되돌림) */
+export function kindWord(item: PendingItem): string {
+  return TAGS[kindOf(item)];
+}

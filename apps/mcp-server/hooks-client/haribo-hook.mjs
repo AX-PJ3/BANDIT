@@ -2,7 +2,7 @@
 /**
  * haribo 터미널 알림 hooks (SIL-67). `pnpm mcp:register`가 ~/.claude/haribo/에 복사해 두는 파일이에요.
  *
- *   node ~/.claude/haribo/hook.mjs session-start | prompt-submit | after-respond
+ *   node ~/.claude/haribo/hook.mjs session-start | prompt-submit | after-respond | after-reflect
  *
  * Claude Code가 hooks 이벤트(JSON)를 표준 입력으로 주면, 그대로 팀 MCP 서버의 /hooks/<이벤트>로 보내고
  * 서버가 돌려준 JSON(systemMessage 등)을 그대로 출력해요. 화면 글은 서버가 만들어요.
@@ -14,24 +14,30 @@
  */
 import { readFileSync } from 'node:fs';
 
-const EVENTS = ['session-start', 'prompt-submit', 'after-respond'];
+const EVENTS = [
+  'session-start',
+  'prompt-submit',
+  'after-respond',
+  'after-reflect',
+];
 /** 무료 호스팅은 쉬다가 깨어나느라 느릴 수 있어서 넉넉히 기다려요. Claude Code hooks 시간 제한(설정 20초)보다 짧게 둬요 */
 const TIMEOUT_MS = 15_000;
 
 const esc = (codes) => `\u001b[${codes}m`;
 const FAILED_NOTICE = [
   '',
-  `${esc('39;49')}● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.${esc('39')}`,
-  `  ${esc('1')}"결정 사항 확인"${esc('22')}을 입력하면 다시 시작해요.`,
+  // 노란 막대 (v2 상태 줄)
+  `${esc('33')}${esc('7')} ${esc('27')}${esc('39')} ${esc('39;49')}서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.${esc('39')}`,
+  `  "${esc('1')}${esc('33')}결정 사항 확인${esc('39;49')}${esc('22')}"을 입력하면 다시 시작해요.`,
 ].join('\n');
 const FAILED_CONTEXT =
   '[확인할 변경 규칙] 확인할 변경을 불러오지 못했다는 것을 hooks가 이미 화면에 보여 줬다. 그 일에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.';
 
 const event = process.argv[2];
 
-/** 실패를 알리는 출력. 답한 뒤(after-respond)에는 Claude가 respond 결과를 이미 받아서 조용히 끝내요 */
+/** 실패를 알리는 출력. 도구를 부른 뒤(after-respond, after-reflect)에는 Claude가 결과를 이미 받아서 조용히 끝내요 */
 function failed(detail) {
-  if (event === 'after-respond') return '';
+  if (event === 'after-respond' || event === 'after-reflect') return '';
   const message = detail ? `${FAILED_NOTICE}\n  (${detail})` : FAILED_NOTICE;
   if (event === 'prompt-submit') {
     return JSON.stringify({

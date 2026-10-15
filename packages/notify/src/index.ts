@@ -73,8 +73,15 @@ export {
   detailScreen,
   formatWhen,
   isRecall,
+  isReflectPrompt,
   nothingLeft,
+  nothingToReflect,
+  REFLECT_PHRASE,
   recordedLines,
+  reflectableItems,
+  reflectedLine,
+  reflectReminder,
+  reflectScreen,
   sessionNotice,
   skippedReminder,
   sourceText,
@@ -83,12 +90,16 @@ export type { DetailOptions, RecordedAnswer } from './terminal/screens.ts';
 export {
   KNOWN_LABELS,
   RELATION_LABELS,
+  REFLECT_YES,
   UNAFFECTED_REASONS,
   questionsFor,
+  reflectGroups,
+  reflectQuestionsFor,
 } from './terminal/questions.ts';
 export type {
   ChangeQuestions,
   Question,
   QuestionOption,
+  ReflectQuestion,
 } from './terminal/questions.ts';
 export { stripAnsi, textWidth } from './terminal/text.ts';

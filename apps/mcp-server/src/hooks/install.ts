@@ -38,6 +38,11 @@ const HOOK_TABLE: {
     event: 'after-respond',
     matcher: `mcp__${SERVER_INFO.name}__respond`,
   },
+  {
+    claudeEvent: 'PostToolUse',
+    event: 'after-reflect',
+    matcher: `mcp__${SERVER_INFO.name}__mark_reflected`,
+  },
 ];
 
 interface HookCommand {
