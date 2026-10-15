@@ -77,7 +77,7 @@ Claude Code hooks ──stdin──▶ ~/.claude/haribo/hook.mjs ──POST /hoo
 
 | Claude Code 이벤트                     | 서버 주소                   | 띄우는 것                                                                                                                                 |
 | -------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `SessionStart` (startup)               | `POST /hooks/session-start` | 켤 때 알림 `● [app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 아무것도                                                            |
+| `SessionStart` (startup)               | `POST /hooks/session-start` | 켤 때 알림 `[app] 결정 사항이 1건 변경되었어요.`(앞에 노란 막대) 답할 변경이 없으면 아무것도                                              |
 | `UserPromptSubmit`                     | `POST /hooks/prompt-submit` | 첫 변경 상세 + Claude에게 질문 순서 안내. 같은 세션에서 닫고 넘어갔으면 한 줄 알림만 (SIL-80 B5). `결정 사항 확인`을 입력하면 다시 물어요 |
 | `PostToolUse` (`mcp__haribo__respond`) | `POST /hooks/after-respond` | `✓ 기록했어요` + 다음 변경 상세, 또는 마무리 한 줄                                                                                        |
 

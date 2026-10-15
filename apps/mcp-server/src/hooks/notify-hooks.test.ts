@@ -147,7 +147,7 @@ describe('① 켤 때 (session-start)', () => {
   it('답할 변경이 있으면 켤 때 알림을 돌려줘요', async () => {
     const result = await hook('session-start', { session_id: 's1' });
     expect(result.status).toBe(200);
-    expect(result.screen).toContain('● [app] 결정 사항이 1건 변경되었어요.');
+    expect(result.screen).toContain('  [app] 결정 사항이 1건 변경되었어요.');
   });
 
   it('바꾼 부건님에게는 아무것도 띄우지 않아요', async () => {
@@ -169,7 +169,7 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
       session_id: 's1',
       prompt: '로그인 화면 문구 고쳐 줘',
     });
-    expect(result.screen).toContain('작업 전에 확인할 변경이 1건 있어요.');
+    expect(result.screen).toContain('작업 전에 확인할 변경이 1건 있어요 ');
     expect(result.screen).toContain('  변경  40자 ⭢ 32자');
     expect(result.context).toContain('mcp__haribo__list_pending');
     expect(result.context).toContain('mcp__haribo__respond');
@@ -184,7 +184,7 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
       prompt: '작업 2',
     });
     expect(second.screen).toContain(
-      '● 확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
+      '  확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
     );
     expect(second.context).toContain('사용자의 요청을 그대로 처리한다');
   });
@@ -195,7 +195,7 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
       session_id: 's1',
       prompt: '결정 사항 확인',
     });
-    expect(recall.screen).toContain('확인할 변경이 1건 있어요.');
+    expect(recall.screen).toContain('확인할 변경이 1건 있어요 ');
     expect(recall.screen).not.toContain('작업 전에');
     expect(recall.context).toContain('따로 처리할 요청이 없다');
   });
@@ -206,7 +206,7 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
       session_id: 's2',
       prompt: '작업 1',
     });
-    expect(other.screen).toContain('작업 전에 확인할 변경이 1건 있어요.');
+    expect(other.screen).toContain('작업 전에 확인할 변경이 1건 있어요 ');
   });
 
   it('답할 변경이 없으면 아무것도 띄우지 않고, "결정 사항 확인"이면 없다고 알려요', async () => {
@@ -296,7 +296,7 @@ describe('답한 뒤 (after-respond)', () => {
       session_id: 's1',
       prompt: '작업',
     });
-    expect(first.screen).toContain('작업 전에 확인할 변경이 2건 있어요.');
+    expect(first.screen).toContain('작업 전에 확인할 변경이 2건 있어요 ');
     // 최신 것(c-9)이 먼저 와요
     await respond(store, {
       pendingCheckId: 'c-9',
@@ -312,7 +312,7 @@ describe('답한 뒤 (after-respond)', () => {
     expect(after.screen).toContain(
       '✓ 기록했어요  #5 · 관계없다 · 내 작업 범위가 아니에요',
     );
-    expect(after.screen).toContain('확인할 변경이 1건 남았어요.');
+    expect(after.screen).toContain('확인할 변경이 1건 남았어요 ');
     expect(after.screen).toContain(' 2/2 ');
   });
 

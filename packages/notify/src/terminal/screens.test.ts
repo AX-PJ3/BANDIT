@@ -64,7 +64,7 @@ describe('켤 때 알림 (T2)', () => {
   it('1건이면 "총" 없이 영역과 건수만 보여 준다', () => {
     assert.deepEqual(plain(sessionNotice([demoItem()]) ?? ''), [
       '',
-      '● [app] 결정 사항이 1건 변경되었어요.',
+      '  [app] 결정 사항이 1건 변경되었어요.',
       '  작업을 시작하면 변경 내역을 상세히 볼 수 있어요.',
     ]);
   });
@@ -76,7 +76,7 @@ describe('켤 때 알림 (T2)', () => {
     });
     assert.equal(
       plain(sessionNotice([demoItem(), notifyItem]) ?? '')[1],
-      '● [notify, app] 결정 사항이 총 2건 변경되었어요.',
+      '  [notify, app] 결정 사항이 총 2건 변경되었어요.',
     );
   });
 
@@ -89,35 +89,58 @@ describe('켤 때 알림 (T2)', () => {
     const yellowBoldOne = '\u001b[1m\u001b[33m1';
     assert.ok((sessionNotice([demoItem()]) ?? '').includes(yellowBoldOne));
   });
+
+  it('첫 줄 앞에는 ● 대신 노란 막대를 세운다 (v2)', () => {
+    const yellowBar = '\u001b[33m\u001b[7m \u001b[27m\u001b[39m ';
+    const lines = (sessionNotice([demoItem()]) ?? '').split('\n');
+    assert.ok(lines[1]?.startsWith(yellowBar));
+    assert.ok(!lines[2]?.includes(yellowBar), '설명 줄에는 막대가 없어요');
+  });
 });
 
 describe('변경 상세 (T3)', () => {
-  it('데모 예시가 부건님 시안 모양 그대로 나온다', () => {
+  it('데모 예시가 부건님 v2 시안 모양 그대로 나온다', () => {
     assert.deepEqual(plain(detailScreen(demoItem(), 1, 1, { now: SAME_DAY })), [
       '',
-      '작업 전에 확인할 변경이 1건 있어요.',
-      '',
-      '[app] 앱 알림 제목은 32자 이하로 쓴다',
+      `-- 작업 전에 확인할 변경이 1건 있어요 ${'-'.repeat(38)}`,
+      '[app] 앱 알림 제목은 32자 이하로 쓴다 (변경)',
       '      부건님이 오후 2:13에 변경했어요.',
       '  변경  40자 ⭢ 32자',
+      '  상세  공백 포함 32자 이하',
       '',
       '  이유  Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
       '  이슈  #5 담당자에게 알리고 답 기록하기',
       '  출처  AI 대화',
+      '-'.repeat(COLS),
     ]);
   });
 
-  it('2건 이상이면 반전 칩을 붙이고, 두 번째부터는 남은 건수를 보여 준다', () => {
+  it('위아래 선은 76칸이다', () => {
     const lines = plain(detailScreen(demoItem(), 2, 3, { now: SAME_DAY }));
-    assert.equal(lines[1], '확인할 변경이 2건 남았어요.');
-    assert.equal(lines[3], ' 2/3 ');
+    assert.equal(textWidth(lines[1] ?? ''), COLS);
+    assert.equal(textWidth(lines.at(-1) ?? ''), COLS);
+  });
+
+  it('제목은 청록 굵은 글자다 (v2)', () => {
+    const cyanBold = '\u001b[1m\u001b[36m앱 알림 제목은 32자 이하로 쓴다';
+    assert.ok(
+      detailScreen(demoItem(), 1, 1, { now: SAME_DAY }).includes(cyanBold),
+    );
+  });
+
+  it('2건 이상이면 위 선 머리표에 반전 칩을 붙이고, 두 번째부터는 남은 건수를 보여 준다', () => {
+    const lines = plain(detailScreen(demoItem(), 2, 3, { now: SAME_DAY }));
+    assert.match(
+      lines[1] ?? '',
+      /^-- {2}2\/3 {2}확인할 변경이 2건 남았어요 -+$/,
+    );
   });
 
   it('"결정 사항 확인"으로 다시 부르면 "작업 전에"를 뺀다', () => {
     const lines = plain(
       detailScreen(demoItem(), 1, 1, { now: SAME_DAY, recall: true }),
     );
-    assert.equal(lines[1], '확인할 변경이 1건 있어요.');
+    assert.match(lines[1] ?? '', /^-- 확인할 변경이 1건 있어요 -+$/);
   });
 
   it('오늘이 아니면 날짜를 함께 쓴다', () => {
@@ -127,7 +150,7 @@ describe('변경 상세 (T3)', () => {
     );
   });
 
-  it('새로 생긴 결정 사항은 (신규) 표시와 "새로 생긴 결정 사항이에요"', () => {
+  it('새로 생긴 결정 사항은 (신규) 태그와 상세만 보여 준다', () => {
     const item = demoItem();
     item.standard = {
       ...item.standard,
@@ -135,20 +158,25 @@ describe('변경 상세 (T3)', () => {
       previousVersion: null,
     };
     const lines = plain(detailScreen(item, 1, 1, { now: SAME_DAY }));
-    assert.equal(lines[3], '[app] 앱 알림 제목은 32자 이하로 쓴다 (신규)');
-    assert.equal(lines[5], '  변경  새로 생긴 결정 사항이에요');
+    assert.equal(lines[2], '[app] 앱 알림 제목은 32자 이하로 쓴다 (신규)');
+    assert.equal(lines[4], '  상세  공백 포함 32자 이하');
+    assert.equal(lines[5], '');
   });
 
   it('되돌림은 (되돌림)을 회색 글자색으로 붙인다 (notify.revert.mark-by-screen, 임시 회색)', () => {
     const item = demoItem();
     item.standard = { ...item.standard, isRevert: true };
     const text = detailScreen(item, 1, 1, { now: SAME_DAY });
-    assert.match(plain(text)[3] ?? '', /\(되돌림\)$/);
+    assert.match(plain(text)[2] ?? '', /\(되돌림\)$/);
     const grayRevert = '\u001b[90m (되돌림)\u001b[39m';
     assert.ok(text.includes(grayRevert), '회색(90) 글자색이 아니에요');
   });
 
-  it('(신규)는 지금처럼 흐린 글자다', () => {
+  it('(변경)과 (신규)는 흐린 글자다', () => {
+    const dimChange = '\u001b[2m (변경)\u001b[22m';
+    assert.ok(
+      detailScreen(demoItem(), 1, 1, { now: SAME_DAY }).includes(dimChange),
+    );
     const item = demoItem();
     item.standard = {
       ...item.standard,
@@ -169,12 +197,12 @@ describe('변경 상세 (T3)', () => {
         '변경마다 기준 제목, 이전 값, 지금 값, 이유, 바꾼 사람을 보여 준다',
     };
     assert.equal(
-      plain(detailScreen(removed, 1, 1, { now: SAME_DAY }))[5],
+      plain(detailScreen(removed, 1, 1, { now: SAME_DAY }))[4],
       '  변경  "근거," 삭제',
     );
   });
 
-  it('크게 바뀌면 "문장을 새로 썼어요"와 이전 값을 보여 준다', () => {
+  it('크게 바뀌면 이전 값 한 줄과 상세(지금 값)를 보여 준다', () => {
     const item = demoItem();
     item.standard = {
       ...item.standard,
@@ -182,8 +210,26 @@ describe('변경 상세 (T3)', () => {
       value: '앱은 웹 앱으로 만들고 PWA로 설치할 수 있게 한다',
     };
     const lines = plain(detailScreen(item, 1, 1, { now: SAME_DAY }));
-    assert.equal(lines[5], '  변경  문장을 새로 썼어요');
-    assert.equal(lines[6], '  이전  데스크톱 앱은 Electron으로 만든다');
+    assert.equal(lines[4], '  이전  데스크톱 앱은 Electron으로 만든다');
+    assert.equal(
+      lines[5],
+      '  상세  앱은 웹 앱으로 만들고 PWA로 설치할 수 있게 한다',
+    );
+  });
+
+  it('긴 상세는 두 줄까지 접고, 넘치면 끝을 줄인다', () => {
+    const item = demoItem();
+    item.standard = {
+      ...item.standard,
+      previousValue: '짧은 값',
+      value: Array.from({ length: 40 }, (_, i) => `낱말${i}`).join(' '),
+    };
+    const text = detailScreen(item, 1, 1, { now: SAME_DAY });
+    assertFits(text);
+    const lines = plain(text);
+    assert.match(lines[5] ?? '', /^ {2}상세 {2}낱말0 /);
+    assert.match(lines[6] ?? '', /^ {8}낱말\d+ .*…$/);
+    assert.equal(lines[7], '');
   });
 
   it('이전 버전에 관계있다고 답했으면 빈 줄 자리에 "다시 고쳐야 해요"를 넣는다 (SIL-77)', () => {
@@ -201,7 +247,7 @@ describe('변경 상세 (T3)', () => {
       value: '공백 포함 30자 이하',
     };
     const lines = plain(detailScreen(item, 1, 1, { now: SAME_DAY }));
-    assert.equal(lines[5], '  변경  32자 ⭢ 30자');
+    assert.equal(lines[4], '  변경  32자 ⭢ 30자');
     assert.equal(
       lines[6],
       '        지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요.',
@@ -232,7 +278,7 @@ describe('변경 상세 (T3)', () => {
     };
     const text = detailScreen(item, 1, 2, { now: SAME_DAY });
     assertFits(text);
-    assert.match(plain(text)[4] ?? '', /…$/);
+    assert.match(plain(text)[2] ?? '', /… \(변경\)$/);
   });
 
   it('Claude Code 머리줄을 더해도 15줄 안에 들어간다 (착수 안내 T3)', () => {
@@ -248,6 +294,15 @@ describe('변경 상세 (T3)', () => {
 });
 
 describe('답한 뒤 (T4·T5)', () => {
+  it('"✓ 기록했어요"는 통째로 초록이다 (v2)', () => {
+    const [first] = recordedLines(demoItem(), {
+      affected: true,
+      known: false,
+      unaffectedReason: null,
+    });
+    assert.ok(first?.startsWith('\u001b[32m✓ 기록했어요\u001b[39m'));
+  });
+
   it('관계있다면 기록 줄과 "다음 작업부터 따라요"', () => {
     assert.deepEqual(
       recordedLines(demoItem(), {
@@ -287,7 +342,7 @@ describe('답한 뒤 (T4·T5)', () => {
   it('닫고 넘어간 뒤 알림, 0건, 자동 닫힘 한 줄', () => {
     assert.equal(
       plain(skippedReminder(2))[1],
-      '● 확인할 변경 2건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
+      '  확인할 변경 2건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
     );
     assert.equal(plain(nothingLeft())[1], '✓ 확인할 변경이 없어요.');
     assert.equal(
@@ -299,7 +354,7 @@ describe('답한 뒤 (T4·T5)', () => {
   it('연결에 실패하면 실패와 다시 시작하는 방법을 알린다 (SIL-80 B4)', () => {
     assert.deepEqual(plain(connectionFailedNotice()), [
       '',
-      '● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.',
+      '  서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.',
       '  "결정 사항 확인"을 입력하면 다시 시작해요.',
     ]);
   });
