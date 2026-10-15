@@ -31,6 +31,7 @@ import {
   isNewStandard,
   needsRework,
   sameStandardVersions,
+  supersededText,
 } from './format.ts';
 
 /**
@@ -44,7 +45,10 @@ const QUESTIONS = {
 /** 지난번에 "관계있다"로 답한 사람에게 붙이는 안내 (notify.pending.renotify-hint v2) */
 const REWORK_NOTICE =
   '이전 결정 사항으로 작업 중이었다면 최신 결정 사항을 반영해 주세요';
-/** 대체된 변경에 붙이는 안내 (신지님 시안 10/15) */
+/**
+ * 대체된 변경에 붙이는 안내 (신지님 시안 10/15).
+ * 대체한 새 버전이 자동으로 닫혀 답할 카드가 없으면 목록과 같은 "이미 확인한 값으로 돌아왔어요"를 써요 (supersededText)
+ */
 const SUPERSEDED_NOTICE =
   '확인할 변경이 새 버전으로 대체되었어요. 최신 버전의 확인할 변경에 답해 주세요.';
 
@@ -173,7 +177,14 @@ export function ChangeDetail(props: {
       {isSuperseded ? (
         // 대체된 변경 안내는 "지금 해야 할 일" 옆 노란 안내로 보여 줘요 (신지님 시안 10/15)
         <>
-          <SectionTitle bottom={0} right={<Notice text={SUPERSEDED_NOTICE} />}>
+          <SectionTitle
+            bottom={0}
+            right={
+              <Notice
+                text={replacing ? SUPERSEDED_NOTICE : supersededText(null)}
+              />
+            }
+          >
             지금 해야 할 일
           </SectionTitle>
           {replacing && (
