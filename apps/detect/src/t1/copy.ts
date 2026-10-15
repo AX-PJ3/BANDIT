@@ -137,6 +137,20 @@ export const T1_COPY = {
     no: { label: '아니요', description: '등록하지 않아요' },
   },
   /**
+   * 되돌림일 때 선택 창 질문 (detect.change.revert-mark). 부건님과 정할 초안 문구(SIL-104).
+   * 바꿀 값이 지금이 아닌 예전 버전과 같거나 뜻이 같으면 아래 질문으로 바꿔 물어요. 선택지는 그대로예요.
+   * {version}은 되돌아갈 버전 번호예요
+   */
+  revert: {
+    /** ①② 묻기 (`ask.question` 대신) */
+    ask: 'v{version}의 값으로 되돌리는 작업이에요. 그래도 진행할까요?',
+    /** ③ 뒤 선택 창 (`preview.confirm` 대신) */
+    confirm: 'v{version}의 값으로 되돌려 등록할까요?',
+    /** 직접 요청일 때 ③ 뒤 선택 창 (`direct.confirm` 대신) */
+    directConfirm:
+      '달라지게 되는 기존 결정 사항 내역을 확인했나요? v{version}의 값으로 되돌려 등록할까요?',
+  },
+  /**
    * ④ 등록 완료. 저장 직후 hook(`hook-saved.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 10/14).
    * 받는 이슈 수는 ③에서 `preview.ts`가 읽어 둔 값이에요. 못 읽었으면 그 줄을 빼요
    */

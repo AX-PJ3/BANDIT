@@ -944,6 +944,19 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
       ['예', '아니요'],
     );
   });
+
+  it('되돌림이면 묻기와 ③ 선택 창 질문만 되돌림 문구로 바뀌어요 (SIL-104 초안, detect.change.revert-mark)', () => {
+    expect(T1_COPY.revert).toEqual({
+      ask: 'v{version}의 값으로 되돌리는 작업이에요. 그래도 진행할까요?',
+      confirm: 'v{version}의 값으로 되돌려 등록할까요?',
+      directConfirm:
+        '달라지게 되는 기존 결정 사항 내역을 확인했나요? v{version}의 값으로 되돌려 등록할까요?',
+    });
+    // 질문만 바뀌고 같은 선택 창이라 끝은 기존 질문과 같은 모양이에요
+    for (const question of Object.values(T1_COPY.revert)) {
+      expect(question).toMatch(/v\{version\}.*\?$/);
+    }
+  });
 });
 
 describe('notice.ts와 hook-notice.ts', () => {
