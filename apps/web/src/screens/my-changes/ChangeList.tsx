@@ -10,6 +10,7 @@ import { KindChips, SourceChips, StatusCell } from './Badges.tsx';
 import {
   findReplacingVersion,
   formatTime,
+  groupByIssue,
   needsRework,
   supersededText,
 } from './format.ts';
@@ -190,25 +191,6 @@ function IssueGroups(props: {
       })}
     </>
   );
-}
-
-/** 상세 위 이슈 탭도 같은 순서를 써요 */
-export function groupByIssue(items: MyChange[]): MyChange[][] {
-  const groups = new Map<string, MyChange[]>();
-  for (const item of items) {
-    groups.set(item.issue.key, [...(groups.get(item.issue.key) ?? []), item]);
-  }
-  const hasPending = (group: MyChange[]) =>
-    group.some((item) => item.status === 'pending');
-  return [...groups.values()]
-    .map((group) =>
-      [...group].sort((a, b) => b.standard.version - a.standard.version),
-    )
-    .sort(
-      (a, b) =>
-        Number(hasPending(b)) - Number(hasPending(a)) ||
-        Date.parse(b[0]!.createdAt) - Date.parse(a[0]!.createdAt),
-    );
 }
 
 const ellipsis: CSSProperties = {

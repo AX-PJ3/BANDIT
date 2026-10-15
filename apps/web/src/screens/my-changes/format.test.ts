@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { MOCK_ME, mockApi } from '../../api/mock.ts';
 import {
   findReplacingVersion,
+  groupByIssue,
   isFoundInPr,
   isNewStandard,
   MAX_NOTIFICATION_TITLE_LENGTH,
   needsRework,
+  sameStandardVersions,
   sourceChipLabel,
   supersededText,
   toNotification,
@@ -95,5 +97,30 @@ describe('OS 알림 (A1)', () => {
 
   it('짧은 글은 그대로 둬요', () => {
     expect(truncate('짧은 제목', 40)).toBe('짧은 제목');
+  });
+});
+
+describe('이슈 별로 묶기', () => {
+  it('이슈 안은 최신 변경 순이에요 (다른 결정 사항끼리 버전 번호로 섞지 않아요)', () => {
+    const issue5 = groupByIssue(changes).find(
+      (group) => group[0]!.issue.key === '#5',
+    )!;
+    const times = issue5.map((item) => Date.parse(item.createdAt));
+    expect(times).toEqual([...times].sort((a, b) => b - a));
+  });
+
+  it('버전 탭은 같은 이슈의 같은 결정 사항 버전만 보여 줘요', () => {
+    const versions = sameStandardVersions(
+      byId('inbox-reason-length-v3'),
+      changes,
+    );
+    expect(versions.map((item) => item.standard.version)).toEqual([3, 2]);
+    expect(new Set(versions.map((item) => item.standard.id))).toEqual(
+      new Set(['notify.answer.reason-length']),
+    );
+    // 같은 이슈 #5에 다른 결정 사항도 있지만 섞이지 않아요
+    expect(
+      sameStandardVersions(byId('inbox-title-length-v2'), changes),
+    ).toHaveLength(1);
   });
 });

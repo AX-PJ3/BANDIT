@@ -90,3 +90,43 @@ export function toNotification(change: MyChange): ChangeNotification {
     body: `${change.standard.previousValue ?? '새 결정 사항'} → ${change.standard.value}`,
   };
 }
+
+/**
+ * 이슈 번호로 묶어요. 상세 위 이슈 탭도 같은 순서를 써요.
+ * 이슈 하나에 결정 사항이 여럿 걸릴 수 있어서, 상자 안은 버전 번호가 아니라 최신 변경 순이에요.
+ */
+export function groupByIssue(items: MyChange[]): MyChange[][] {
+  const groups = new Map<string, MyChange[]>();
+  for (const item of items) {
+    groups.set(item.issue.key, [...(groups.get(item.issue.key) ?? []), item]);
+  }
+  const hasPending = (group: MyChange[]) =>
+    group.some((item) => item.status === 'pending');
+  return [...groups.values()]
+    .map((group) =>
+      [...group].sort(
+        (a, b) =>
+          Date.parse(b.createdAt) - Date.parse(a.createdAt) ||
+          b.standard.version - a.standard.version,
+      ),
+    )
+    .sort(
+      (a, b) =>
+        Number(hasPending(b)) - Number(hasPending(a)) ||
+        Date.parse(b[0]!.createdAt) - Date.parse(a[0]!.createdAt),
+    );
+}
+
+/** 상세 위 버전 탭: 같은 이슈에서 같은 결정 사항의 버전만, 높은 버전부터. 하나뿐이면 탭을 그리지 않아요 */
+export function sameStandardVersions(
+  change: MyChange,
+  all: MyChange[],
+): MyChange[] {
+  return all
+    .filter(
+      (item) =>
+        item.issue.key === change.issue.key &&
+        item.standard.id === change.standard.id,
+    )
+    .sort((a, b) => b.standard.version - a.standard.version);
+}

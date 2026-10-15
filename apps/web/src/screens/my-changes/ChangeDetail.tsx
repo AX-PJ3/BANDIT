@@ -24,12 +24,13 @@ import {
   TextButton,
 } from '../../ui/tds.tsx';
 import { KindChips, SourceChips, StatusChip, statusLabel } from './Badges.tsx';
-import { groupByIssue } from './ChangeList.tsx';
 import {
   findReplacingVersion,
   formatTime,
+  groupByIssue,
   isNewStandard,
   needsRework,
+  sameStandardVersions,
 } from './format.ts';
 
 /**
@@ -246,8 +247,8 @@ function PeerTabs(props: {
   const currentGroup = groups.find((group) =>
     group.some((item) => item.pendingCheckId === props.change.pendingCheckId),
   );
-  const versions =
-    currentGroup && currentGroup.length > 1 ? currentGroup : null;
+  const sameStandard = sameStandardVersions(props.change, props.all);
+  const versions = sameStandard.length > 1 ? sameStandard : null;
   return (
     <>
       <div
