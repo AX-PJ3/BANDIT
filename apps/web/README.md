@@ -26,14 +26,18 @@ web/
 │   └── icons/                 192·512 아이콘, 마스크 아이콘, iOS 홈 화면 아이콘
 └── src/
     ├── main.tsx          화면을 그리고 서비스 워커를 등록해요
-    ├── App.tsx           메뉴와 화면 세 칸, "앱으로 설치"·"알림 켜기" 버튼, 알림을 눌러 연 변경 넘겨주기
+    ├── App.tsx           메뉴와 "나에게 온 변경" 화면, "앱으로 설치" 버튼, 알림을 눌러 연 변경 넘겨주기
+    ├── me.ts             내 이름 정하기 (?me=<이름>을 브라우저에 저장)
     ├── pwa.ts            서비스 워커 등록, 설치 안내, 설치한 앱인지 확인, 알림 권한·띄우기·누른 변경 받기
     ├── api/
     │   ├── types.ts      화면 ↔ 데이터 약속 (SilApi). 두 사람이 맞추는 유일한 파일
     │   ├── index.ts      화면은 여기 있는 api만 써요 (진짜 데이터 / 예시 데이터를 골라 줘요)
-    │   ├── database.ts   진짜 데이터. '@sil/core/data'로 Supabase에 바로 붙어요 (정민님)
-    │   └── mock.ts       예시 데이터 버전 (신지님이 먼저 만들어도 돼요)
-    └── screens/          화면 파일 (신지님)
+    │   ├── database.ts   진짜 데이터. '@sil/core/data'로 Supabase에 바로 붙어요
+    │   ├── mock.ts       예시 데이터 버전 (@sil/core의 inbox 예시)
+    │   └── my-changes.ts 확인할 변경·버전·이슈·답을 카드 한 장으로 묶기 (SIL-100 뒤 buildPendingList로 바꿔요)
+    └── screens/
+        ├── MyChangesScreen.tsx   나에게 온 변경 (A1~A4). 목록과 상세를 상태로 바꿔요
+        └── my-changes/           목록(A2), 상세·답하기(A3·A4), 알림 꺼짐 안내, 불러오기·구독·OS 알림(useMyChanges)
 ```
 
 ## 왜 이렇게 만들었나요
@@ -49,11 +53,11 @@ web/
 
 착수 안내 4절의 A1(OS 알림)과 "알림 꺼짐" 상태에 쓰는 함수가 `src/pwa.ts`에 있어요. **언제 띄울지**(Realtime 구독, app.notify.realtime)와 **알림 문구**(app.notify.title-length)는 쓰는 쪽에서 정해요.
 
-| 함수                                               | 하는 일                                                                                                                                  | 쓰는 곳                 |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
-| `useNotificationPermission()`                      | 알림 권한(`granted`·`default`·`denied`·`unsupported`)과 요청 함수. `granted`가 아니면 "알림 꺼짐" 상태예요. 요청은 버튼을 누를 때만 해요 | A2 알림 꺼짐 (호윤님)   |
-| `showChangeNotification({ checkId, title, body })` | OS 알림을 띄워요. 같은 변경은 알림 센터에 한 건만 남아요. 권한이 없으면 `false`                                                          | 새 확인할 변경 (민수님) |
-| `useOpenCheckRequests(onOpen)`                     | 알림을 눌러 연 확인할 변경 ID를 받아요. `App.tsx`가 받아서 나에게 온 변경 화면에 `openedCheckId`로 넘겨요                                | A1 → A3 (호윤님)        |
+| 함수                                               | 하는 일                                                                                                                                  | 쓰는 곳                             |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `useNotificationPermission()`                      | 알림 권한(`granted`·`default`·`denied`·`unsupported`)과 요청 함수. `granted`가 아니면 "알림 꺼짐" 상태예요. 요청은 버튼을 누를 때만 해요 | A2 알림 꺼짐 (`NotificationBanner`) |
+| `showChangeNotification({ checkId, title, body })` | OS 알림을 띄워요. 같은 변경은 알림 센터에 한 건만 남아요. 권한이 없으면 `false`                                                          | 새 확인할 변경 (`useMyChanges`)     |
+| `useOpenCheckRequests(onOpen)`                     | 알림을 눌러 연 확인할 변경 ID를 받아요. `App.tsx`가 받아서 나에게 온 변경 화면에 `openedCheckId`로 넘겨요                                | A1 → A3 (`App.tsx`)                 |
 
 알림을 누르면 이렇게 열려요 (app.notify.click-to-inbox, `public/sw.js`의 `notificationclick`):
 
@@ -82,13 +86,18 @@ await showChangeNotification({
 
 응답 헤더는 따로 바꾸지 않아도 돼요. 브라우저는 `sw.js`를 확인할 때 HTTP 저장을 거치지 않아서(`updateViaCache` 기본값) 새 배포를 알아채요. `assets/*`는 이름에 내용 해시가 붙어서 오래 저장해도 돼요.
 
-## 화면에 데이터 연결하기 (예: 나에게 온 변경 목록)
+## 나에게 온 변경 (A1~A4, SIL-74)
 
-1. `src/api/types.ts`: `SilApi`에 `listMyChanges(): Promise<PendingCheck[]>`를 더해요 (타입은 `@sil/core`에서)
-2. `src/api/mock.ts`: 같은 함수를 `@sil/core`의 쿠폰 예시 데이터로 만들어요 (화면 담당이 먼저 해도 돼요)
-3. `src/api/database.ts`: `@sil/core/data`의 `listPendingChecks({ recipient })`로 진짜 데이터를 읽어요 (정민님)
+| 화면           | 하는 일                                                                                                                    | 데이터                                                 |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| A2 목록        | "확인할 변경"(대기)과 "확인한 변경"(답함, 대체됨), "전체"/"이슈 별로 보기" 탭, 빈 화면, 알림 꺼짐 안내, 불러오기 실패 이유 | `api.listMyChanges(me)` 한 번 (notify.list.one-call)   |
+| A3 상세·답하기 | 결정 사항, 이전 값 → 지금 값, 이유, 출처 칩, 누가·언제, 내 이슈, 관계있다/없다 → 알았다/몰랐다 또는 이유(100자)            | `api.answer(me, input)` (채널 `'app'`)                 |
+| A4 답한 뒤     | 내 답과 답한 시각, 진행 3단계(새 변경 → 확인 완료 → 작업 반영), "작업 반영했어요" 체크("관계있다"로 답한 카드만)           | `api.markReflected(me, id, reflected)`                 |
+| A1 OS 알림     | 창이 열려 있는 동안 새 대기 변경이 생기면 알림(제목 40자 이하), 누르면 그 변경의 상세                                      | `api.watchMyChanges(me, …)` → `showChangeNotification` |
 
-빠뜨리면 타입 검사(`pnpm typecheck`)가 어디가 비었는지 알려 줘요.
+- **내 이름:** 주소에 `?me=<이름>`(이슈 담당자 이름)을 붙여 한 번 열면 브라우저가 기억해요. 예시 데이터로 열면 이름 없이도 예시를 받는 사람(민수)으로 열려요. 이름을 고르는 화면은 없어요 (10/15 호윤).
+- **예시 데이터로 확인:** `pnpm app:web` → 데모 예시(`app.notify.title-length` 40자 → 32자) 카드의 "답하기"를 눌러 답하고 반영 체크까지 해 봐요. 답은 창 메모리에만 저장돼요 (새로 고치면 처음으로).
+- **아직 SIL-100을 기다리는 것:** 답함·대체됨 7일 뒤 숨기기와 지난번 답 안내(`previousAnswer`)는 `@sil/notify`의 `buildPendingList`가 채워요. 진짜 데이터에서는 그 전까지 7일이 지난 답도 보이고 지난번 답 안내가 나오지 않아요. 예시 데이터는 되돌림 카드에만 직접 붙여 뒀어요.
 
 ## 꼭 지킬 것
 
@@ -101,5 +110,4 @@ await showChangeNotification({
 ## 아직 남은 것
 
 - **배포 주소:** 어디에 올릴지(호스팅)만 정하면 돼요. 위 "배포하기" 순서대로 올려요 (SIL-73 마지막 조건).
-- **앱 알림 시점(app.notify.realtime):** 알림을 띄우고 누르는 길은 있어요(위 "알림"). 확인할 변경이 생길 때 Realtime으로 받아 `showChangeNotification`을 부르는 곳은 민수님(SIL-67)이 만들어요.
 - **위키 적용 범위 경로:** 팀 위키는 PR #5(SIL-64)에서 웹 + PWA 기준으로 고쳐졌어요. 다만 `app.*` 기준의 적용 범위가 `packages/app/**`라서 이 폴더(`apps/web`)와 경로가 달라요 (`pnpm sil scope-check`).

@@ -2,7 +2,7 @@
   "name": "@sil/app",
   "version": "0.0.0",
   "private": true,
-  "description": "웹 앱 (PWA): 나에게 온 변경, 위키, 지표 화면. 브라우저로 열고 앱으로 설치해요",
+  "description": "웹 앱 (PWA): 나에게 온 변경 화면. 브라우저로 열고 앱으로 설치해요",
   "type": "module",
   "scripts": {
     "dev": "vite",

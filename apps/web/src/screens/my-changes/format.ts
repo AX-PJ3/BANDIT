@@ -1,0 +1,87 @@
+/**
+ * 나에게 온 변경 화면에서 쓰는 글자 만들기예요. 화면 컴포넌트와 알림(A1)이 같이 써요.
+ */
+import { SOURCE_CHIP_LABELS } from '@sil/core';
+import type { ChangeNotification } from '../../pwa.ts';
+import type { MyChange } from '../../api/types.ts';
+
+/** 운영체제 알림 제목은 40자 이하 (app.notify.title-length) */
+export const MAX_NOTIFICATION_TITLE_LENGTH = 40;
+
+/** 길면 끝을 줄여요(…). 줄인 뒤에도 max자 이하예요 */
+export function truncate(text: string, max: number): string {
+  const chars = [...text];
+  return chars.length <= max ? text : `${chars.slice(0, max - 1).join('')}…`;
+}
+
+const timeFormat = new Intl.DateTimeFormat('ko-KR', {
+  hour: 'numeric',
+  minute: '2-digit',
+});
+const dateFormat = new Intl.DateTimeFormat('ko-KR', {
+  month: 'long',
+  day: 'numeric',
+});
+
+/** 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13" (보는 사람의 시간대, 타입명세서 11-4) */
+export function formatTime(iso: string, now = new Date()): string {
+  const date = new Date(iso);
+  const time = timeFormat.format(date);
+  return date.toDateString() === now.toDateString()
+    ? time
+    : `${dateFormat.format(date)} ${time}`;
+}
+
+/** 출처 칩 글자. 예: "AI 대화에서 바꿈" (app.card.source-chip-only) */
+export function sourceChipLabel(change: MyChange): string {
+  return `${SOURCE_CHIP_LABELS[change.standard.source]}에서 바꿈`;
+}
+
+/** "PR에서 찾음"은 AI가 찾았고 출처가 코드일 때만 (app.card.found-in-pr-code-only, D61) */
+export function isFoundInPr(change: MyChange): boolean {
+  return change.standard.aiDetected && change.standard.source === 'code';
+}
+
+/** 이전 값이 없으면 새로 생긴 결정 사항이에요 (버전 1) */
+export function isNewStandard(change: MyChange): boolean {
+  return change.standard.previousValue === null;
+}
+
+/** 지난번에 "관계있다"로 답했으면 다시 고쳐야 한다고 알려 줘요 (SIL-77) */
+export function needsRework(change: MyChange): boolean {
+  return change.previousAnswer?.affected === true;
+}
+
+/**
+ * 대체된 변경을 대체한 새 버전 번호예요. 서버가 알려 주지 않아서
+ * 같은 목록에서 같은 결정 사항·같은 이슈의 더 높은 버전 중 가장 가까운 것을 찾아요. 없으면 null.
+ */
+export function findReplacingVersion(
+  change: MyChange,
+  all: MyChange[],
+): number | null {
+  const higher = all
+    .filter(
+      (item) =>
+        item.standard.id === change.standard.id &&
+        item.issue.key === change.issue.key &&
+        item.standard.version > change.standard.version,
+    )
+    .map((item) => item.standard.version);
+  return higher.length > 0 ? Math.min(...higher) : null;
+}
+
+export function supersededText(version: number | null): string {
+  return version === null
+    ? '새 버전으로 대체됐어요'
+    : `새 버전 v${version}으로 대체됐어요`;
+}
+
+/** 새 확인할 변경 OS 알림(A1). 제목은 결정 사항 제목, 본문은 "이전 값 → 지금 값" */
+export function toNotification(change: MyChange): ChangeNotification {
+  return {
+    checkId: change.pendingCheckId,
+    title: truncate(change.standard.title, MAX_NOTIFICATION_TITLE_LENGTH),
+    body: `${change.standard.previousValue ?? '새 결정 사항'} → ${change.standard.value}`,
+  };
+}
