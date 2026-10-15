@@ -7,16 +7,16 @@ MVP 사일로의 모노레포예요. 팀 기준 위키(MCP 서버), 명령어(CL
 
 ## 지금 상태 (10/12)
 
-| 항목                   | 상태                                                                                                                | 담당 이슈              |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------- |
-| 저장소 구조, 개발 환경 | ✅ 빌드 없이 Node 24.18이 `.ts`를 바로 실행. PR마다 도는 검사(CI)는 아직                                            | SIL-16, SIL-61         |
-| MCP 서버               | ✅ Streamable HTTP + 팀 토큰. 위키 도구 5개 + 알리기 도구 2개 + `ping`. **HTTPS로 올릴 곳은 아직**                  | SIL-19, SIL-67         |
-| 명령어                 | ✅ `doctor`, `import`, `deprecate`, `changelog`, `export`, `backup`, `scope-check`                                  | SIL-28, SIL-39, SIL-65 |
-| 알리기                 | ◐ 확인할 변경 만들기(DB 함수, `createPendingChecks`), MCP 도구 `list_pending`·`respond`. 터미널 카드·앱 알림은 아직 | SIL-67                 |
-| 웹 앱 (PWA)            | ✅ 켜짐, 설치 가능(로컬에서 확인). 화면 세 칸은 자리만 있음. 배포 주소는 아직                                       | SIL-65, SIL-42·44·45   |
-| 바뀐 기준 찾기         | ⏳ 경하님이 `apps/detect`에 붙여요                                                                                  | SIL-66                 |
-| 데이터베이스           | ✅ Supabase. 기준·버전·이슈·확인할 변경·답·충돌 표와 저장 함수, 규칙 검사 211개                                     | SIL-14, SIL-18, SIL-65 |
-| 공통 타입              | ✅ 착수 안내 "데이터 항목 목록 v2"를 따름                                                                           | SIL-65                 |
+| 항목                   | 상태                                                                                                                                                   | 담당 이슈              |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| 저장소 구조, 개발 환경 | ✅ 빌드 없이 Node 24.18이 `.ts`를 바로 실행. PR마다 도는 검사(CI)는 아직                                                                               | SIL-16, SIL-61         |
+| MCP 서버               | ✅ Streamable HTTP + 팀 토큰. 위키 도구 5개 + 알리기 도구 2개 + `ping`. **HTTPS로 올릴 곳은 아직**                                                     | SIL-19, SIL-67         |
+| 명령어                 | ✅ `doctor`, `import`, `deprecate`, `changelog`, `export`, `backup`, `scope-check`                                                                     | SIL-28, SIL-39, SIL-65 |
+| 알리기                 | ◐ 확인할 변경 만들기(DB 함수, `createPendingChecks`), MCP 도구 `list_pending`·`respond`, 터미널 알림 hooks(`pnpm mcp:register`가 설치). 앱 알림은 아직 | SIL-67                 |
+| 웹 앱 (PWA)            | ✅ 켜짐, 설치 가능(로컬에서 확인). 화면 세 칸은 자리만 있음. 배포 주소는 아직                                                                          | SIL-65, SIL-42·44·45   |
+| 바뀐 기준 찾기         | ⏳ 경하님이 `apps/detect`에 붙여요                                                                                                                     | SIL-66                 |
+| 데이터베이스           | ✅ Supabase. 기준·버전·이슈·확인할 변경·답·충돌 표와 저장 함수, 규칙 검사 211개                                                                        | SIL-14, SIL-18, SIL-65 |
+| 공통 타입              | ✅ 착수 안내 "데이터 항목 목록 v2"를 따름                                                                                                              | SIL-65                 |
 
 위키 도구와 데이터베이스는 연결됐어요. 알리기 도구, 화면, 바뀐 기준 찾기는 "어디에 무엇을 붙이면 되는지"까지만 만들어 두었어요.
 팀 위키(team-wiki/)의 기준 중 저장소가 지킬 수 있는 것은 DB 함수와 검사로 맞춰 두었어요. 디자이너와 팀원용 설명은 [docs/설계-지침서.md](docs/설계-지침서.md)에 있어요. 기능을 만들 때 쓰는 타입과 이름 연결표는 [docs/타입명세서.md](docs/타입명세서.md)에 있어요.
@@ -148,20 +148,21 @@ haribo/
 
 ## 자주 쓰는 명령
 
-| 명령                            | 하는 일                                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------- |
-| `pnpm onboard`                  | 개발 환경 확인, .env 만들기                                                      |
-| `pnpm mcp:check`                | Claude Code 없이 MCP 서버가 HTTP로 켜지고 답하는지 확인 (`--url`: 올린 서버)     |
-| `pnpm mcp:register`             | 내 Claude Code에 팀 MCP 서버 등록 (`--local`: 내 컴퓨터 서버)                    |
-| `pnpm mcp:serve` / `mcp:dev`    | MCP 서버 켜기 (`dev`는 저장하면 다시 켜짐)                                       |
-| `pnpm mcp:token <팀 이름>`      | 팀 토큰 만들기 (서버의 `SIL_MCP_TOKENS`에 이어 붙여요)                           |
-| `pnpm db:push`                  | 마이그레이션을 연결한 Supabase 프로젝트에 올리기                                 |
-| `pnpm app:web`                  | 웹 앱 화면 열기 (http://localhost:5173, .env에 Supabase 값이 없으면 예시 데이터) |
-| `pnpm app:build`                | 웹 앱 배포 파일 만들기 (`apps/web/dist/`)                                        |
-| `pnpm app:preview`              | 배포본 열기 (http://localhost:4173). PWA 설치와 서비스 워커는 여기서 확인        |
-| `pnpm sil <명령>`               | sil 명령어 실행. 예: `pnpm sil --help`                                           |
-| `pnpm check`                    | PR 올리기 전 전체 검사 (타입, 린트, 포맷, 테스트)                                |
-| `pnpm format` / `pnpm lint:fix` | 모양 맞추기 / 고칠 수 있는 린트 자동 수정                                        |
+| 명령                            | 하는 일                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------- |
+| `pnpm onboard`                  | 개발 환경 확인, .env 만들기                                                                 |
+| `pnpm mcp:check`                | Claude Code 없이 MCP 서버가 HTTP로 켜지고 답하는지 확인 (`--url`: 올린 서버)                |
+| `pnpm mcp:register`             | 내 Claude Code에 팀 MCP 서버 등록 (`--local`: 내 컴퓨터 서버)                               |
+| `pnpm mcp:status`               | 내 Claude Code에 등록된 haribo 보기. 팀 토큰은 가려요 (`claude mcp get`은 그대로 보여 줘요) |
+| `pnpm mcp:serve` / `mcp:dev`    | MCP 서버 켜기 (`dev`는 저장하면 다시 켜짐)                                                  |
+| `pnpm mcp:token <팀 이름>`      | 팀 토큰 만들기 (서버의 `SIL_MCP_TOKENS`에 이어 붙여요)                                      |
+| `pnpm db:push`                  | 마이그레이션을 연결한 Supabase 프로젝트에 올리기                                            |
+| `pnpm app:web`                  | 웹 앱 화면 열기 (http://localhost:5173, .env에 Supabase 값이 없으면 예시 데이터)            |
+| `pnpm app:build`                | 웹 앱 배포 파일 만들기 (`apps/web/dist/`)                                                   |
+| `pnpm app:preview`              | 배포본 열기 (http://localhost:4173). PWA 설치와 서비스 워커는 여기서 확인                   |
+| `pnpm sil <명령>`               | sil 명령어 실행. 예: `pnpm sil --help`                                                      |
+| `pnpm check`                    | PR 올리기 전 전체 검사 (타입, 린트, 포맷, 테스트)                                           |
+| `pnpm format` / `pnpm lint:fix` | 모양 맞추기 / 고칠 수 있는 린트 자동 수정                                                   |
 
 ## 브랜치와 PR
 
@@ -173,7 +174,7 @@ haribo/
 | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | `pnpm install`이 `ERR_PNPM_IGNORED_BUILDS`로 멈춤 | 설치 스크립트가 필요한 새 패키지예요. `pnpm approve-builds`로 허락하고 `pnpm-workspace.yaml`에 이유를 주석으로 남겨요  |
 | `pnpm install`이 갓 나온 버전을 받지 않음         | pnpm 11은 나온 지 하루가 안 된 버전을 막아요. 버전 범위를 조금 낮춰요 (예: `^44.0.0`)                                  |
-| `pnpm mcp:check`는 되는데 Claude Code에 안 보임   | `claude mcp get haribo`로 등록을 확인하고, Claude Code를 완전히 껐다 켜요                                              |
+| `pnpm mcp:check`는 되는데 Claude Code에 안 보임   | `pnpm mcp:status`로 등록을 확인하고(토큰은 가려요), Claude Code를 완전히 껐다 켜요                                     |
 | Claude Code에서 haribo가 `failed`·인증 요구       | 주소 끝이 `/mcp`인지, 토큰이 맞는지 봐요. `curl <주소에서 /mcp 뺀 것>/health`가 `ok`면 서버는 살아 있어요              |
 | 위키 도구가 `DB_NOT_CONFIGURED`                   | 서버 환경 변수에 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`가 없어요                                                   |
 | 올린 서버의 `/health`가 안 열림                   | 서버 환경 변수 `SIL_MCP_HOST=0.0.0.0`을 봐요. 설치·실행 명령은 [mcp-server/README](apps/mcp-server/README.md) "올리기" |

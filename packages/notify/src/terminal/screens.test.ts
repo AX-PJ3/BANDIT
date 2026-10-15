@@ -6,6 +6,7 @@ import {
   COLS,
   allAnsweredLine,
   autoClosedLine,
+  connectionFailedNotice,
   detailScreen,
   formatWhen,
   isRecall,
@@ -293,6 +294,14 @@ describe('답한 뒤 (T4·T5)', () => {
       stripAnsi(autoClosedLine('#5')),
       '✓ #5 변경이 되돌려졌어요. 하려던 작업을 계속 진행하시면 돼요.',
     );
+  });
+
+  it('연결에 실패하면 실패와 다시 시작하는 방법을 알린다 (SIL-80 B4)', () => {
+    assert.deepEqual(plain(connectionFailedNotice()), [
+      '',
+      '● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.',
+      '  "결정 사항 확인"을 입력하면 다시 시작해요.',
+    ]);
   });
 
   it('"결정 사항 확인"만 입력했을 때만 다시 부른 것으로 본다', () => {
