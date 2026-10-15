@@ -672,7 +672,7 @@ def detail_screen(c, index, total, recall=False):
         ' ' * head_width + color_line(f'{c["who"]}님이 {c["when"]}에 변경했어요.', OLD_COLOR),
         *value_lines(c),          # 15줄 안에 들어가도록 값·이유 묶음은 빈 줄 없이 붙인다 (기록 뒤 화면 14줄, 문장을 새로 쓴 변경 15줄)
         f'  이유  ' + t2.cut_end(c['reason'], COLS - 8),
-        f'  이슈  ' + issue_text(c),
+        ' ' * 8 + issue_text(c),       # 이슈 줄은 이름표 없이 값 칸에 맞춘다 (10/15 부건, 앱·터미널 용어 비교 14번)
         f'  출처  {source_text(c)}',
         rule_bottom(),
     ])
@@ -774,10 +774,11 @@ def next_screen():
 def done_text(total, answered, recall=False):
     """마무리 한 줄. 잘 모르겠다로 남긴 변경이 있으면 "모두"라고 하지 않고 답한 건수만 말한다."""
     start_work = '' if recall else ' 이제 작업을 시작할게요.'
+    # 문구 10/15 부건 (앱·터미널 용어 비교 16번)
     if answered < total:
-        return f'확인할 변경 {answered}건을 답했어요.{start_work}'
+        return f'변경 {answered}건을 확인했어요.{start_work}'
     count = f' {total}건' if total > 1 else ''     # 1건에 "1건을 모두"는 어색해서 뺀다
-    return f'확인할 변경{count}을 모두 답했어요.{start_work}'
+    return f'변경{count}을 모두 확인했어요.{start_work}'
 
 
 def after_unsure():
@@ -888,7 +889,7 @@ def reflect_screen(changes):
     top = f'{color_line(lead, NEW_COLOR)}{head}{color_line(RULE * max(2, COLS - t2.text_width(lead + head)), NEW_COLOR)}'
     rows = []
     for c in changes:
-        rows += [title_line(c), reflect_value_line(c), '  이슈  ' + issue_text(c)]
+        rows += [title_line(c), reflect_value_line(c), ' ' * 8 + issue_text(c)]     # 상세와 같이 이름표 없이 (10/15)
     return '\n'.join(['', top, *rows, rule_bottom()])
 
 
@@ -938,3 +939,77 @@ def reflect_reminder():
     막대와 빈칸이 2칸이라 위 상태 줄의 글자 시작과 맞는다."""
     word = f'{esc("1")}{esc(COUNT_COLOR)}{REFLECT}{esc("39")}{esc("22")}'
     return '\n'.join(['', f'{GRAY_BAR}확인한 결정 사항을 이슈에도 반영했다면, "{word}"을 입력해 주세요.'])
+
+
+# ---------- 연결 실패 (SIL-80 B4, 위키 notify.error.not-empty · notify.error.no-block-retry) · 제안 10/15 ----------
+# 팀 코드(haribo-hook.mjs, connectionFailedNotice)는 "● 서버에 연결하지 못해서…" + "결정 사항 확인을 입력하면 다시 시작해요."를
+# 켤 때·입력할 때 같은 글로 띄운다. v2 모양에 맞춰 바꾸자는 제안:
+# - ●는 Claude 답의 점과 섞여서(v1 피드백 P1·P2) 막대로. 실패는 T1 예외 3(조사 실패)과 같은 빨간 막대 + 빨간 첫 줄
+# - "못해서" → "못해" (T1 "조회하지 못해"와 같게), 둘째 줄은 상황마다 다음에 할 일을 말한다 ("다시 시작해요"는 무엇을 시작하는지 모호)
+# - 다시 부르는 말은 v2 규칙대로 노란 굵은 글자
+FAIL_COLOR = '31'
+FAIL_HEAD = '서버에 연결하지 못해 {what}'
+
+
+def fail_line(text):
+    """빨간 막대(빨강을 반전한 칸 하나) + 빈칸 + 빨간 글자. T1 예외 3의 colorBar('red')와 같은 모양."""
+    return f'{esc(FAIL_COLOR)}{esc("7")} {esc("27")}{esc("39")} {esc(FAIL_COLOR)}{text}{esc("39")}'
+
+
+def word(text):
+    """회색 안내 줄 안의 입력할 말: 노란 굵은 글자. 끝나면 회색으로 돌아간다(39 혼자). 따옴표는 회색."""
+    return f'"{esc("1")}{esc(COUNT_COLOR)}{text}{esc("39")}{esc("22")}"'
+
+
+def failed_session_start():
+    """켤 때 목록을 못 불러옴. 작업을 입력하면 hooks가 서버를 다시 부르니 따로 할 일이 없다."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='확인할 변경을 불러오지 못했어요.')),
+                      '  작업을 시작하면 다시 불러올게요.'])
+
+
+def failed_prompt():
+    """작업을 입력할 때 목록을 못 불러옴. 작업은 막지 않는다 (no-block-retry).
+    서버 주소가 틀림·서버가 꺼짐·느림은 응답이 없어 구분할 수 없어서, 원인을 짐작하지 않고 다음 할 일만 말한다 (10/15 부건, B).
+    다시 부르는 말은 위키가 꼭 알리라고 정했고, 셋째 줄은 T1 예외 3과 같은 말. 한 줄로 합치면 94칸이라 나눈다"""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='확인할 변경을 불러오지 못했어요.')),
+                      f'  하던 작업은 그대로 진행해요. {word(RECALL)}을 입력하면 다시 불러와요.',
+                      '  반복된다면 담당자에게 알려 주세요.'])
+
+
+def failed_recall():
+    """"결정 사항 확인"을 입력했는데 못 불러옴. 방금 그 말을 입력한 사람에게 같은 말을 또 입력하라고 하지 않는다."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='확인할 변경을 불러오지 못했어요.')),
+                      '  잠시 뒤 다시 입력해 보시고 반복된다면 담당자에게 알려 주세요.'])
+
+
+def failed_record():
+    """답을 기록하지 못함. 그 변경은 대기로 남고, 남은 변경은 더 묻지 않고 작업으로 넘어간다 (서버가 안 되면 다음 기록도 실패해서)."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='답을 기록하지 못했어요.')),
+                      f'  답하지 않은 변경으로 남아요. {word(RECALL)}을 입력하면 다시 물어요.'])
+
+
+def failed_reflect():
+    """이슈 반영을 등록하지 못함."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='이슈 반영을 등록하지 못했어요.')),
+                      f'  잠시 뒤 {word(REFLECT)}을 다시 입력해 주세요.'])
+
+
+def failed_setup():
+    """설정 파일(config.json)이 없음. hooks 스크립트가 파일을 못 읽는 순간 바로 안다. 팀 코드는 괄호 셋째 줄."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='확인할 변경을 불러오지 못했어요.')),
+                      '  설정 파일이 없어요. pnpm mcp:register를 다시 실행해 주세요.'])
+
+
+def failed_auth():
+    """팀 토큰이나 이름이 틀림. 서버가 거절(401)로 알려 줘서 구분할 수 있다.
+    서버 주소가 틀린 것과 서버가 꺼진 것·느린 것은 모두 응답이 없어서 구분할 수 없다 → failed_prompt와 같은 글 (10/15)."""
+    return '\n'.join(['', fail_line(FAIL_HEAD.format(what='확인할 변경을 불러오지 못했어요.')),
+                      '  팀 토큰이나 이름이 맞지 않아요. pnpm mcp:register를 다시 실행해 주세요.'])
+
+
+# MCP 도구만 안 붙었을 때 (10/15 부건, 방법 ①). hooks와 MCP는 따로 연결돼서, hooks가 상세를 띄워도 Claude 손에 질문·기록 도구가 없을 수 있다.
+# hooks는 MCP 연결 상태를 알 수 없으니, 입력할 때마다 hooks가 Claude에게 보내는 안내(additionalContext)에 규칙을 넣는다.
+# MCP 서버 안내문(instructions)은 MCP가 끊기면 Claude에게 오지 않아서 거기에 넣으면 소용이 없다. 문장은 Claude가 쓰는 글이라 근사
+MCP_MISSING_TEXT = '질문 도구(haribo)에 연결하지 못해 지금은 답을 받을 수 없어요. /mcp에서 haribo 연결을 확인해 주세요.'
+MCP_MISSING_RULE = ('[확인할 변경 규칙] mcp__haribo__ 로 시작하는 도구가 없으면 질문하지 않는다. '
+                    f'아래 문장을 한 번 그대로 쓰고 사용자의 요청을 처리한다: "{MCP_MISSING_TEXT}"')
