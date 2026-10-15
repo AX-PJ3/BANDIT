@@ -8,7 +8,7 @@
  * - "이슈에 반영했어요"는 "관계있다"로 답한 카드에만, 답한 뒤에만 켜요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).
  */
 import { isSilError, MAX_UNAFFECTED_REASON_LENGTH } from '@sil/core';
-import { useRef, useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { api } from '../../api/index.ts';
 import type { MyChange } from '../../api/types.ts';
 import { CheckIcon, InfoIcon } from '../../ui/icons.tsx';
@@ -57,8 +57,9 @@ const STEP_DESCRIPTIONS = [
 
 /** 고르지 않은 큰 버튼 / 고른 큰 버튼 (프로토타입 값 그대로) */
 const UNSELECTED_BUTTON: CSSProperties = {
-  background: 'rgba(222, 222, 255, 0.30)',
-  color: '#FFFFFF',
+  // 고르기 전에는 "현재 결정 사항" 상자와 같은 연한 파랑, 글자는 파랑 (신지님 시안 10/15)
+  background: C.blue50,
+  color: '#1F72EA',
   fontSize: 15,
 };
 const SELECTED_BUTTON: CSSProperties = { fontSize: 15 };
@@ -115,13 +116,27 @@ export function ChangeDetail(props: {
           {standard.title}
         </Text>
         <StatusChip change={change} />
-        <KindChips change={change} />
+        <KindChips change={change} hideRevert />
         <SourceChips change={change} />
-        {change.issue.status === 'done' && (
-          <Chip inline tone="green">
-            완료된 이슈
-          </Chip>
-        )}
+      </div>
+
+      {/* 바뀐 이유는 이슈 카드 안이 아니라 결정 사항 제목 바로 아래에 붙어요 (신지님 시안 10/15) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 14,
+          marginTop: 14,
+        }}
+      >
+        <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <Text typography="t7" color={C.grey500}>
+            바뀐 이유
+          </Text>
+        </div>
+        <Text typography="t7" color={C.grey800}>
+          {standard.reason}
+        </Text>
       </div>
 
       <IssueCard change={change} />
@@ -136,13 +151,20 @@ export function ChangeDetail(props: {
         ) : (
           <>
             <ValueBox
-              label="변경 전"
+              label="이전 결정 사항"
               value={`${standard.previousValue} (v${standard.previousVersion})`}
             />
             <ValueBox
-              label="확정된 결과"
+              label="현재 결정 사항"
               value={`${standard.value} (v${standard.version})`}
               isAfter
+              tag={
+                standard.isRevert ? (
+                  <Chip inline tone="purple">
+                    되돌림
+                  </Chip>
+                ) : undefined
+              }
             />
           </>
         )}
@@ -185,7 +207,7 @@ export function ChangeDetail(props: {
         <>
           <SectionTitle
             bottom={0}
-            description="내 작업이 바뀐 값에 영향을 받는지 답해주세요."
+            description="내 이슈가 바뀐 결정 사항에 영향을 받는지 답해주세요"
             right={
               needsRework(change) ? <Notice text={REWORK_NOTICE} /> : undefined
             }
@@ -284,7 +306,12 @@ function PeerTabs(props: {
                 role="tab"
                 aria-selected={isActive}
                 aria-label={`이슈 ${first.issue.key} ${first.standard.title} (${statusLabel(first)})`}
-                title={`${first.standard.title} · ${statusLabel(first)}`}
+                // 지금 보고 있는 이슈 칩에는 제목을 띄우지 않아요 (신지님 시안 10/15)
+                title={
+                  isActive
+                    ? undefined
+                    : `${first.standard.title} · ${statusLabel(first)}`
+                }
                 onClick={() => !isActive && props.onOpen(target.pendingCheckId)}
                 style={{
                   position: 'relative',
@@ -455,30 +482,24 @@ function IssueCard(props: { change: MyChange }) {
             {change.standard.changedBy ?? '모름'} ·{' '}
             {formatTime(change.standard.changedAt)}
           </Text>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 14,
-              marginTop: 4,
-            }}
-          >
-            <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-              <Text typography="t7" color={C.grey500}>
-                바뀐 이유
-              </Text>
-            </div>
-            <Text typography="t7" color={C.grey800}>
-              {change.standard.reason}
-            </Text>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
+/** 이슈 카드 오른쪽 상태 칩. 완료된 이슈면 [완료]를 하나 더 붙여요 (신지님 시안 10/15) */
 function IssueStateChips(props: { change: MyChange }) {
+  const { change } = props;
+  return (
+    <>
+      <AnswerStateChips change={change} />
+      {change.issue.status === 'done' && <Chip tone="green">완료</Chip>}
+    </>
+  );
+}
+
+function AnswerStateChips(props: { change: MyChange }) {
   const { change } = props;
   if (change.status === 'pending') return <Chip tone="orange">대기</Chip>;
   if (change.status === 'superseded') return <Chip tone="gray">대체됨</Chip>;
@@ -496,7 +517,13 @@ function IssueStateChips(props: { change: MyChange }) {
   );
 }
 
-function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
+function ValueBox(props: {
+  label: string;
+  value: string;
+  isAfter?: boolean;
+  /** 이름 옆에 붙는 칩 (되돌림) */
+  tag?: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -510,10 +537,13 @@ function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
         gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', height: 24 }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 8, height: 24 }}
+      >
         <Text typography="st12" color={props.isAfter ? C.blue700 : C.grey600}>
           {props.label}
         </Text>
+        {props.tag}
       </div>
       <Text typography="st11" fontWeight="medium" color={C.grey900}>
         {props.value}
@@ -623,7 +653,7 @@ function AnswerForm(props: {
         elapsedSeconds: Math.round((Date.now() - openedAt.current) / 1000),
       });
       await props.onSaved();
-      props.onToast('답했어요. 확인할 변경 상태가 답함으로 바뀌었어요.');
+      props.onToast('답변을 완료했어요.');
     } catch (error: unknown) {
       if (isSilError(error) && error.code === 'PENDING_CLOSED') {
         props.onClosedElsewhere();
@@ -870,11 +900,44 @@ function AnsweredBox(props: {
           {CHANNEL_LABELS[answer.channel]}에서 답함
         </Text>
         {props.onNext && (
-          <TextButton size="medium" hasArrow onClick={props.onNext}>
-            <span style={{ fontSize: 13, fontWeight: 400, color: C.grey900 }}>
+          // 화살표는 작게(12px), 글자와 같은 얇은 굵기로 (신지님 시안 10/15)
+          <button
+            type="button"
+            onClick={props.onNext}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 2,
+              border: 0,
+              background: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              color: C.grey900,
+            }}
+          >
+            <span
+              style={{ fontSize: 13, fontWeight: 400, lineHeight: '19.5px' }}
+            >
               다음 변경
             </span>
-          </TextButton>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              style={{ flexShrink: 0 }}
+            >
+              <path
+                d="M6 3.5 10.5 8 6 12.5"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         )}
       </div>
     </div>

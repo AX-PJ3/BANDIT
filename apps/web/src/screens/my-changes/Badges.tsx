@@ -43,8 +43,8 @@ export function StatusChip(props: { change: MyChange }) {
   );
 }
 
-/** 새 결정 사항, 새 버전, 되돌림 */
-export function KindChips(props: { change: MyChange }) {
+/** 새 결정 사항, 새 버전, 되돌림. 상세 제목 옆에서는 되돌림을 빼고 "현재 결정 사항" 상자에 붙여요 (신지님 시안 10/15) */
+export function KindChips(props: { change: MyChange; hideRevert?: boolean }) {
   const { change } = props;
   return (
     <>
@@ -58,7 +58,7 @@ export function KindChips(props: { change: MyChange }) {
           새 버전 v{change.standard.version}
         </Chip>
       )}
-      {change.standard.isRevert && (
+      {change.standard.isRevert && !props.hideRevert && (
         <Chip inline tone="purple">
           되돌림
         </Chip>
