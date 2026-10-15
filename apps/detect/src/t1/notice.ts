@@ -4,7 +4,7 @@
  *   node apps/detect/src/t1/notice.ts <<'EOF'
  *   {"kind":"searchFailed","trigger":"agent"}
  *   EOF
- * kind: searchFailed(trigger 필요) / same·similar(existing: id·title·value 필요) / revertSame(version과 existing 필요) / similarDeclined.
+ * kind: searchFailed(trigger 필요) / same·similar(existing: id·title·value 필요) / revertSame(version·versionValue와 existing 필요) / similarDeclined.
  * 예외 7(저장하는 사이 바뀜)은 저장 도구 hook(`hook-saved.ts`)이 바로 띄워서 여기서 받지 않아요
  */
 import { readFileSync } from 'node:fs';
@@ -37,6 +37,7 @@ function isValid(notice: T1NoticeInput): boolean {
       return (
         Number.isInteger(notice.version) &&
         notice.version >= 1 &&
+        isFilled(notice.versionValue) &&
         STANDARD_ID_PATTERN.test(String(notice.existing?.id)) &&
         isFilled(notice.existing.title) &&
         isFilled(notice.existing.value)
@@ -50,7 +51,7 @@ function isValid(notice: T1NoticeInput): boolean {
 
 if (!isValid(input)) {
   console.error(
-    'kind(searchFailed|same|similar|revertSame|similarDeclined)와 그 kind에 필요한 칸(trigger, existing의 id·title·value, revertSame이면 version)이 있어야 해요',
+    'kind(searchFailed|same|similar|revertSame|similarDeclined)와 그 kind에 필요한 칸(trigger, existing의 id·title·value, revertSame이면 version·versionValue)이 있어야 해요',
   );
   process.exit(1);
 }
