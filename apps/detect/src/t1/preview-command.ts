@@ -10,6 +10,9 @@ export const PREVIEW_DONE = '③ 등록될 모습 값을 임시로 들고 있어
 /** conflicts.ts가 마지막 줄에 남기는 표시. hook-conflicts.ts가 이 뒤의 표로 파일을 찾아요 */
 export const CONFLICTS_DONE = '다른 결정 사항 화면 값을 임시로 들고 있어요:';
 
+/** notice.ts가 마지막 줄에 남기는 표시. hook-notice.ts가 이 뒤의 표로 파일을 찾아요 */
+export const NOTICE_DONE = 'T1 안내 값을 임시로 들고 있어요:';
+
 /**
  * hook이 화면을 띄운 뒤 에이전트에게만 전하는 말(additionalContext). 사람에게는 보이지 않아요.
  * 에이전트는 hook 글이 사람 화면에 떴는지 몰라서 "화면을 띄웠어요" 같은 설명을 덧붙여요 (10/15 시험)
@@ -37,6 +40,7 @@ const t1Command = (file: string) =>
   );
 const PREVIEW_COMMAND = t1Command('preview');
 const CONFLICTS_COMMAND = t1Command('conflicts');
+const NOTICE_COMMAND = t1Command('notice');
 
 export function isPreviewCommand(command: string): boolean {
   return PREVIEW_COMMAND.test(command);
@@ -85,4 +89,13 @@ export function findPreviewId(stdout: string): string | undefined {
 /** conflicts.ts 출력에서 이번 화면의 표를 찾아요. 없으면 undefined */
 export function findConflictsToken(stdout: string): string | undefined {
   return findAfter(stdout, CONFLICTS_DONE);
+}
+
+export function isNoticeCommand(command: string): boolean {
+  return NOTICE_COMMAND.test(command);
+}
+
+/** notice.ts 출력에서 이번 안내의 표를 찾아요. 없으면 undefined */
+export function findNoticeToken(stdout: string): string | undefined {
+  return findAfter(stdout, NOTICE_DONE);
 }

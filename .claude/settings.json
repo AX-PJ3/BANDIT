@@ -14,6 +14,10 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-conflicts.ts\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-notice.ts\""
           }
         ]
       },
