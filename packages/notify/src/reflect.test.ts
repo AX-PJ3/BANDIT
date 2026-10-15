@@ -44,7 +44,7 @@ const markOn: SaveReflectedInput = {
 const markOff: SaveReflectedInput = { ...markOn, reflected: false };
 
 describe('checkReflect (SIL-93)', () => {
-  it('관계있다로 답한 변경은 작업 반영을 표시할 수 있다', () => {
+  it('관계있다로 답한 변경은 이슈 반영을 표시할 수 있다', () => {
     assert.deepEqual(checkReflect(check(), answer(), markOn), { ok: true });
   });
 

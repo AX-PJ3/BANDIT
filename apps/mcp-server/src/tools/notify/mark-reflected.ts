@@ -5,7 +5,7 @@ import { defineTool } from '../../lib/define-tool.ts';
 import { loadNotifyData, requireUser } from './shared.ts';
 
 /**
- * 작업 반영 표시 (SIL-93, notify.check.reflected, data.pending.reflected).
+ * 이슈 반영 표시 (SIL-93, notify.check.reflected, data.pending.reflected).
  * 담당자가 "작업에 반영했어요"라고 말하면 에이전트가 이 도구로 표시를 저장해요.
  * AI가 코드를 보고 반영했는지 판단하지 않아요. 사람이 말한 것만 저장해요.
  *
@@ -14,10 +14,10 @@ import { loadNotifyData, requireUser } from './shared.ts';
  */
 export const markReflectedTool = defineTool({
   name: 'mark_reflected',
-  title: '작업 반영 표시하기',
+  title: '이슈 반영 표시하기',
   description:
-    '내가 관계있다로 답한 확인할 변경을 내 작업(코드, 디자인 등)에 반영했다고 표시하거나, 그 표시를 풀어요. ' +
-    '사람이 "작업에 반영했어요"처럼 직접 말했을 때만 불러요. 코드를 보고 반영했다고 짐작해서 부르지 않아요. ' +
+    '내가 관계있다로 답한 확인할 변경을 내 이슈 결과물(코드, 디자인 등)에 반영했다고 표시(이슈 반영)하거나, 그 표시를 풀어요. ' +
+    '사람이 "이슈 반영"을 입력해 hooks가 띄운 질문에서 골랐을 때, 또는 "이슈에 반영했어요"처럼 직접 말했을 때만 불러요. 코드를 보고 반영했다고 짐작해서 부르지 않아요. ' +
     '어느 변경인지 모르면 list_pending(includeClosed: true)으로 답한 변경을 찾아 pendingCheckId를 넣어요. 여러 개면 사람에게 어느 것인지 물어요. ' +
     '표시를 풀어도 이슈는 다시 열리지 않아요. ok가 false거나 오류가 나면 message를 그대로 보여 줘요.',
   inputSchema: z.object({

@@ -521,7 +521,7 @@ describe('mark_reflected (SIL-93)', () => {
     return tables;
   }
 
-  it('관계있다로 답한 변경에 작업 반영을 표시하고, list_pending에도 보여요', async () => {
+  it('관계있다로 답한 변경에 이슈 반영을 표시하고, list_pending에도 보여요', async () => {
     installFakeDb(answeredTables(true));
     const minsu = await connectAs('민수');
 
@@ -561,7 +561,7 @@ describe('mark_reflected (SIL-93)', () => {
   it('서버 안내문이 사람이 말했을 때만 표시하라고 알려요', async () => {
     const minsu = await connectAs('민수');
     expect(minsu.getInstructions()).toContain(
-      '"작업에 반영했어요"라고 말하면 mark_reflected로 표시해요',
+      '"이슈에 반영했어요"라고 말하면 mark_reflected로 표시해요',
     );
   });
 

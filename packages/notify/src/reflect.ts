@@ -2,8 +2,8 @@ import type { SaveReflectedInput } from '@sil/core';
 import type { Answer, PendingCheck, PendingCheckStatus } from './types.ts';
 
 /**
- * 작업 반영 표시를 저장하기 전에 검사하는 순수 함수예요 (SIL-93).
- * "작업 반영"은 담당자가 바뀐 결정 사항을 자기 작업에 적용했다는 뜻이에요.
+ * 이슈 반영 표시를 저장하기 전에 검사하는 순수 함수예요 (SIL-93).
+ * "이슈 반영"은 담당자가 바뀐 결정 사항을 자기 이슈 결과물에 적용했다는 뜻이에요 (위키 app.card.three-steps v2).
  *
  * DB 함수 save_reflected는 받은 사람인지, 답한 변경인지만 봐요.
  * 위키 notify.check.reflected v2는 "관계있다로 답한 확인할 변경에만" 표시할 수 있다고 정해서, 그건 여기서 봐요.
@@ -52,7 +52,7 @@ export function checkReflect(
   if (check.recipient !== input.markedBy) {
     return fail(
       'not_recipient',
-      `${check.recipient}님에게 온 확인할 변경이라 ${input.markedBy}님은 작업 반영을 표시할 수 없어요.`,
+      `${check.recipient}님에게 온 확인할 변경이라 ${input.markedBy}님은 이슈 반영을 표시할 수 없어요.`,
     );
   }
   if (check.status !== 'answered') {
@@ -63,13 +63,13 @@ export function checkReflect(
   if (!answer) {
     return fail(
       'answer_not_found',
-      '이 확인할 변경에 한 답을 찾지 못해서 작업 반영을 표시하지 않았어요. 잠시 뒤 다시 해 주세요.',
+      '이 확인할 변경에 한 답을 찾지 못해서 이슈 반영을 표시하지 않았어요. 잠시 뒤 다시 해 주세요.',
     );
   }
   if (!answer.affected) {
     return fail(
       'not_affected',
-      '관계없다로 답한 확인할 변경이라 작업 반영을 표시하지 않아요. 관계있다로 답한 변경에만 표시할 수 있어요.',
+      '관계없다로 답한 확인할 변경이라 이슈 반영을 표시하지 않아요. 관계있다로 답한 변경에만 표시할 수 있어요.',
     );
   }
   return { ok: true };
