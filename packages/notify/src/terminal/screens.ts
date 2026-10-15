@@ -294,11 +294,11 @@ export function recordedLines(
   return lines;
 }
 
-/** 모든 변경에 답했을 때 마무리 한 줄. 1건이면 "1건을 모두"가 어색해서 숫자를 빼요 */
+/** 모든 변경에 답했을 때 마무리 한 줄. 1건이면 "1건을 모두"가 어색해서 숫자를 빼요 (문구 10/15 부건, 앱·터미널 용어 비교 16번) */
 export function allAnsweredLine(totalAtStart: number, recall: boolean): string {
   const count = totalAtStart > 1 ? ` ${totalAtStart}건` : '';
   const start = recall ? '' : ' 이제 작업을 시작할게요.';
-  return bold(`확인할 변경${count}을 모두 답했어요.${start}`);
+  return bold(`변경${count}을 모두 확인했어요.${start}`);
 }
 
 /** 질문을 닫고 넘어간 뒤 작업을 입력할 때마다 띄우는 한 줄 */

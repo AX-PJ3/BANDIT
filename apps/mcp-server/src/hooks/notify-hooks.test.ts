@@ -265,7 +265,7 @@ describe('답한 뒤 (after-respond)', () => {
     expect(result.screen).toContain('✓ 기록했어요  #5 · 관계있다 · 몰랐다');
     expect(result.screen).toContain('다음 작업부터 바뀐 결정 사항을 따라요.');
     expect(result.screen).toContain(
-      '확인할 변경을 모두 답했어요. 이제 작업을 시작할게요.',
+      '변경을 모두 확인했어요. 이제 작업을 시작할게요.',
     );
   });
 

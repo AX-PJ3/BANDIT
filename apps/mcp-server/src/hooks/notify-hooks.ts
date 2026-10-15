@@ -61,7 +61,7 @@ export interface HookInput {
 interface FlowState {
   /** 이번 세션에서 상세와 질문을 띄웠는지. 띄웠는데 대기가 남았으면 사용자가 닫고 넘어간 거예요 */
   asked: boolean;
-  /** 질문을 시작할 때의 전체 건수. "2건 남았어요", "3건을 모두 답했어요"에 써요 */
+  /** 질문을 시작할 때의 전체 건수. "2건 남았어요", "3건을 모두 확인했어요"에 써요 */
   totalAtStart: number;
   /** "결정 사항 확인"으로 다시 부른 것인지. 끝나도 작업을 시작하지 않아요 */
   recall: boolean;

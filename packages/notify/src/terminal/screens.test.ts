@@ -276,11 +276,11 @@ describe('답한 뒤 (T4·T5)', () => {
   it('마무리 한 줄: 1건이면 숫자를 빼고, 다시 부른 경우는 작업을 시작하지 않는다', () => {
     assert.equal(
       stripAnsi(allAnsweredLine(1, false)),
-      '확인할 변경을 모두 답했어요. 이제 작업을 시작할게요.',
+      '변경을 모두 확인했어요. 이제 작업을 시작할게요.',
     );
     assert.equal(
       stripAnsi(allAnsweredLine(3, true)),
-      '확인할 변경 3건을 모두 답했어요.',
+      '변경 3건을 모두 확인했어요.',
     );
   });
 
