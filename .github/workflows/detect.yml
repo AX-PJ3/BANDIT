@@ -1,0 +1,70 @@
+# 바뀐 결정 사항 찾기 — PR 경로 (SIL-66, apps/detect/src/pr)
+#
+# main으로 머지된 PR을 Claude API로 결정 사항과 비교해서, 바뀐 결정 사항이 하나이고 확실할 때만 팀 DB에 새 버전으로 저장해요.
+# 확실하지 않거나 여러 개면 저장하지 않고 PR 댓글로 PR 작성자에게 물어요.
+#
+# 넣어야 하는 값 (apps/detect/README.md "PR 경로 설정")
+#   Secrets: ANTHROPIC_API_KEY, SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY
+#   Variables: SIL_GITHUB_PEOPLE (GitHub 아이디 → 팀 이름 JSON), SIL_DETECT_ASK_TWICE (선택, 기본 true),
+#              SIL_DETECT_MODEL (선택, 기본 claude-opus-5-5), SIL_DETECT_DRY_RUN (선택, true면 저장 끄기)
+name: detect
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+  # 시험용 수동 실행. dry_run(기본 켬)이면 DB에 저장하지 않고 저장하려던 내용만 실행 요약과 PR 댓글로 남겨요
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 확인할 PR 번호
+        required: true
+        type: number
+      dry_run:
+        description: 저장하지 않고 결과만 보기
+        required: true
+        default: true
+        type: boolean
+
+# 최소 권한: 코드 받기(읽기), PR 읽기와 댓글 쓰기
+permissions:
+  contents: read
+  pull-requests: write
+
+# 같은 PR을 동시에 두 번 판단하지 않아요. 시험 실행이 실제 실행을 밀어내지 않게 이벤트별로 나눠요
+concurrency:
+  group: detect-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    # main으로 머지된 PR만 (detect.input.merged-pr-only). 닫기만 한 PR은 건너뛰어요
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # 외부 액션은 커밋으로 고정해요 (v6.0.10, Node 24로 돌아서 pnpm 11을 받아요)
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 바뀐 결정 사항 찾기
+        env:
+          # 비밀 값은 Secrets에서만 읽어요. 코드는 이 값을 로그·댓글에 남기지 않아요
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SIL_GITHUB_PEOPLE: ${{ vars.SIL_GITHUB_PEOPLE }}
+          SIL_DETECT_ASK_TWICE: ${{ vars.SIL_DETECT_ASK_TWICE }}
+          SIL_DETECT_MODEL: ${{ vars.SIL_DETECT_MODEL }}
+          SIL_DETECT_DRY_RUN: ${{ vars.SIL_DETECT_DRY_RUN }}
+          # 입력값은 명령에 바로 끼우지 않고 환경 변수로 넘겨요
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+        run: node apps/detect/src/pr/main.ts --pr "$PR_NUMBER" --dry-run="$DRY_RUN"

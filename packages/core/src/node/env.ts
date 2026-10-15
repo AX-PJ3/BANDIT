@@ -23,6 +23,19 @@ const optionalText = z.preprocess(
   blankToUndefined,
   z.string().trim().optional(),
 );
+/** 'true' / 'false' 켜기·끄기. 대소문자는 가리지 않고, 비우면 기본값이에요 */
+const flag = (defaultValue: boolean) =>
+  z.preprocess(
+    (value) => {
+      const text = blankToUndefined(value);
+      return typeof text === 'string' ? text.trim().toLowerCase() : text;
+    },
+    z
+      .enum(['true', 'false'])
+      .default(defaultValue ? 'true' : 'false')
+      .transform((value) => value === 'true'),
+  );
+
 const optionalUrl = z.preprocess(
   blankToUndefined,
   z.url({ protocol: /^https?$/ }).optional(),
@@ -59,6 +72,30 @@ const EnvSchema = z
       blankToUndefined,
       z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     ),
+    /** (PR 경로) Claude API 키. GitHub Actions에서는 저장소 Secrets에 넣어요. 코드·로그·댓글에 남기지 않아요 (SIL-66) */
+    ANTHROPIC_API_KEY: optionalText,
+    /** (PR 경로) 두 번 묻기. 같은 PR을 두 번 판단해 결과가 같을 때만 저장해요. 기본 켬, 'false'면 끔 (SIL-66) */
+    SIL_DETECT_ASK_TWICE: flag(true),
+    /** (PR 경로) 저장 끄기. true면 머지된 PR도 저장하지 않고 결과만 댓글로 남겨요. 처음 며칠 안전하게 돌릴 때 켜요. 기본 끔 (SIL-66) */
+    SIL_DETECT_DRY_RUN: flag(false),
+    /** (PR 경로) 판단에 쓸 Claude 모델. 비우면 claude-opus-5-5. 예: claude-sonnet-5-5. GitHub 저장소 변수(vars)에 둬요 (SIL-66) */
+    SIL_DETECT_MODEL: z.preprocess(
+      blankToUndefined,
+      z
+        .string()
+        .trim()
+        .regex(
+          /^claude-[a-z0-9-]+$/,
+          'claude-로 시작하는 모델 ID를 넣어 주세요. 예: claude-sonnet-5-5',
+        )
+        .optional(),
+    ),
+    /** (PR 경로) GitHub 아이디 → 팀 이름 표. JSON. 예: {"k0nghaa":"경하"}. GitHub 저장소 변수(vars)에 둬요 (SIL-66) */
+    SIL_GITHUB_PEOPLE: optionalText,
+    /** (PR 경로) GitHub Actions가 넣어 주는 값: PR을 읽고 댓글을 쓰는 토큰, 저장소 이름(owner/repo), 실행 요약 파일 (SIL-66) */
+    GITHUB_TOKEN: optionalText,
+    GITHUB_REPOSITORY: optionalText,
+    GITHUB_STEP_SUMMARY: optionalText,
   })
   .superRefine((env, ctx) => {
     if (Boolean(env.SUPABASE_URL) !== Boolean(env.SUPABASE_PUBLISHABLE_KEY)) {
