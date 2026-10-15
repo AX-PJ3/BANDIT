@@ -6,7 +6,7 @@
  *   두 값이 없으면 예시 데이터로 열려요 (src/api/index.ts).
  * - PWA: public/의 manifest.webmanifest, sw.js, icons/가 그대로 배포돼요. 서비스 워커는 배포본에서만 등록해요 (src/pwa.ts).
  *   빌드가 끝나면 serviceWorkerPrecache가 dist/sw.js에 저장할 파일 목록을 넣어요.
- * - 주소: base를 './'로 둬서 어느 경로에 올려도 열려요 (예: https://<팀>.github.io/HARIBO/ 같은 하위 경로).
+ * - 주소: base를 './'로 둬서 어느 경로에 올려도 열려요 (예: https://<팀>.github.io/BANDIT/ 같은 하위 경로).
  */
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';

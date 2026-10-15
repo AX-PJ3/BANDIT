@@ -1,6 +1,6 @@
 {
-  "name": "HARIBO",
-  "short_name": "HARIBO",
+  "name": "BANDIT",
+  "short_name": "BANDIT",
   "description": "바뀐 팀 기준을 관계있는 사람에게만 알리고 답을 받아요",
   "lang": "ko",
   "start_url": "./",

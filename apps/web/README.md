@@ -21,7 +21,7 @@ web/
 ├── index.html            시작 페이지 (매니페스트, 아이콘 연결)
 ├── vite.config.ts        빌드 설정. .env에서 Supabase 주소와 공용 키 두 값만 화면에 넣고, 빌드 뒤 sw.js에 저장 목록을 넣어요
 ├── public/               그대로 배포되는 파일
-│   ├── manifest.webmanifest   설치 정보 (이름 HARIBO, 아이콘, 앱 창으로 열기)
+│   ├── manifest.webmanifest   설치 정보 (이름 BANDIT, 아이콘, 앱 창으로 열기)
 │   ├── sw.js                  서비스 워커 (설치, 앱 껍데기 오프라인 열기, 알림 누르기. 데이터는 저장하지 않음)
 │   └── icons/                 192·512 아이콘, 마스크 아이콘, iOS 홈 화면 아이콘
 └── src/
@@ -50,7 +50,7 @@ web/
 - **`api/types.ts` 하나만 맞추면** 화면과 데이터를 따로 만들 수 있어요. 화면은 예시 데이터로 먼저 만들고, 합치는 날 화면 코드를 바꾸지 않아요.
 - **서비스 워커는 데이터를 저장하지 않아요.** 옛 값을 지금 값처럼 보여 주면 안 되니까요 (notify.error.not-empty). 같은 주소의 화면 파일만 저장하고, DB 요청은 늘 네트워크로 보내요. DB에 못 붙으면 메뉴 아래에 이유를 빨간 글씨로 보여 줘요.
 - **처음 방문 한 번이면 오프라인으로도 열려요.** `pnpm app:build`가 끝나면 `dist/`의 파일 목록(JS·CSS·아이콘·매니페스트)을 `dist/sw.js`에 넣어서, 서비스 워커가 설치될 때 모두 저장해요. 저장 이름은 그 파일 내용으로 만든 번호라 배포할 때마다 손댈 것이 없어요 (D52).
-- **상대 경로로 빌드해요** (`base: './'`). 배포할 곳이 루트 주소든 `/HARIBO/` 같은 하위 경로든 그대로 열려요. 그래서 화면 이동은 주소 경로 대신 상태와 `?check=` 같은 쿼리로 해요.
+- **상대 경로로 빌드해요** (`base: './'`). 배포할 곳이 루트 주소든 `/BANDIT/` 같은 하위 경로든 그대로 열려요. 그래서 화면 이동은 주소 경로 대신 상태와 `?check=` 같은 쿼리로 해요.
 
 ## 알림 (A1)
 
@@ -84,8 +84,8 @@ await showChangeNotification({
 1. `pnpm app:build` → `apps/web/dist/`가 생겨요. 이 폴더를 정적 파일 호스팅에 그대로 올려요.
 2. 배포한 곳의 환경 변수(빌드할 때 읽어요)에 `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`를 넣어요. 없으면 예시 데이터로 열려요.
 3. **HTTPS 주소**여야 설치와 서비스 워커가 돼요 (`localhost`는 예외). 정적 호스팅은 대부분 HTTPS를 붙여 줘요.
-4. 루트 주소(예: `https://haribo.vercel.app/`)와 하위 경로(예: `https://ax-pj3.github.io/HARIBO/`) 모두 설정 없이 열려요. "없는 경로는 index.html로" 설정도 필요 없어요.
-5. 하위 경로로 미리 확인하려면 `pnpm -C apps/web exec vite preview --base /HARIBO/ --port 4174`로 열고 http://localhost:4174/HARIBO/ 로 들어가요.
+4. 루트 주소(예: `https://bandit.vercel.app/`)와 하위 경로(예: `https://ax-pj3.github.io/BANDIT/`) 모두 설정 없이 열려요. "없는 경로는 index.html로" 설정도 필요 없어요.
+5. 하위 경로로 미리 확인하려면 `pnpm -C apps/web exec vite preview --base /BANDIT/ --port 4174`로 열고 http://localhost:4174/BANDIT/ 로 들어가요.
 
 응답 헤더는 따로 바꾸지 않아도 돼요. 브라우저는 `sw.js`를 확인할 때 HTTP 저장을 거치지 않아서(`updateViaCache` 기본값) 새 배포를 알아채요. `assets/*`는 이름에 내용 해시가 붙어서 오래 저장해도 돼요.
 
