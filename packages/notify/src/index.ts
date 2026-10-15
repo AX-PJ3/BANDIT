@@ -1,5 +1,12 @@
 export { applyNewVersion } from './applyNewVersion.ts';
 export type { ApplyNewVersionOptions } from './applyNewVersion.ts';
+export {
+  loadNotifyData,
+  toAnswers,
+  toNotifyCheck,
+  toVersionRecord,
+} from './coreData.ts';
+export type { NotifyDataSource } from './coreData.ts';
 export { createPendingChecks } from './createPendingChecks.ts';
 export type {
   ClosedCheck,
