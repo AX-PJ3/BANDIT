@@ -69,7 +69,9 @@ describe('카드 표시', () => {
     expect(findReplacingVersion(superseded, changes)).toBe(3);
     expect(findReplacingVersion(superseded, [superseded])).toBeNull();
     expect(supersededText(3)).toBe('새 버전 v3으로 대체됐어요');
-    expect(supersededText(null)).toBe('새 버전으로 대체됐어요');
+    expect(supersededText(null)).toBe(
+      '새 버전으로 대체됐다가, 내가 이미 확인한 값으로 돌아왔어요. 답하지 않아도 돼요',
+    );
   });
 });
 
