@@ -76,9 +76,16 @@ export function findReplacingVersion(
   return higher.length > 0 ? Math.min(...higher) : null;
 }
 
+/**
+ * 대체한 버전이 목록에 없으면 그 버전이 자동으로 닫힌 거예요. 내가 이미 확인한 값으로 되돌려져서
+ * 새 확인할 변경이 생기지 않았고, 자동 닫힘은 화면에 보이지 않아요 (notify.pending.last-seen-order, notify.pending.hide-auto-closed)
+ */
+export const RETURNED_TO_SEEN_TEXT =
+  '새 버전으로 대체됐다가, 내가 이미 확인한 값으로 돌아왔어요';
+
 export function supersededText(version: number | null): string {
   return version === null
-    ? '새 버전으로 대체됐어요'
+    ? `${RETURNED_TO_SEEN_TEXT}. 답하지 않아도 돼요`
     : `새 버전 v${version}으로 대체됐어요`;
 }
 
