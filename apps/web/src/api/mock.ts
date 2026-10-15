@@ -15,39 +15,46 @@ import {
   SilError,
   type Answer,
 } from '@sil/core';
+import {
+  buildPendingList,
+  toNotifyCheck,
+  toVersionRecord,
+  type NotifyData,
+  type PendingCheck as NotifyPendingCheck,
+} from '@sil/notify/browser';
 import { currentPlatform } from '../pwa.ts';
-import { toMyChanges } from './my-changes.ts';
-import type { MyChange, SilApi } from './types.ts';
+import type { SilApi } from './types.ts';
 
 /** 예시로 열면 이 사람으로 열어요 (주소에 ?me=가 없을 때) */
 export const MOCK_ME = INBOX_RECIPIENT;
 
+/**
+ * 예시의 "지금"이에요. 예시 날짜(10/12~10/15)가 7일 규칙(notify.list.closed-7-days)에 걸려
+ * 날이 지나면서 사라지지 않게 고정해요. 이 창에서 새로 한 답은 이보다 늦어서 그대로 보여요.
+ */
+const MOCK_NOW = '2026-10-15T06:00:00.000Z';
+
 const checks = structuredClone(inboxPendingChecks);
 const answers: Answer[] = structuredClone(inboxAnswers);
 
-/**
- * 지난번 답(previousAnswer)은 SIL-100 뒤 buildPendingList가 채워요.
- * 그 전까지 예시에서는 되돌림 카드에만 직접 붙여서 "다시 고쳐야 해요" 안내를 볼 수 있게 해요.
- */
-const PREVIOUS_ANSWER_OF: Record<string, string> = {
-  'inbox-hide-auto-closed-v3': 'inbox-hide-auto-closed-v2',
-};
-
-function withPreviousAnswer(change: MyChange): MyChange {
-  const previousCheckId = PREVIOUS_ANSWER_OF[change.pendingCheckId];
-  const previousCheck = checks.find((item) => item.id === previousCheckId);
-  const answer = answers.find(
-    (item) => item.pendingCheckId === previousCheckId,
-  );
-  if (!previousCheck || !answer) return change;
+/** 진짜 데이터와 같은 목록 만들기(buildPendingList)에 넘길 모양으로 바꿔요 */
+function toNotifyData(): NotifyData {
   return {
-    ...change,
-    previousAnswer: {
-      version: previousCheck.version,
+    issues: inboxIssues,
+    standardVersions: inboxVersions.map(toVersionRecord),
+    pendingChecks: checks
+      .map(toNotifyCheck)
+      .filter((check): check is NotifyPendingCheck => check !== null),
+    answers: answers.map((answer) => ({
+      id: answer.id,
+      pendingCheckId: answer.pendingCheckId,
+      answeredBy: answer.answeredBy ?? INBOX_RECIPIENT,
       affected: answer.affected,
       known: answer.known,
+      unaffectedReason: answer.unaffectedReason,
+      channel: answer.channel,
       answeredAt: answer.answeredAt,
-    },
+    })),
   };
 }
 
@@ -69,12 +76,11 @@ export const mockApi: SilApi = {
   }),
 
   listMyChanges: async (me) =>
-    toMyChanges({
-      checks: checks.filter((item) => item.recipient === me),
-      versions: inboxVersions,
-      issues: inboxIssues,
-      answers,
-    }).map(withPreviousAnswer),
+    buildPendingList(
+      toNotifyData(),
+      { recipient: me, includeClosed: true },
+      { now: MOCK_NOW },
+    ).items,
 
   // DB 함수 save_answer와 같은 규칙으로 거절해요
   answer: async (me, input) => {

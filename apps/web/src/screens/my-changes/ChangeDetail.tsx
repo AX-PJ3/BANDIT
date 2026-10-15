@@ -21,7 +21,7 @@ import {
 
 /**
  * 질문과 보기 문구는 터미널(@sil/notify terminal/questions.ts)과 같아요 (notify.answer.two-questions).
- * SIL-100으로 웹에서 @sil/notify를 쓸 수 있게 되면 그 파일에서 가져와요.
+ * 그 파일이 브라우저 입구(@sil/notify/browser)에 들어오면 거기서 가져와요.
  */
 const QUESTIONS = {
   relation: '이 변경이 내 이슈와 관계가 있나요?',

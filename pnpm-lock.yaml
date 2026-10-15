@@ -87,6 +87,9 @@ importers:
       '@sil/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@sil/notify':
+        specifier: workspace:*
+        version: link:../../packages/notify
     devDependencies:
       '@types/react':
         specifier: ^19.3.0

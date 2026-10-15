@@ -74,7 +74,8 @@ function MyChanges(props: { me: string; openedCheckId: string | null }) {
         <div>
           <h1>나에게 온 변경</h1>
           <p className="muted">
-            {props.me}님 이슈에 걸린 결정 사항이 바뀌면 여기에 와요.
+            {props.me}님 이슈에 걸린 결정 사항이 바뀌면 여기에 와요. 확인한
+            변경은 7일 동안 보여요.
           </p>
         </div>
         <div className="tabs" role="tablist">

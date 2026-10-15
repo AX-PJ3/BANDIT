@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.node.json"
   },
   "dependencies": {
-    "@sil/core": "workspace:*"
+    "@sil/core": "workspace:*",
+    "@sil/notify": "workspace:*"
   },
   "devDependencies": {
     "@types/react": "^19.3.0",

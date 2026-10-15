@@ -11,15 +11,18 @@
  * 3. mock.ts에 예시 데이터 버전을 넣어요 (타입이 빠진 걸 알려 줘요)
  */
 import type {
-  AnswerChannel,
   DataMode,
-  IssueStatus,
-  PendingCheckStatus,
   SaveAnswerInput,
   SaveAnswerResult,
   SaveReflectedResult,
-  StandardSource,
 } from '@sil/core';
+import type {
+  PendingItem,
+  PendingItemAnswer,
+  PendingItemIssue,
+  PendingItemStandard,
+  PreviousAnswer,
+} from '@sil/notify/browser';
 
 export interface AppInfo {
   version: string;
@@ -38,66 +41,18 @@ export interface AppInfo {
 /**
  * 나에게 온 변경 한 건 (카드 한 장 = 결정 사항 한 버전 × 내 이슈 하나, app.card.one-per-my-issue).
  * A1(알림)·A2(목록)·A3(상세)·A4(답한 뒤)가 같은 모양을 써요.
- *
- * @sil/notify의 PendingItem(buildPendingList 결과)과 칸이 같아요. SIL-100으로 웹에서 그 함수를 쓸 수 있게 되면
- * 이 모양을 PendingItem으로 바꾸고, 목록 규칙(7일, 자동 닫힘 숨기기, 지난번 답)도 그 함수가 채워요.
+ * 터미널과 같은 목록 만들기(@sil/notify buildPendingList)의 결과 그대로예요 (SIL-100, notify.list.one-call).
+ * 자동 닫힘은 들어 있지 않고, 답함·대체됨은 닫힌 지 7일까지만 들어 있어요.
  */
-export interface MyChange {
-  pendingCheckId: string;
-  /** 자동 닫힘은 화면에 나오지 않아서 목록에 없어요 (notify.pending.hide-auto-closed) */
-  status: Exclude<PendingCheckStatus, 'auto_closed'>;
-  createdAt: string;
-  /** 작업 반영했다고 표시했는지 (notify.check.reflected) */
-  reflected: boolean;
-  reflectedAt: string | null;
-  standard: MyChangeStandard;
-  issue: MyChangeIssue;
-  /** 대기·대체됨이면 null */
-  answer: MyChangeAnswer | null;
-  /** 같은 이슈에서 이 결정 사항의 이전 버전에 한 마지막 답. "관계있다"였으면 "다시 고쳐야 해요" 안내를 붙여요 */
-  previousAnswer: MyChangePreviousAnswer | null;
-}
-
-/** 확인할 그 버전 (제목, 지금 값, 이유, 누가, 언제, 출처, AI가 찾았나). 근거(evidence)는 카드에 그리지 않아요 */
-export interface MyChangeStandard {
-  id: string;
-  title: string;
-  version: number;
-  value: string;
-  /** 받는 사람이 마지막으로 본 버전. 새로 생긴 결정 사항이면 null */
-  previousVersion: number | null;
-  /** 마지막으로 본 버전의 값. null이면 "새 결정 사항" */
-  previousValue: string | null;
-  reason: string;
-  changedBy: string | null;
-  changedAt: string;
-  source: StandardSource;
-  aiDetected: boolean;
-  isRevert: boolean;
-}
-
+export type MyChange = PendingItem;
+/** 확인할 그 버전 (제목, 지금 값, 마지막으로 본 값, 이유, 누가, 언제, 출처, AI가 찾았나) */
+export type MyChangeStandard = PendingItemStandard;
 /** 내 이슈 (번호, 제목, 상태) */
-export interface MyChangeIssue {
-  key: string;
-  title: string;
-  status: IssueStatus;
-}
-
-/** 내가 한 답 (A4) */
-export interface MyChangeAnswer {
-  affected: boolean;
-  known: boolean | null;
-  unaffectedReason: string | null;
-  channel: AnswerChannel;
-  answeredAt: string;
-}
-
-export interface MyChangePreviousAnswer {
-  version: number;
-  affected: boolean;
-  known: boolean | null;
-  answeredAt: string;
-}
+export type MyChangeIssue = PendingItemIssue;
+/** 내가 한 답 (A4). 대기·대체됨이면 MyChange.answer가 null이에요 */
+export type MyChangeAnswer = PendingItemAnswer;
+/** 같은 이슈에서 이전 버전에 한 마지막 답. "관계있다"였으면 "다시 고쳐야 해요" 안내를 붙여요 */
+export type MyChangePreviousAnswer = PreviousAnswer;
 
 /** 나에게 온 변경에 답하기. 답한 사람과 답한 곳('app')은 api가 채워요 */
 export type MyAnswerInput = Omit<

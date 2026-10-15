@@ -1,47 +1,28 @@
-import {
-  inboxAnswers,
-  inboxIssues,
-  inboxPendingChecks,
-  inboxVersions,
-} from '@sil/core';
 import { describe, expect, it } from 'vitest';
-import { toMyChanges } from '../../api/my-changes.ts';
+import { MOCK_ME, mockApi } from '../../api/mock.ts';
 import {
   findReplacingVersion,
   isFoundInPr,
   isNewStandard,
   MAX_NOTIFICATION_TITLE_LENGTH,
+  needsRework,
   sourceChipLabel,
   supersededText,
   toNotification,
   truncate,
 } from './format.ts';
 
-const changes = toMyChanges({
-  checks: inboxPendingChecks,
-  versions: inboxVersions,
-  issues: inboxIssues,
-  answers: inboxAnswers,
-});
+// 예시 데이터도 진짜 데이터와 같은 목록 만들기(buildPendingList)를 거쳐요
+const changes = await mockApi.listMyChanges(MOCK_ME);
 const byId = (id: string) => {
   const change = changes.find((item) => item.pendingCheckId === id);
   if (!change) throw new Error(`${id} 없음`);
   return change;
 };
 
-describe('toMyChanges', () => {
+describe('예시 목록', () => {
   it('최신 것이 먼저 와요', () => {
     expect(changes[0]!.pendingCheckId).toBe('inbox-title-length-v2');
-  });
-
-  it('자동 닫힘은 빼요 (notify.pending.hide-auto-closed)', () => {
-    const withAutoClosed = toMyChanges({
-      checks: [{ ...inboxPendingChecks[0]!, status: 'auto_closed' }],
-      versions: inboxVersions,
-      issues: inboxIssues,
-      answers: [],
-    });
-    expect(withAutoClosed).toEqual([]);
   });
 
   it('이전 값은 마지막으로 본 버전의 값이에요', () => {
@@ -50,15 +31,9 @@ describe('toMyChanges', () => {
     expect(revert.isRevert).toBe(true);
   });
 
-  it('버전을 못 찾으면 빈 목록 대신 에러를 내요 (notify.error.not-empty)', () => {
-    expect(() =>
-      toMyChanges({
-        checks: inboxPendingChecks,
-        versions: [],
-        issues: inboxIssues,
-        answers: [],
-      }),
-    ).toThrow(/찾지 못했어요/);
+  it('지난번에 관계있다고 답한 되돌림 카드에만 다시 고치라고 알려요 (SIL-77)', () => {
+    expect(needsRework(byId('inbox-hide-auto-closed-v3'))).toBe(true);
+    expect(needsRework(byId('inbox-title-length-v2'))).toBe(false);
   });
 });
 

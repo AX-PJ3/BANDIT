@@ -33,8 +33,7 @@ web/
     │   ├── types.ts      화면 ↔ 데이터 약속 (SilApi). 두 사람이 맞추는 유일한 파일
     │   ├── index.ts      화면은 여기 있는 api만 써요 (진짜 데이터 / 예시 데이터를 골라 줘요)
     │   ├── database.ts   진짜 데이터. '@sil/core/data'로 Supabase에 바로 붙어요
-    │   ├── mock.ts       예시 데이터 버전 (@sil/core의 inbox 예시)
-    │   └── my-changes.ts 확인할 변경·버전·이슈·답을 카드 한 장으로 묶기 (SIL-100 뒤 buildPendingList로 바꿔요)
+    │   └── mock.ts       예시 데이터 버전 (@sil/core의 inbox 예시)
     └── screens/
         ├── MyChangesScreen.tsx   나에게 온 변경 (A1~A4). 목록과 상세를 상태로 바꿔요
         └── my-changes/           목록(A2), 상세·답하기(A3·A4), 알림 꺼짐 안내, 불러오기·구독·OS 알림(useMyChanges)
@@ -97,7 +96,7 @@ await showChangeNotification({
 
 - **내 이름:** 주소에 `?me=<이름>`(이슈 담당자 이름)을 붙여 한 번 열면 브라우저가 기억해요. 예시 데이터로 열면 이름 없이도 예시를 받는 사람(민수)으로 열려요. 이름을 고르는 화면은 없어요 (10/15 호윤).
 - **예시 데이터로 확인:** `pnpm app:web` → 데모 예시(`app.notify.title-length` 40자 → 32자) 카드의 "답하기"를 눌러 답하고 반영 체크까지 해 봐요. 답은 창 메모리에만 저장돼요 (새로 고치면 처음으로).
-- **아직 SIL-100을 기다리는 것:** 답함·대체됨 7일 뒤 숨기기와 지난번 답 안내(`previousAnswer`)는 `@sil/notify`의 `buildPendingList`가 채워요. 진짜 데이터에서는 그 전까지 7일이 지난 답도 보이고 지난번 답 안내가 나오지 않아요. 예시 데이터는 되돌림 카드에만 직접 붙여 뒀어요.
+- **목록은 터미널과 같은 함수로 만들어요:** `@sil/notify/browser`의 `loadNotifyData` + `buildPendingList`예요 (SIL-100). 자동 닫힘 숨기기, 답함·대체됨 7일 뒤 숨기기, 지난번 답 안내(`previousAnswer`)를 그 함수가 채워요. 예시 데이터도 같은 함수를 거쳐요 (날짜는 10/15로 고정).
 
 ## 꼭 지킬 것
 
