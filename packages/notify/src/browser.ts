@@ -23,7 +23,6 @@ export {
   toVersionRecord,
 } from './coreData.ts';
 export type { NotifyDataSource } from './coreData.ts';
-export type { NotifyData } from './store.ts';
 export type {
   Answer,
   AnswerChannel,
@@ -31,6 +30,7 @@ export type {
   Issue,
   IssueKey,
   IssueStatus,
+  NotifyData,
   PendingCheck,
   PendingCheckStatus,
   StandardId,
