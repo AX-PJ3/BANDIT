@@ -3,6 +3,7 @@ import { formatChangelogLine } from './changelog.ts';
 import {
   checkStandardWording,
   isOpenPendingCheck,
+  normalizeStandardValue,
   OPEN_PENDING_CHECK_STATUSES,
   STANDARD_ID_PATTERN,
 } from './rules.ts';
@@ -86,5 +87,34 @@ describe('formatChangelogLine (data.changelog.format)', () => {
     );
     // check_wiki.py처럼 " | "로 나누면 6칸이에요
     expect(line.split(' | ')).toHaveLength(6);
+  });
+});
+
+describe('normalizeStandardValue (detect.change.revert-mark, SQL normalize_standard_value와 같아요)', () => {
+  const same = (a: string, b: string) =>
+    expect(normalizeStandardValue(a)).toBe(normalizeStandardValue(b));
+
+  it('띄어쓰기·끝 마침표·전각 글자만 다르면 같은 값으로 봐요', () => {
+    expect(normalizeStandardValue('  최대 4개  ')).toBe('최대4개');
+    same('4개', '4 개');
+    same('만듦', '만 듦');
+    same('최대 4개', '최대\t4개\n');
+    same('4개', '4개...');
+    same('4개', '4개。');
+    same('4개', '4개 .');
+    same('4개', '４개');
+    // NBSP, 전각 공백(U+3000), BOM(U+FEFF)
+    same('최대 4개', '최대\u00A04개');
+    same('최대 4개', '최대\u30004개');
+    same('최대 4개', '\uFEFF최대 4개');
+    // NFKC라서 호환 글자도 같은 값으로 봐요 (받아들인 차이)
+    same('㎡', 'm2');
+  });
+
+  it('글자가 다르면 그대로 달라요', () => {
+    expect(normalizeStandardValue('네 개')).not.toBe(
+      normalizeStandardValue('4개'),
+    );
+    expect(normalizeStandardValue('v1.2')).toBe('v1.2');
   });
 });

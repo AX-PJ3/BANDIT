@@ -102,3 +102,22 @@ export const SOURCE_LABELS: Record<StandardSource, string> = {
   slack: 'Slack',
   wiki: '문서',
 };
+
+/**
+ * 되돌림인지 비교할 때 쓰는 값 다듬기 (detect.change.revert-mark).
+ * 전각 글자를 반각으로(NFKC) → 공백 글자를 모두 지움(띄어쓰기는 보지 않아요) → 끝의 마침표(. 또는 。) 제거.
+ * NFKC라서 "㎡"와 "m2"처럼 호환 글자도 같은 값으로 봐요.
+ * SQL `public.normalize_standard_value`와 같은 규칙이에요. 한쪽을 고치면 다른 쪽도 고쳐요.
+ * 공백 글자 목록은 SQL과 똑같이 직접 적어요(`\s`·`[[:space:]]`는 둘이 달라서 쓰지 않아요).
+ * 비교에만 쓰고, 저장하는 값은 사람이 넣은 글자 그대로예요.
+ */
+export function normalizeStandardValue(text: string): string {
+  return text
+    .normalize('NFKC')
+    .replace(STANDARD_VALUE_SPACES, '')
+    .replace(/[.。]+$/u, '');
+}
+
+/** 다듬기에서 지우는 공백 글자. SQL `normalize_standard_value`의 목록과 같아요 */
+const STANDARD_VALUE_SPACES =
+  /[\t\n\v\f\r \u00A0\u1680\u2000-\u200A\u2028\u2029\u202F\u205F\u3000\uFEFF]/gu;

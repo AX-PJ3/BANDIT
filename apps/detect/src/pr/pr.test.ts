@@ -85,11 +85,21 @@ function useDb(
   return fake;
 }
 
-/** 미리 정한 답을 차례로 돌려주는 가짜 판단 */
+/** 미리 정한 답을 차례로 돌려주는 가짜 판단. 뜻이 같은 예전 버전은 기본으로 없다고 답해요 */
 function fakeJudge(areas: string[], ...judgments: PrJudgment[]) {
   const seen: string[][] = [];
+  const sameMeaningCalls: Parameters<Judge['findSameMeaning']>[] = [];
+  let sameMeaning: Awaited<ReturnType<Judge['findSameMeaning']>> = {
+    version: null,
+    why: '뜻이 같은 예전 버전이 없어요',
+    fellBack: false,
+  };
   let next = 0;
   const judge: Judge = {
+    findSameMeaning: async (...args) => {
+      sameMeaningCalls.push(args);
+      return sameMeaning;
+    },
     pickAreas: async () => areas,
     judge: async (_pr, standards) => {
       seen.push(standards.map(({ standard }) => standard.id));
@@ -98,7 +108,15 @@ function fakeJudge(areas: string[], ...judgments: PrJudgment[]) {
       return answer!;
     },
   };
-  return { judge, seen, count: () => next };
+  return {
+    judge,
+    seen,
+    count: () => next,
+    sameMeaningCalls,
+    answerSameMeaning: (answer: typeof sameMeaning) => {
+      sameMeaning = answer;
+    },
+  };
 }
 
 const to32: PrJudgment = {
@@ -417,6 +435,148 @@ describe('PR 경로: 판단 → 저장 (SIL-66)', () => {
     expect(renderOutcome(TITLE_TO_32, outcome, false).comment).toContain(
       '예전 v1의 값과 같아서 "되돌림"으로 남겼어요',
     );
+  });
+
+  it('새 값이 예전 버전과 공백·끝 마침표만 다르면 Claude에게 묻지 않고 저장해요. 되돌림 표시는 DB가 해요 (detect.change.revert-mark)', async () => {
+    const fake = useDb(titleLength([TITLE_40, TITLE_32_VALUE]));
+    const { judge, sameMeaningCalls } = fakeJudge(['app'], {
+      ...to32,
+      changes: [{ ...to32.changes[0]!, newValue: `  ${TITLE_40}.` }],
+    });
+
+    const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+    expect(outcome.kind).toBe('saved');
+    expect(sameMeaningCalls).toHaveLength(0);
+    expect(fake.rpcCalls).toHaveLength(1);
+  });
+
+  it('새 값이 예전 버전과 글자는 달라도 뜻이 같아 보이면 저장하지 않고 되돌린 건지 물어요 (detect.change.revert-mark)', async () => {
+    const fake = useDb(titleLength([TITLE_40, TITLE_32_VALUE]));
+    const sameAs40 =
+      '운영체제 알림 창에 뜨는 제목은 공백 포함 사십 자 이하로 쓴다';
+    const { judge, sameMeaningCalls, answerSameMeaning, count } = fakeJudge(
+      ['app'],
+      { ...to32, changes: [{ ...to32.changes[0]!, newValue: sameAs40 }] },
+    );
+    answerSameMeaning({
+      version: 1,
+      why: '40자와 사십 자는 같은 숫자예요',
+      fellBack: false,
+    });
+
+    const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+    expect(outcome).toMatchObject({
+      kind: 'asked',
+      reason: 'maybe-revert',
+      sameMeaning: {
+        standardId: 'app.notify.title-length',
+        version: 1,
+        value: TITLE_40,
+        why: '40자와 사십 자는 같은 숫자예요',
+      },
+    });
+    // 지금 버전(v2)은 빼고 예전 버전만 보내요
+    expect(sameMeaningCalls).toEqual([
+      [
+        '앱 알림 제목은 32자 이하다',
+        sameAs40,
+        [{ version: 1, value: TITLE_40 }],
+      ],
+    ]);
+    // 저장하지 않으니 두 번째 판단도 하지 않아요
+    expect(count()).toBe(1);
+    expect(fake.rpcCalls).toHaveLength(0);
+    const { comment } = renderOutcome(TITLE_TO_32, outcome, false);
+    expect(comment).toContain(PR_COPY.ask['maybe-revert']);
+    expect(comment).toContain(
+      PR_COPY.maybeRevert('app.notify.title-length', 1, TITLE_40),
+    );
+    // 할 일: Claude Code에서 그 버전으로 되돌려 달라고 말하기
+    expect(comment).toContain(
+      '"결정 사항 app.notify.title-length를 v1으로 되돌려 줘"',
+    );
+    expect(comment).toContain('40자와 사십 자는 같은 숫자예요');
+    expect(comment).not.toContain('기준');
+  });
+
+  it('뜻이 같은 예전 버전이 없거나 목록에 없는 버전을 내면 그대로 저장해요', async () => {
+    for (const version of [null, 7]) {
+      const fake = useDb(titleLength([TITLE_40, TITLE_32_VALUE]));
+      const { judge, sameMeaningCalls, answerSameMeaning } = fakeJudge(
+        ['app'],
+        {
+          ...to32,
+          changes: [
+            {
+              ...to32.changes[0]!,
+              newValue:
+                '운영체제 알림 창에 뜨는 제목은 공백 포함 28자 이하로 쓴다',
+            },
+          ],
+        },
+      );
+      answerSameMeaning({ version, why: '숫자가 달라요', fellBack: false });
+
+      const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+      expect(outcome.kind).toBe('saved');
+      expect(sameMeaningCalls).toHaveLength(1);
+      expect(fake.rpcCalls).toHaveLength(1);
+    }
+  });
+
+  it('뜻이 같은 버전 찾기를 다른 모델이 대신 답했으면(안전 문제로 거절) 답을 믿지 않고 저장하지 않은 채 물어요', async () => {
+    for (const version of [1, null]) {
+      const fake = useDb(titleLength([TITLE_40, TITLE_32_VALUE]));
+      const { judge, answerSameMeaning } = fakeJudge(['app'], {
+        ...to32,
+        changes: [
+          {
+            ...to32.changes[0]!,
+            newValue:
+              '운영체제 알림 창에 뜨는 제목은 공백 포함 28자 이하로 쓴다',
+          },
+        ],
+      });
+      answerSameMeaning({ version, why: '같아요', fellBack: true });
+
+      const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+      expect(outcome).toMatchObject({ kind: 'asked', reason: 'unsure' });
+      expect(outcome).not.toHaveProperty('sameMeaning');
+      expect(fake.rpcCalls).toHaveLength(0);
+    }
+  });
+
+  it('DB 최신 값과 띄어쓰기·끝 마침표만 다르면 "이미 반영됨"으로 넘어가요 (다듬은 글자로 비교)', async () => {
+    const fake = useDb(titleLength([TITLE_40, `${TITLE_32_VALUE}.`]));
+    const { judge, sameMeaningCalls } = fakeJudge(['app'], {
+      ...to32,
+      changes: [
+        {
+          ...to32.changes[0]!,
+          newValue: TITLE_32_VALUE.replaceAll(' ', ''),
+        },
+      ],
+    });
+
+    const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+    expect(outcome).toMatchObject({ kind: 'already-applied', version: 2 });
+    expect(sameMeaningCalls).toHaveLength(0);
+    expect(fake.rpcCalls).toHaveLength(0);
+  });
+
+  it('예전 버전이 없으면(지금 v1뿐) 뜻이 같은 버전을 찾지 않아요', async () => {
+    useDb();
+    const { judge, sameMeaningCalls } = fakeJudge(['app'], to32);
+
+    const outcome = await runPrPath(TITLE_TO_32, deps(judge), options);
+
+    expect(outcome.kind).toBe('saved');
+    expect(sameMeaningCalls).toHaveLength(0);
   });
 
   it('바뀐 줄이 비었거나 PR diff에 없으면(지어낸 줄, PR 설명 속 지시) 저장하지 않고 물어요', async () => {

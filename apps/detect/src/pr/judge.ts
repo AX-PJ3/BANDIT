@@ -7,6 +7,8 @@ import {
   renderAreaTask,
   renderJudgeTask,
   renderPrData,
+  renderSameMeaningTask,
+  SAME_MEANING_SYSTEM_PROMPT,
   SYSTEM_PROMPT,
 } from './prompt.ts';
 
@@ -28,6 +30,16 @@ export interface Judge {
     pr: PullRequestInput,
     standards: StandardWithLatest[],
   ): Promise<PrJudgment>;
+  /**
+   * 새 값과 글자는 다르지만 뜻이 같은 예전 버전 찾기 (detect.change.revert-mark).
+   * 후보만 찾아요. 확실하지 않으면 version은 null이에요.
+   * fellBack: Opus가 거절해서 다른 모델이 대신 답했는지. 그러면 답을 믿지 않고 사람에게 물어요
+   */
+  findSameMeaning(
+    standardTitle: string,
+    newValue: string,
+    older: { version: number; value: string }[],
+  ): Promise<{ version: number | null; why: string; fellBack: boolean }>;
 }
 
 const areasSchema = z.object({ areas: z.array(z.string()) });
@@ -47,9 +59,14 @@ const judgmentSchema = z.object({
   question: z.string().nullable(),
 }) satisfies z.ZodType<PrJudgment>;
 
+const sameMeaningSchema = z.object({
+  version: z.number().int().nullable(),
+  why: z.string(),
+});
+
 /** Claude 호출 한 번의 토큰 수. 모델을 고를 때 비교하려고 모아요 (try-pr.ts) */
 export interface JudgeUsage {
-  step: 'areas' | 'judge';
+  step: 'areas' | 'judge' | 'same-meaning';
   /** 실제로 답한 모델 (거절로 다른 모델이 답하면 그 모델) */
   model: string;
   inputTokens: number;
@@ -82,8 +99,8 @@ export function createClaudeJudge(
   /** fellBack: Opus가 거절해서 다른 모델이 대신 답했는지 */
   async function ask<T>(
     step: JudgeUsage['step'],
-    pr: PullRequestInput,
-    task: string,
+    system: string,
+    content: Anthropic.Beta.BetaTextBlockParam[],
     schema: z.ZodType<T>,
   ): Promise<{ output: T; fellBack: boolean }> {
     const response = await client.beta.messages.parse({
@@ -92,21 +109,8 @@ export function createClaudeJudge(
       ...fallback,
       thinking: { type: 'adaptive' },
       output_config: { effort: 'high', format: betaZodOutputFormat(schema) },
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            // PR 자료는 두 단계와 두 번 묻기에서 똑같아서 캐시로 다시 써요
-            {
-              type: 'text',
-              text: renderPrData(pr),
-              cache_control: { type: 'ephemeral' },
-            },
-            { type: 'text', text: task },
-          ],
-        },
-      ],
+      system,
+      messages: [{ role: 'user', content }],
     });
     options.onUsage?.({
       step,
@@ -131,9 +135,31 @@ export function createClaudeJudge(
     };
   }
 
+  /** PR 자료는 두 단계와 두 번 묻기에서 똑같아서 캐시로 다시 써요 */
+  function askAboutPr<T>(
+    step: JudgeUsage['step'],
+    pr: PullRequestInput,
+    task: string,
+    schema: z.ZodType<T>,
+  ) {
+    return ask(
+      step,
+      SYSTEM_PROMPT,
+      [
+        {
+          type: 'text',
+          text: renderPrData(pr),
+          cache_control: { type: 'ephemeral' },
+        },
+        { type: 'text', text: task },
+      ],
+      schema,
+    );
+  }
+
   return {
     async pickAreas(pr, index) {
-      const { output } = await ask(
+      const { output } = await askAboutPr(
         'areas',
         pr,
         renderAreaTask(index),
@@ -142,7 +168,7 @@ export function createClaudeJudge(
       return output.areas;
     },
     async judge(pr, standards) {
-      const { output, fellBack } = await ask(
+      const { output, fellBack } = await askAboutPr(
         'judge',
         pr,
         renderJudgeTask(standards),
@@ -159,6 +185,21 @@ export function createClaudeJudge(
         };
       }
       return output;
+    },
+    async findSameMeaning(standardTitle, newValue, older) {
+      // PR 자료가 필요 없어서 짧은 프롬프트를 따로 써요. 결과는 사람에게 묻는 데만 써요
+      const { output, fellBack } = await ask(
+        'same-meaning',
+        SAME_MEANING_SYSTEM_PROMPT,
+        [
+          {
+            type: 'text',
+            text: renderSameMeaningTask(standardTitle, newValue, older),
+          },
+        ],
+        sameMeaningSchema,
+      );
+      return { ...output, fellBack };
     },
   };
 }

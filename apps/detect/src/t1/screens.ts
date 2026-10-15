@@ -134,6 +134,15 @@ export type T1NoticeInput =
       /** 이미 있는 결정 사항 (get_standard의 최신 버전) */
       existing: Pick<Standard, 'id'> & Pick<StandardVersion, 'title' | 'value'>;
     }
+  | {
+      kind: 'revertSame';
+      /** 되돌려 달라고 한 버전 */
+      version: number;
+      /** 그 버전의 값 */
+      versionValue: string;
+      /** 지금 결정 사항 (get_standard의 최신 버전) */
+      existing: Pick<Standard, 'id'> & Pick<StandardVersion, 'title' | 'value'>;
+    }
   | { kind: 'similarDeclined' }
   | { kind: 'saveRace' };
 
@@ -155,6 +164,15 @@ export function noticeScreen(input: T1NoticeInput): string {
           : colorBar('yellow', notices.similar),
         // 이미 있는 결정 사항: 굵은 [영역] 제목 · 값 (프로토타입 existingLine)
         `  ${strong(areaTitle(existing.id, existing.title), true)}${strong(` · ${existing.value}`)}`,
+      ].join('\n');
+    }
+    case 'revertSame': {
+      const area = input.existing.id.split('.')[0] ?? '';
+      return [
+        colorBar('red', notices.revertSame.head),
+        // 되돌려 달라고 한 버전: 굵은 [영역] vN: 값
+        `  ${strong(`[${area}] v${input.version}`, true)}${strong(`: ${input.versionValue}`)}`,
+        `  ${strong(notices.revertSame.current, true)}${strong(`: ${input.existing.value}`)}`,
       ].join('\n');
     }
     case 'similarDeclined':

@@ -926,6 +926,24 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
     ).toBe(true);
   });
 
+  it('되돌릴 버전이 지금 값과 같으면 빨간 막대와 그 버전 값·지금 값을 보여 줘요 (SIL-104)', () => {
+    const input: T1NoticeInput = {
+      kind: 'revertSame',
+      version: 2,
+      versionValue: '공백 포함 32자 이하',
+      existing,
+    };
+    expect(lines(input)).toEqual([
+      '  이전 버전 중 지금 값과 같은 결정 사항이 있어서 되돌리지 않았어요.',
+      '  [app] v2: 공백 포함 32자 이하',
+      '  지금 값: 공백 포함 32자 이하',
+    ]);
+    expect(noticeScreen(input).startsWith('\u001b[0;7;31m')).toBe(true);
+    expect(T1_COPY.notices.revertSame.next).toBe(
+      '반영하지 않았어요. 어떻게 진행할지 알려 주세요.',
+    );
+  });
+
   it('뜻이 같음 → 아니요는 기본 글자색 막대, 예외 7은 노란 막대와 노란 줄이에요', () => {
     expect(noticeScreen({ kind: 'similarDeclined' })).toContain(
       '\u001b[0;7;39m',
@@ -943,6 +961,19 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
     expect([T1_COPY.similarAsk.yes.label, T1_COPY.similarAsk.no.label]).toEqual(
       ['예', '아니요'],
     );
+  });
+
+  it('되돌림이면 묻기와 ③ 선택 창 질문만 되돌림 문구로 바뀌어요 (SIL-104 초안, detect.change.revert-mark)', () => {
+    expect(T1_COPY.revert).toEqual({
+      ask: 'v{version}의 값으로 되돌리는 작업이에요. 그래도 진행할까요?',
+      confirm: 'v{version}의 값으로 되돌려 등록할까요?',
+      directConfirm:
+        '달라지게 되는 기존 결정 사항 내역을 확인했나요? v{version}의 값으로 되돌려 등록할까요?',
+    });
+    // 질문만 바뀌고 같은 선택 창이라 끝은 기존 질문과 같은 모양이에요
+    for (const question of Object.values(T1_COPY.revert)) {
+      expect(question).toMatch(/v\{version\}.*\?$/);
+    }
   });
 });
 
@@ -982,6 +1013,17 @@ describe('notice.ts와 hook-notice.ts', () => {
       { kind: 'saveRace' },
       { kind: 'searchFailed' },
       { kind: 'same', existing: { id: 'app.notify.title-length' } },
+      // 되돌림이 같음은 몇 버전인지와 그 버전 값이 있어야 해요
+      {
+        kind: 'revertSame',
+        versionValue: '값',
+        existing: { id: 'app.notify.title-length', title: '제목', value: '값' },
+      },
+      {
+        kind: 'revertSame',
+        version: 2,
+        existing: { id: 'app.notify.title-length', title: '제목', value: '값' },
+      },
     ]) {
       expect(() => runNode('./notice.ts', JSON.stringify(bad))).toThrow();
     }
