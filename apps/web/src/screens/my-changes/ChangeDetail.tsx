@@ -30,6 +30,7 @@ import {
   groupByIssue,
   isNewStandard,
   needsRework,
+  RETURNED_TO_SEEN_TEXT,
   sameStandardVersions,
 } from './format.ts';
 
@@ -130,13 +131,14 @@ export function ChangeDetail(props: {
         >
           <Text typography="t6" fontWeight="bold" color={C.grey800}>
             {replacingVersion === null
-              ? '새 버전으로 대체됐어요'
+              ? RETURNED_TO_SEEN_TEXT
               : `새 버전(v${replacingVersion})으로 대체됐어요`}
           </Text>
           <div style={{ marginTop: 4 }}>
             <Text typography="t7" color={C.grey600}>
-              답하기 전에 결정이 또 바뀌었어요. 이 변경에는 답하지 않아도 되고,
-              새 버전을 확인해주세요.
+              {replacingVersion === null
+                ? '이 변경에는 답하지 않아도 돼요.'
+                : '답하기 전에 결정이 또 바뀌었어요. 이 변경에는 답하지 않아도 되고, 새 버전을 확인해주세요.'}
             </Text>
           </div>
         </div>
