@@ -47,6 +47,11 @@ export function isNewStandard(change: MyChange): boolean {
   return change.standard.previousValue === null;
 }
 
+/** 같은 이슈에서 이전 버전에 답한 뒤 또 바뀐 버전이면 "새 버전 vN" 칩을 붙여요 (되돌림은 되돌림 칩) */
+export function isNewVersion(change: MyChange): boolean {
+  return change.previousAnswer !== null && !change.standard.isRevert;
+}
+
 /** 지난번에 "관계있다"로 답했으면 다시 고쳐야 한다고 알려 줘요 (SIL-77) */
 export function needsRework(change: MyChange): boolean {
   return change.previousAnswer?.affected === true;

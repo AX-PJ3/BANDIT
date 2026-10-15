@@ -26,7 +26,7 @@ web/
 │   └── icons/                 192·512 아이콘, 마스크 아이콘, iOS 홈 화면 아이콘
 └── src/
     ├── main.tsx          화면을 그리고 서비스 워커를 등록해요
-    ├── App.tsx           메뉴와 "나에게 온 변경" 화면, "앱으로 설치" 버튼, 알림을 눌러 연 변경 넘겨주기
+    ├── App.tsx           위쪽 줄(연결 상태, "앱으로 설치")과 "나에게 온 변경" 화면, 알림을 눌러 연 변경 넘겨주기
     ├── me.ts             내 이름 정하기 (?me=<이름>을 브라우저에 저장)
     ├── pwa.ts            서비스 워커 등록, 설치 안내, 설치한 앱인지 확인, 알림 권한·띄우기·누른 변경 받기
     ├── api/
@@ -34,6 +34,10 @@ web/
     │   ├── index.ts      화면은 여기 있는 api만 써요 (진짜 데이터 / 예시 데이터를 골라 줘요)
     │   ├── database.ts   진짜 데이터. '@sil/core/data'로 Supabase에 바로 붙어요
     │   └── mock.ts       예시 데이터 버전 (@sil/core의 inbox 예시)
+    ├── ui/               화면 부품. 신지님 프로토타입의 TDS 부품 값을 그대로 옮겼어요
+    │   ├── tds.tsx       글자, 칩, 버튼, 목록 줄, 진행 단계, 입력 등
+    │   ├── icons.tsx     메뉴·알림·체크 아이콘
+    │   └── AppShell.tsx  왼쪽 아이콘 메뉴, 위쪽 줄, 둥근 흰 화면
     └── screens/
         ├── MyChangesScreen.tsx   나에게 온 변경 (A1~A4). 목록과 상세를 상태로 바꿔요
         └── my-changes/           목록(A2), 상세·답하기(A3·A4), 알림 꺼짐 안내, 불러오기·구독·OS 알림(useMyChanges)
@@ -94,6 +98,7 @@ await showChangeNotification({
 | A4 답한 뒤     | 내 답과 답한 시각, 진행 3단계(새 변경 → 확인 완료 → 작업 반영), "작업 반영했어요" 체크("관계있다"로 답한 카드만)           | `api.markReflected(me, id, reflected)`                 |
 | A1 OS 알림     | 창이 열려 있는 동안 새 대기 변경이 생기면 알림(제목 40자 이하), 누르면 그 변경의 상세                                      | `api.watchMyChanges(me, …)` → `showChangeNotification` |
 
+- **화면 모양:** 신지님 프로토타입(https://suju0.github.io/haribo-web/)의 크기·여백·글자·색을 그대로 따라요. 값은 `src/ui/`와 각 화면 파일에 있고, 색은 `styles.css`의 TDS 색 변수예요. 알림 꺼짐 안내의 설정 방법 그림은 `public/notify-guide.svg`(프로토타입 그림)예요.
 - **내 이름:** 주소에 `?me=<이름>`(이슈 담당자 이름)을 붙여 한 번 열면 브라우저가 기억해요. 예시 데이터로 열면 이름 없이도 예시를 받는 사람(민수)으로 열려요. 이름을 고르는 화면은 없어요 (10/15 호윤).
 - **예시 데이터로 확인:** `pnpm app:web` → 데모 예시(`app.notify.title-length` 40자 → 32자) 카드의 "답하기"를 눌러 답하고 반영 체크까지 해 봐요. 답은 창 메모리에만 저장돼요 (새로 고치면 처음으로).
 - **목록은 터미널과 같은 함수로 만들어요:** `@sil/notify/browser`의 `loadNotifyData` + `buildPendingList`예요 (SIL-100). 자동 닫힘 숨기기, 답함·대체됨 7일 뒤 숨기기, 지난번 답 안내(`previousAnswer`)를 그 함수가 채워요. 예시 데이터도 같은 함수를 거쳐요 (날짜는 10/15로 고정).

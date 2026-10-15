@@ -1,23 +1,33 @@
 /**
- * 앱 뼈대예요. 왼쪽 메뉴와 "나에게 온 변경" 화면 하나예요.
- * 위키·지표 화면은 만들지 않아요 (app.screen.inbox-first, 타입명세서 11-6, 10/15 호윤).
+ * 앱 뼈대예요. "나에게 온 변경" 화면 하나예요 (위키·지표 화면은 만들지 않아요, app.screen.inbox-first, 10/15 호윤).
+ * 위쪽 줄에는 데이터 연결 상태와 "앱으로 설치"를 보여 줘요. 틀(메뉴, 위쪽 줄)은 ui/AppShell.tsx예요.
  */
 import { useEffect, useState } from 'react';
-import { api, isMock, me } from './api/index.ts';
+import { api, me } from './api/index.ts';
 import type { AppInfo } from './api/types.ts';
 import { useInstallPrompt, useOpenCheckRequests } from './pwa.ts';
 import { MyChangesScreen } from './screens/MyChangesScreen.tsx';
+import { Badge, Button } from './ui/tds.tsx';
 
-const platformLabel: Record<AppInfo['platform'], string> = {
-  browser: '브라우저',
-  installed: '설치한 앱',
-};
-
-function dataLabel(info: AppInfo): string {
-  if (!info.db) return '데이터: 예시';
-  return info.db.ok
-    ? `데이터: DB (결정 사항 ${info.db.standardCount}개)`
-    : 'DB에 연결하지 못했어요';
+function ConnectionBadge(props: { info: AppInfo | null }) {
+  const { info } = props;
+  if (!info) return null;
+  if (!info.db) {
+    return (
+      <Badge size="medium" tone="elephant" variant="weak">
+        ● 예시 데이터로 열었어요 (Supabase 주소·키 없음)
+      </Badge>
+    );
+  }
+  return info.db.ok ? (
+    <Badge size="medium" tone="green" variant="weak">
+      ● DB 연결됨 · 결정 사항 {info.db.standardCount}개
+    </Badge>
+  ) : (
+    <Badge size="medium" tone="red" variant="weak">
+      ● DB에 연결하지 못했어요
+    </Badge>
+  );
 }
 
 export function App() {
@@ -32,31 +42,30 @@ export function App() {
     void api.getAppInfo().then(setInfo);
   }, []);
 
+  const topBar = (
+    <>
+      {install && (
+        <Button size="small" onClick={() => void install()}>
+          앱으로 설치
+        </Button>
+      )}
+      <div style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <ConnectionBadge info={info} />
+      </div>
+    </>
+  );
+  // DB에 못 붙으면 이유를 그대로 보여 줘요. 실패를 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty)
+  const notices =
+    info?.db && !info.db.ok
+      ? [`DB에 연결하지 못했어요. ${info.db.message}`]
+      : [];
+
   return (
-    <div className="layout">
-      <nav className="nav">
-        <button className="nav-item active">나에게 온 변경</button>
-        <footer className="nav-footer">
-          {install && (
-            <button className="install-button" onClick={() => void install()}>
-              앱으로 설치
-            </button>
-          )}
-          {me && <div>내 이름: {me}</div>}
-          {info
-            ? `${platformLabel[info.platform]} · ${dataLabel(info)}`
-            : '불러오는 중'}
-          {info?.db && !info.db.ok && (
-            <div className="db-error">{info.db.message}</div>
-          )}
-          {isMock && (
-            <div>Supabase 주소·키가 없어서 예시 데이터로 열었어요</div>
-          )}
-        </footer>
-      </nav>
-      <main className="content">
-        <MyChangesScreen me={me} openedCheckId={openedCheckId} />
-      </main>
-    </div>
+    <MyChangesScreen
+      me={me}
+      openedCheckId={openedCheckId}
+      topBar={topBar}
+      notices={notices}
+    />
   );
 }
