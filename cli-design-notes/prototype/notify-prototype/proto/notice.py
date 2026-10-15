@@ -822,11 +822,21 @@ def after_quiz(change_id):
 
 # ---------- 이슈 반영 (SIL-93, PR #45 mark_reflected, 10/15 부건) ----------
 # 관계있다로 답한 변경을 내 이슈에 반영했다고 사람이 직접 표시한다 (위키 notify.check.reflected v2). AI가 코드를 보고 짐작하지 않는다.
-# 다시 부르는 말과 같이 입력 전체가 이 말일 때만 받는다. 한 건이면 바로 표시하고, 여러 건이면 목록을 띄우고 고르게 한다.
+# 다시 부르는 말과 같이 입력 전체가 이 말일 때만 받는다. 목록을 띄우고, 여러 건이면 고르게 하고 한 건이어도 맞는지 묻는다.
+# 한 건을 묻지 않고 바로 저장하면 잘못 표시되는 사고가 날 수 있어서 한 건에도 확인 질문을 둔다 (10/15 민수님, SIL-93).
 # 말은 위키 app.card.three-steps v2의 진행 단계 "이슈 반영"과 같게 둔다 (copy.same-words.everywhere, 10/15 SIL-92).
 # 터미널에서 "작업"은 지금 진행 중인 코드 작업이라, 배정된 일에 반영한 것은 "이슈"로 부른다. 완료 줄은 용어 표 51번 버튼 이름 "이슈에 반영했어요"
 REFLECT = '이슈 반영'
 REFLECT_QUESTION = {'question': '어느 변경을 이슈에 반영했나요?', 'header': REFLECT}
+# 고르는 질문 아래 한 줄: 반영한 게 없으면 고르지 말고 닫으면 된다는 것 (10/15 부건). 탭으로 나눠도 Esc는 질문 전체를 닫아서 "하나도"
+REFLECT_HELP = '반영한 변경이 하나도 없으면 Esc를 눌러 닫아 주세요.'
+# 고른 뒤 따로 확인 질문은 두지 않는다. Claude Code가 여러 개 고르기 끝에 Submit 탭(Review your answers → Submit answers)을
+# 질문이 하나여도 띄워서, 고른 것을 다시 보여 주고 한 번 더 묻는다 (10/15 부건, Claude Code에서 확인). 화면 말은 "표시" 대신 "등록"
+# 한 건일 때 확인 질문. 여러 개 고르기는 보기가 2개 이상이어야 해서 한 건은 예/아니오로 묻는다. 이름표는 다른 질문처럼 이슈 코드
+REFLECT_ONE_QUESTION = {'question': '이 변경을 이슈에 반영했나요?',
+                        'options': [('이슈에 반영했어요', '이슈 반영으로 등록해요'),
+                                    ('아직 안 했어요', '등록하지 않고 그대로 둬요')]}
+REFLECT_YES = REFLECT_ONE_QUESTION['options'][0][0]
 # 선택 화면은 질문 하나에 보기 2~4개, 한 번에 질문 4개까지라서 5건부터는 질문을 나눠 탭으로 띄운다 (10/15 부건).
 # 탭마다 보기가 2개 이상이어야 해서 4건씩 채우지 않고 고르게 나눈다 (5건 → 3+2). 16건이 넘으면 앞 16건만 묻는다
 REFLECT_PER_QUESTION, REFLECT_MAX_QUESTIONS = 4, 4
@@ -842,9 +852,10 @@ def reflect_groups(count):
 def reflect_question(index, total):
     """나눠 물을 때 질문과 이름표 끝에 몇 번째인지 붙인다. 이름표는 12자 이하 (이슈 반영 1/2 = 9자)."""
     if total == 1:
-        return dict(REFLECT_QUESTION)
+        return {**REFLECT_QUESTION, 'help': REFLECT_HELP}
     return {'question': f"{REFLECT_QUESTION['question']} ({index}/{total})",
-            'header': f"{REFLECT_QUESTION['header']} {index}/{total}"}
+            'header': f"{REFLECT_QUESTION['header']} {index}/{total}", 'help': REFLECT_HELP}
+
 
 
 def is_reflect(prompt):
@@ -910,7 +921,7 @@ def reflected_line(c):
 def nothing_to_reflect():
     """이슈 반영할 변경이 없을 때. 관계없다로 답했거나 아직 답하지 않은 변경은 표시할 수 없다는 것을 함께 알려 준다."""
     return '\n'.join(['', f'{esc(DONE_COLOR)}✓{esc("39")} 이슈 반영할 변경이 없어요.',
-                      '  관계있다로 답한 변경만 이슈 반영으로 표시할 수 있어요.'])
+                      '  관계있다로 답한 변경만 이슈 반영으로 등록할 수 있어요.'])
 
 
 # 안내 줄 앞 회색 막대: 글자색을 따로 주지 않고 반전만 해서 Claude Code 회색이 칸 바탕이 된다
@@ -918,9 +929,10 @@ GRAY_BAR = f'{esc("7")} {esc("27")} '
 
 
 def reflect_reminder():
-    """이슈 반영할 변경이 남았을 때 Claude가 작업을 마친 뒤(Stop) 입력 칸 바로 위에 띄우는 한 줄 (10/15 부건).
-    한 세션에 한 번만 띄운다. 그 뒤에 궁금하면 Claude에게 물어보면 된다 (10/15 부건).
-    이번 세션에 이미 "이슈 반영"을 입력했으면 아는 것으로 보고 띄우지 않는다.
+    """이슈 반영할 변경이 남았을 때 다음 작업을 입력하면(UserPromptSubmit) 띄우는 한 줄. 한 세션에 한 번만 (10/15 부건).
+    작업을 마친 뒤(Stop)에 띄우면 개발 범위가 넓어져서 입력 때로 옮겼다 (10/15 민수님, SIL-93).
+    그 뒤에 궁금하면 Claude에게 물어보면 된다. 이번 세션에 이미 "이슈 반영"을 입력했으면 아는 것으로 보고 띄우지 않는다.
+    같은 입력에서 확인할 변경 상세를 띄우면 그 차례에는 띄우지 않는다(방금 답한 변경은 아직 반영 전이라).
     상태 줄이 아니라 안내라서 노란 막대 없이 Claude Code 기본 회색으로 쓰고, 입력할 말 "이슈 반영"만 노란 굵은 글자 (10/15 부건).
     건수는 넣지 않는다. 앞에는 노란 막대 대신 회색 막대(Claude Code 회색을 반전한 칸)를 세운다 (10/15 부건).
     막대와 빈칸이 2칸이라 위 상태 줄의 글자 시작과 맞는다."""
