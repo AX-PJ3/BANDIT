@@ -3,7 +3,11 @@
  * 다른 명령이면 아무것도 하지 않아요. hook 글은 도구 직후에만 화면에 보여서 이 자리에 둬요 (10/13 시험).
  */
 import { readFileSync } from 'node:fs';
-import { findConflictsToken, isConflictsCommand } from './preview-command.ts';
+import {
+  findConflictsToken,
+  isConflictsCommand,
+  screenHookOutput,
+} from './preview-command.ts';
 
 const event = JSON.parse(readFileSync(0, 'utf8')) as {
   tool_input?: { command?: string };
@@ -21,7 +25,4 @@ const input = takeConflicts(
 );
 if (!input) process.exit(0);
 
-// 첫 줄을 비워 hook 머리글(`PostToolUse:Bash says:`) 바로 다음 줄부터 시작해요 (프로토타입 screens.py)
-process.stdout.write(
-  JSON.stringify({ systemMessage: `\n${conflictsScreen(input)}` }),
-);
+process.stdout.write(screenHookOutput(conflictsScreen(input)));

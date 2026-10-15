@@ -18,6 +18,7 @@ import {
   isConflictsCommand,
   isPreviewCommand,
   PREVIEW_DONE,
+  SCREEN_SHOWN_CONTEXT,
 } from './preview-command.ts';
 import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
 import {
@@ -648,22 +649,29 @@ describe('hooks 첫 줄', () => {
       reason: '이유',
       alwaysOn: false,
     });
-    const run = (file: string, command: string, stdout: string) =>
-      (
-        JSON.parse(
-          execFileSync(
-            process.execPath,
-            [fileURLToPath(new URL(file, import.meta.url))],
-            {
-              input: JSON.stringify({
-                tool_input: { command },
-                tool_response: { stdout },
-              }),
-              encoding: 'utf8',
-            },
-          ),
-        ) as { systemMessage: string }
-      ).systemMessage;
+    const run = (file: string, command: string, stdout: string) => {
+      const output = JSON.parse(
+        execFileSync(
+          process.execPath,
+          [fileURLToPath(new URL(file, import.meta.url))],
+          {
+            input: JSON.stringify({
+              tool_input: { command },
+              tool_response: { stdout },
+            }),
+            encoding: 'utf8',
+          },
+        ),
+      ) as {
+        systemMessage: string;
+        hookSpecificOutput: { additionalContext: string };
+      };
+      // 에이전트에게는 화면을 이미 보여 줬으니 설명하지 말라고만 전해요 (10/15)
+      expect(output.hookSpecificOutput.additionalContext).toBe(
+        SCREEN_SHOWN_CONTEXT,
+      );
+      return output.systemMessage;
+    };
     try {
       const preview = run(
         './hook-preview.ts',
