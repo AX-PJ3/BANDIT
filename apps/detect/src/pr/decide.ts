@@ -1,5 +1,6 @@
 import {
   isSilError,
+  normalizeStandardValue,
   type DetectedChange,
   type PrJudgment,
   type SaveStandardInput,
@@ -21,8 +22,9 @@ import { buildPrSaveInput } from './save-input.ts';
  * 1. DB에서 목차를 만들어 관련 영역을 고르고, 그 영역의 결정 사항만 보내 판단해요 (wiki.read.index-first)
  * 2. 확실하고 바뀐 결정 사항이 하나일 때만 저장 후보예요 (detect.judge.ask-if-unsure, detect.judge.one-per-run)
  * 3. DB 최신 값이 새 값과 같으면 T1에서 이미 저장한 변경이라 다시 저장하지 않아요
- * 4. 두 번 묻기가 켜져 있으면 한 번 더 판단해 결과가 같을 때만 저장해요
- * 5. 하루 두 번 제한(detect.safety.repeat-limit)과 충돌 보류(detect.conflict.hold)는 DB·core가 해요. 결과만 알려요
+ * 4. 새 값이 예전 버전과 글자는 달라도 뜻이 같아 보이면 저장하지 않고 되돌린 건지 물어요 (detect.change.revert-mark)
+ * 5. 두 번 묻기가 켜져 있으면 한 번 더 판단해 결과가 같을 때만 저장해요
+ * 6. 하루 두 번 제한(detect.safety.repeat-limit)과 충돌 보류(detect.conflict.hold)는 DB·core가 해요. 결과만 알려요
  *
  * TODO(detect.log.every-pr): 판단 결과를 남길 코드 확인 기록 표가 생기면, 관계없음을 포함해 모든 결과를 여기서 남겨요.
  */
@@ -60,7 +62,18 @@ export type AskReason =
   /** PR 제목·설명에 바꾼 이유가 없거나, Claude가 옮긴 이유가 PR 글에 없음 */
   | 'no-reason'
   /** diff가 너무 커서 판단하지 않음 */
-  | 'too-large';
+  | 'too-large'
+  /** 새 값이 예전 버전 값과 글자는 다르지만 뜻이 같아 보임 (되돌림인지 확인) */
+  | 'maybe-revert';
+
+/** 새 값과 뜻이 같아 보이는 예전 버전 (detect.change.revert-mark) */
+export interface SameMeaningVersion {
+  standardId: StandardId;
+  version: number;
+  value: string;
+  /** Claude가 같다고 본 까닭 */
+  why: string;
+}
 
 export type PrPathOutcome =
   | { kind: 'unrelated'; areas: string[] }
@@ -70,6 +83,8 @@ export type PrPathOutcome =
       judgment: PrJudgment | null;
       /** 판단한 결정 사항의 지금 값 (댓글에 함께 보여 줘요) */
       current: StandardWithLatest[];
+      /** maybe-revert일 때 뜻이 같아 보이는 예전 버전 */
+      sameMeaning?: SameMeaningVersion;
     }
   | { kind: 'already-applied'; change: DetectedChange; version: number }
   | { kind: 'would-save'; input: SaveStandardInput; previousValue: string }
@@ -158,6 +173,39 @@ export async function runPrPath(
   // 이유는 지어내지 않아요. PR 작성자가 쓴 이유가 PR 글에 그대로 있어야 저장해요 (detect.change.evidence)
   if (!hasReason(change, pr)) return ask('no-reason');
 
+  // 되돌림은 DB가 글자 비교로 표시해요. 글자 다듬기로 같은 예전 버전이 있으면 DB가 표시하니 그대로 저장해요.
+  // 글자만 다르고 뜻이 같아 보이면 AI는 후보만 찾고, 저장하지 않은 채 사람에게 물어요 (detect.change.revert-mark)
+  const older = history.versions.slice(1);
+  const newValue = normalizeStandardValue(change.newValue);
+  const hasSameText = older.some(
+    ({ value }) => normalizeStandardValue(value) === newValue,
+  );
+  if (!hasSameText && older.length > 0) {
+    const found = await deps.judge.findSameMeaning(
+      latest.title,
+      change.newValue,
+      older.map(({ version, value }) => ({ version, value })),
+    );
+    // 안전 문제로 거절돼 다른 모델이 대신 답했으면 그 답을 믿지 않고 사람에게 물어요 (judge의 확실과 같은 원칙)
+    if (found.fellBack) return ask('unsure');
+    // Claude가 목록에 없는 버전을 내면 쓰지 않아요
+    const match = older.find(({ version }) => version === found.version);
+    if (match) {
+      return {
+        kind: 'asked',
+        reason: 'maybe-revert',
+        judgment,
+        current: currentOf(judgment.changes),
+        sameMeaning: {
+          standardId: change.standardId,
+          version: match.version,
+          value: match.value,
+          why: found.why,
+        },
+      };
+    }
+  }
+
   if (options.askTwice) {
     const second = await deps.judge.judge(pr, candidates);
     if (!sameSingleChange(change, second)) return ask('not-same-twice');
@@ -227,11 +275,12 @@ function hasReason(
   );
 }
 
-/** 띄어쓰기 차이는 같은 값으로 봐요 */
+/** 공백·끝 마침표·전각 글자 차이는 같은 값으로 봐요. DB 되돌림 비교와 같은 규칙이에요 (detect.change.revert-mark) */
 function sameText(a: string, b: string): boolean {
-  return normalize(a) === normalize(b);
+  return normalizeStandardValue(a) === normalizeStandardValue(b);
 }
 
+/** PR 글에서 이유를 찾을 때는 띄어쓰기 차이만 봐줘요 */
 function normalize(text: string): string {
   return text.trim().replace(/\s+/g, ' ');
 }

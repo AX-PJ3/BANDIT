@@ -38,7 +38,13 @@ export const PR_COPY = {
       '결정 사항이 바뀐 것 같지만, PR 제목이나 설명에서 왜 바꿨는지 찾지 못해서 저장하지 않았어요. 이유는 지어내지 않아요.',
     'too-large':
       '바뀐 내용이 너무 많아서 판단하지 않았어요. 결정 사항이 바뀌었다면 직접 알려 주세요.',
+    'maybe-revert':
+      '이 PR의 새 값이 예전 버전의 값과 뜻이 같아 보여서 저장하지 않았어요. 예전 값으로 되돌린 건지 확인을 부탁드려요.',
   } satisfies Record<AskReason, string>,
+  /** 뜻이 같아 보이는 예전 버전 안내 (detect.change.revert-mark) */
+  maybeRevert: (standardId: string, version: number, value: string) =>
+    `이 PR의 새 값이 v${version} 값("${value}")과 뜻이 같아 보여요. 되돌린 거라면 Claude Code에서 "결정 사항 ${standardId}를 v${version}으로 되돌려 줘"라고 말해 주세요. v${version} 글자 그대로 되돌림으로 기록돼요.`,
+  maybeRevertWhy: '같아 보이는 까닭',
   rejected: {
     CHANGE_LIMIT:
       '이 결정 사항은 최근 하루 안에 이미 두 번 바뀌어서 저장하지 않았어요. 사람이 확인해 주세요.',
@@ -88,6 +94,15 @@ function renderBody(
         : '바뀐 결정 사항이 없어요.';
     case 'asked': {
       const lines = [`${mention}${PR_COPY.ask[outcome.reason]}`];
+      if (outcome.sameMeaning) {
+        const { standardId, version, value, why } = outcome.sameMeaning;
+        lines.push(
+          [
+            PR_COPY.maybeRevert(standardId, version, quiet(value)),
+            `- ${PR_COPY.maybeRevertWhy}: ${quiet(why)}`,
+          ].join('\n'),
+        );
+      }
       if (outcome.judgment?.question) {
         lines.push(`> ${quiet(outcome.judgment.question)}`);
       }
