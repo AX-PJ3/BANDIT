@@ -6,6 +6,7 @@
 import type { Standard } from '@sil/core';
 import { T1_COPY, type T1PreviewValues, yesNo } from './copy.ts';
 import type { T1Target } from './issues.ts';
+import type { T1Trigger } from './save-input.ts';
 import { cutEnd, padEnd, textWidth, wrap } from './text.ts';
 
 /** 화면 너비. T2~T5 알림 화면과 같아요 (착수 안내 T3) */
@@ -14,14 +15,16 @@ export const COLS = 76;
 /** 다른 결정 사항 하나. 모양은 core 타입에서 골라 쓰고, 화면에만 쓰는 칸을 더해요 */
 export type T1Conflict = Pick<Standard, 'id' | 'title'> & {
   /** 변경(바꾸려는 결정 사항) / 어긋남(바꾸면 함께 어긋나는 결정 사항) */
-  kind: keyof typeof T1_COPY.direct.conflicts.kinds;
+  kind: keyof typeof T1_COPY.conflicts.kinds;
   /** 왜 그렇게 판단했는지 한 문장 */
   why: string;
 };
 
 /** 다른 결정 사항 화면에 넣을 값 */
 export type T1ConflictsInput = {
-  /** 사람이 요청한 변경을 한 줄로 정리한 것 */
+  /** 에이전트가 작업 중에 알아챘는지(경우 1) / 사람이 직접 요청했는지(경우 2). 머리표와 첫 줄 이름이 달라요 */
+  trigger: T1Trigger;
+  /** 부탁받은 작업이나 요청한 변경을 한 줄로 정리한 것 */
   request: string;
   /** 변경이 맨 앞이에요. 하나 이상 */
   conflicts: T1Conflict[];
@@ -106,15 +109,15 @@ export function previewScreen(
   return lines.join('\n');
 }
 
-/** 다른 결정 사항 화면 (직접 요청): 노란 막대 머리표, 요청 한 줄, 결정 사항마다 구분 · [영역] 제목 · 판단 이유 */
+/** 다른 결정 사항 화면: 노란 막대 머리표, 작업(경우 1)·요청(경우 2) 한 줄, 결정 사항마다 구분 · [영역] 제목 · 판단 이유 */
 export function conflictsScreen(input: T1ConflictsInput): string {
-  const { head, requestLabel, kinds } = T1_COPY.direct.conflicts;
+  const { head, requestLabel, kinds } = T1_COPY.conflicts;
   const KIND = 8;
   const BODY = COLS - 2 - KIND;
   // 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13)
   const lines = [
-    colorBar('yellow', head),
-    `  ${requestLabel}  ${cutEnd(input.request, COLS - 8)}`,
+    colorBar('yellow', head[input.trigger]),
+    `  ${requestLabel[input.trigger]}  ${cutEnd(input.request, COLS - 8)}`,
     '',
   ];
   // ID는 보여 주지 않아요 (프로토타입)

@@ -1,9 +1,7 @@
 export {
-  renderT1Question,
   renderT1Saved,
   T1_COPY,
   type T1PreviewValues,
-  type T1QuestionValues,
   type T1SavedValues,
 } from './t1/copy.ts';
 export {

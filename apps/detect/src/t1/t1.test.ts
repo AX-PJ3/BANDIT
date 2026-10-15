@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { renderT1Question, renderT1Saved, T1_COPY } from './copy.ts';
+import { renderT1Saved, T1_COPY } from './copy.ts';
 import {
   clearPending,
   conflictsPath,
@@ -36,6 +36,7 @@ const stripAnsi = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, '');
 
 /** 프로토타입 경우 2의 다른 결정 사항 (10/14) */
 const TITLE_CONFLICTS: T1ConflictsInput = {
+  trigger: 'direct',
   request: '앱 알림 제목 길이를 32자 이하로 바꾸기',
   conflicts: [
     {
@@ -54,24 +55,21 @@ const TITLE_CONFLICTS: T1ConflictsInput = {
 };
 
 describe('T1 문구', () => {
-  it('질문에 제목, 지금 값, 바꿀 값을 넣어요', () => {
-    const question = renderT1Question({
-      title: '앱 알림 제목은 40자 이하다',
-      currentValue: '운영체제 알림 창에 뜨는 제목은 공백 포함 40자 이하로 쓴다',
-      newValue: '운영체제 알림 창에 뜨는 제목은 공백 포함 32자 이하로 쓴다',
-    });
-    expect(question).toContain('앱 알림 제목은 40자 이하다');
-    expect(question).toContain(
-      '지금 값: 운영체제 알림 창에 뜨는 제목은 공백 포함 40자',
+  it('경우 1 문구는 프로토타입에 적힌 말 그대로예요 (질문 한 줄, 예/아니요)', () => {
+    expect(T1_COPY.ask.question).toBe(
+      '기존 결정 사항과 다른 작업이에요. 그래도 진행할까요?',
     );
-    expect(question).toContain(
-      '바꿀 값: 운영체제 알림 창에 뜨는 제목은 공백 포함 32자',
+    expect([T1_COPY.ask.yes.label, T1_COPY.ask.no.label]).toEqual([
+      '예',
+      '아니요',
+    ]);
+    expect(T1_COPY.conflicts.head.agent).toBe(
+      '부탁하신 작업이 기존 결정 사항과 달라요',
     );
-    expect(question).not.toMatch(/\{\w+\}/);
   });
 
   it('직접 요청 문구는 SIL-94·프로토타입에 적힌 말 그대로예요', () => {
-    expect(T1_COPY.direct.conflicts.head).toBe(
+    expect(T1_COPY.conflicts.head.direct).toBe(
       '요청하신 변경이 기존 결정 사항과 달라요',
     );
     expect(T1_COPY.preview.heading).toBe('결정 사항을 이렇게 등록할까요');
@@ -114,6 +112,7 @@ describe('T1 문구', () => {
       T1_COPY.cancelled.noTask,
       T1_COPY.direct.noConflict,
       T1_COPY.preview.noTargets,
+      T1_COPY.ask.typedReply,
     ];
     for (const message of messages) {
       expect(message).toMatch(/\.$/);
@@ -255,7 +254,21 @@ describe('pickTargets (③ 받는 이슈)', () => {
   });
 });
 
-describe('conflictsScreen (직접 요청 다른 결정 사항)', () => {
+describe('conflictsScreen (다른 결정 사항)', () => {
+  it('경우 1은 "부탁하신 작업이…" 머리표와 작업 한 줄이에요 (프로토타입)', () => {
+    const lines = stripAnsi(
+      conflictsScreen({
+        ...TITLE_CONFLICTS,
+        trigger: 'agent',
+        request: '알림 제목을 32자에서 자르기',
+      }),
+    ).split('\n');
+    expect(lines.slice(0, 2)).toEqual([
+      '  부탁하신 작업이 기존 결정 사항과 달라요',
+      '  작업  알림 제목을 32자에서 자르기',
+    ]);
+  });
+
   it('프로토타입 경우 2처럼 노란 막대, 요청, 구분 · [영역] 제목 · 판단 이유예요', () => {
     expect(stripAnsi(conflictsScreen(TITLE_CONFLICTS)).split('\n')).toEqual([
       '  요청하신 변경이 기존 결정 사항과 달라요',
@@ -530,8 +543,14 @@ describe('conflicts.ts와 hook-conflicts.ts (SIL-94)', () => {
     expect(takeConflicts(token)).toBeNull();
   });
 
-  it('구분이 change·mismatch가 아니거나 다른 결정 사항이 없으면 거절해요', () => {
+  it('trigger·구분이 정해진 값이 아니거나 다른 결정 사항이 없으면 거절해요', () => {
     const [first] = TITLE_CONFLICTS.conflicts;
+    expect(() =>
+      runNode(
+        './conflicts.ts',
+        JSON.stringify({ ...TITLE_CONFLICTS, trigger: 'x' }),
+      ),
+    ).toThrow();
     expect(() =>
       runNode(
         './conflicts.ts',
