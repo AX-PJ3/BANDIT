@@ -151,6 +151,46 @@ export async function listPendingChecks(
     }));
 }
 
+export interface WatchPendingChecksInput {
+  /** 받는 사람 이름. 이 사람의 확인할 변경이 생기거나 바뀔 때만 알려 줘요 */
+  recipient: string;
+  /** 바뀌었을 때 불러요. 무엇이 바뀌었는지는 넘기지 않아요. 목록을 다시 읽어요 */
+  onChange: () => void;
+  /** 구독이 끊기거나 연결하지 못했을 때 불러요. 끊긴 것을 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty) */
+  onError?: (message: string) => void;
+}
+
+/**
+ * 확인할 변경(pending_checks)이 생기거나 바뀌면 알려 주는 구독이에요 (app.notify.realtime).
+ * 웹 앱 창이 열려 있을 때 OS 알림을 띄우는 데 써요. 돌려준 함수를 부르면 구독을 끊어요.
+ * DB 쪽 설정(Realtime 발행)은 20261009200000_wiki_compat.sql에 있어요.
+ */
+export function watchPendingChecks(input: WatchPendingChecksInput): () => void {
+  const db = getDb();
+  const channel = db
+    .channel(`pending_checks:${input.recipient}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'pending_checks',
+        filter: `recipient=eq.${input.recipient}`,
+      },
+      () => input.onChange(),
+    )
+    .subscribe((status, error) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        input.onError?.(
+          `새 확인할 변경을 바로 받지 못하고 있어요 (${error?.message ?? status}). 새로 고치면 다시 연결해요.`,
+        );
+      }
+    });
+  return () => {
+    void db.removeChannel(channel);
+  };
+}
+
 /**
  * 반영함을 켜거나 꺼요 (save_reflected, data.pending.reflected).
  * 받은 사람만, 답한 확인할 변경에만 돼요. 표시를 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).

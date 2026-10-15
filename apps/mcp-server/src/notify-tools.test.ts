@@ -8,7 +8,9 @@ import {
   Client,
   StreamableHTTPClientTransport,
 } from '@modelcontextprotocol/client';
+import * as webData from '@sil/core/data';
 import { setDbForTesting } from '@sil/core/node';
+import { buildPendingList, loadNotifyData } from '@sil/notify/browser';
 import { createFakeDb, type FakeDb } from '@sil/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { parseTokens } from './auth.ts';
@@ -302,6 +304,35 @@ describe('list_pending', () => {
       standard: { version: 3, previousValue: '공백 포함 32자 이하' },
       previousAnswer: { version: 2, affected: true, known: false },
     });
+  });
+});
+
+describe('웹 앱과 같은 목록 (SIL-100)', () => {
+  it('같은 DB 데이터로 웹 방식(@sil/core/data + @sil/notify/browser)과 list_pending이 같은 목록을 돌려줘요', async () => {
+    const tables = demoTables();
+    tables.pending_checks = [
+      checkRow('c-5', '민수', '#5', 'answered'),
+      checkRow('c-5-v3', '민수', '#5', 'pending', 3, 2),
+    ];
+    tables.standard_versions.push(versionRow(3, '공백 포함 30자 이하', '정민'));
+    installFakeDb(tables);
+
+    const terminal = (
+      await call(await connectAs('민수'), 'list_pending', {
+        includeClosed: true,
+      })
+    ).json() as { items: Record<string, unknown>[] };
+    const web = buildPendingList(await loadNotifyData(webData, '민수'), {
+      recipient: '민수',
+      includeClosed: true,
+    });
+
+    // list_pending은 질문(questions)을 더 붙여요. 그것만 빼면 같아야 해요
+    const withoutQuestions = terminal.items.map(
+      ({ questions: _questions, ...rest }) => rest,
+    );
+    expect(withoutQuestions).toEqual(JSON.parse(JSON.stringify(web.items)));
+    expect(web.items).toHaveLength(2);
   });
 });
 

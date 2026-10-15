@@ -1,32 +1,10 @@
 import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-import type {
-  Answer,
-  Issue,
-  PendingCheck,
-  StandardVersionRecord,
-} from './types.ts';
+import type { NotifyData, NotifyStore } from './types.ts';
 
-/**
- * 알리기 기능이 읽고 쓰는 데이터 전체예요.
- * 정민님 DB(SIL-73)의 기준 버전, 이슈, 확인할 변경, 답 표와 같은 네 묶음이에요.
- */
-export interface NotifyData {
-  issues: Issue[];
-  standardVersions: StandardVersionRecord[];
-  pendingChecks: PendingCheck[];
-  answers: Answer[];
-}
-
-/**
- * 임시 저장소. 지금은 JSON 파일과 메모리 두 가지가 있고, DB에 붙일 때 이 모양만 DB로 바꿔요.
- * 한 번에 전체를 읽고 전체를 써요. 데모와 시험용이라 동시에 여러 곳에서 쓰는 경우는 다루지 않아요.
- */
-export interface NotifyStore {
-  read(): Promise<NotifyData>;
-  write(data: NotifyData): Promise<void>;
-}
+// 브라우저 입구(browser.ts)가 이 파일(node:fs)을 타입으로도 끌어오지 않게 모양은 types.ts에 있어요 (SIL-100)
+export type { NotifyData, NotifyStore } from './types.ts';
 
 export function createEmptyData(): NotifyData {
   return { issues: [], standardVersions: [], pendingChecks: [], answers: [] };

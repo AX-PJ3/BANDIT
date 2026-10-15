@@ -89,6 +89,24 @@ list_pending 결과로 터미널 알림 글을 만들어요. 모양과 문구는
 - 이전 버전에 "관계있다"로 답했으면 변경 줄 아래에 "지난번 변경(32자)을 반영하셨다면 다시 고쳐야 해요."를 넣어요 (SIL-77).
 - 바꾼 시각은 한국 시각으로, 오늘이면 "오후 2:13", 아니면 "10월 13일 오후 2:13"이에요.
 
+### 웹 앱에서 쓰기 (`@sil/notify/browser`, SIL-100)
+
+웹 앱의 "나에게 온 변경" 목록이 터미널과 같은 규칙(7일, 자동 닫힘 숨기기, 지난번 답)으로 나오게, 웹도 같은 함수를 써요.
+
+```ts
+import * as data from '@sil/core/data';
+import { buildPendingList, loadNotifyData } from '@sil/notify/browser';
+
+const list = buildPendingList(await loadNotifyData(data, '민수'), {
+  recipient: '민수',
+  includeClosed: true, // 웹 목록은 답한 변경까지 한 번에 받아요 (notify.list.one-call)
+});
+```
+
+- 패키지 전체 입구(`@sil/notify`)는 파일 저장소(`store.ts`, `node:fs`)를 함께 내보내서 브라우저 빌드가 실패해요. 웹은 `@sil/notify/browser`만 가져와요.
+- `loadNotifyData(source, 이름)`은 DB 함수를 넘겨받아요. 웹은 `@sil/core/data`, MCP 서버는 `@sil/core/node`의 같은 함수를 넘겨요. 그래서 터미널과 웹 목록이 같아요.
+- `browser.test.ts`가 브라우저 입구에 Node 전용 모듈이 섞이지 않았는지 검사해요.
+
 ## 실행
 
 ```bash
