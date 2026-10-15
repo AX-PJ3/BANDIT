@@ -1,11 +1,11 @@
 /**
  * A2 목록이에요. "확인할 변경"(대기)과 "확인한 변경"(답함, 대체됨) 두 상자로 나눠요.
- * 목록은 한 번 불러서 화면이 상태로 나눠요 (notify.list.one-call). "이슈 별로 보기"는 이슈 번호로 묶어요.
+ * 목록은 한 번 불러서 화면이 상태로 나눠요 (notify.list.one-call). "이슈별"은 이슈 번호로 묶어요.
  * 상자·줄·글자 값은 프로토타입(SIL-69)과 같아요.
  */
 import type { CSSProperties, ReactNode } from 'react';
 import type { MyChange } from '../../api/types.ts';
-import { C, ListRow, Result, Text } from '../../ui/tds.tsx';
+import { C, Chip, ListRow, Result, Text } from '../../ui/tds.tsx';
 import { KindChips, SourceChips, StatusCell } from './Badges.tsx';
 import {
   findReplacingVersion,
@@ -50,7 +50,7 @@ export function ChangeList(props: {
           <div style={{ padding: '8px 0 32px' }}>
             <Result
               title={`지금 ${OPEN_TITLE}이 없어요`}
-              description="새로운 변경이 감지되면 이곳에서 알려드릴게요."
+              description="새로운 변경이 감지되면 이곳에서 알려 드릴게요."
             />
           </div>
         )}
@@ -130,20 +130,20 @@ function EmptyBoxes() {
       {emptyBox(
         C.blue100,
         OPEN_TITLE,
-        `아직 ${OPEN_TITLE}이 없어요`,
-        '새로운 변경이 감지되면 이곳에서 알려드릴게요',
+        `지금 ${OPEN_TITLE}이 없어요`,
+        '새로운 변경이 감지되면 이곳에서 알려 드릴게요',
       )}
       {emptyBox(
         C.grey200,
         CLOSED_TITLE,
-        `아직 ${CLOSED_TITLE}이 없어요`,
+        `지금 ${CLOSED_TITLE}이 없어요`,
         '변경에 답하면 이곳에 모여요',
       )}
     </>
   );
 }
 
-/** 이슈 별로 보기: 이슈마다 상자 하나. 답할 변경이 있는 이슈가 먼저, 상자 안은 높은 버전부터 */
+/** 이슈별: 이슈마다 상자 하나. 답할 변경이 있는 이슈가 먼저, 상자 안은 높은 버전부터 */
 function IssueGroups(props: {
   changes: MyChange[];
   onOpen: (pendingCheckId: string) => void;
@@ -297,37 +297,37 @@ function TitleLine(props: { change: MyChange }) {
       >
         <KindChips change={props.change} />
         <SourceChips change={props.change} />
+        <DoneIssueChip change={props.change} />
       </div>
     </div>
   );
 }
 
-/** 이전 값 → 지금 값. 되돌림이면 내가 답했던 버전을 함께 적어요 */
+/**
+ * 이전 값 → 지금 값. 이전 값만 더 연한 회색이에요 (신지님 시안 10/15).
+ * 되돌림 줄의 "내가 v2에 답한 이력이 있어요"는 시안에서 숨겼어요.
+ */
 function ValueLine(props: { change: MyChange }) {
-  const { standard, previousAnswer } = props.change;
-  const values = (
+  const { standard } = props.change;
+  return (
     <Text typography="t7" color={C.grey700}>
-      {standard.previousValue === null
-        ? '새 결정 사항'
-        : `${standard.previousValue} (v${standard.previousVersion})`}{' '}
+      <span style={{ color: C.grey400 }}>
+        {standard.previousValue === null
+          ? '새 결정 사항'
+          : `${standard.previousValue} (v${standard.previousVersion})`}
+      </span>{' '}
       → {standard.value} (v{standard.version})
     </Text>
   );
-  if (!standard.isRevert || !previousAnswer) return values;
+}
+
+/** 완료된 이슈면 제목 옆 칩들 맨 끝에 [완료] (신지님 시안 10/15) */
+function DoneIssueChip(props: { change: MyChange }) {
+  if (props.change.issue.status !== 'done') return null;
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: '4px 8px',
-      }}
-    >
-      {values}
-      <Text typography="t7" color={C.grey500}>
-        · 내가 v{previousAnswer.version}에 답한 이력이 있어요
-      </Text>
-    </div>
+    <Chip inline tone="green">
+      완료
+    </Chip>
   );
 }
 
@@ -349,7 +349,7 @@ function ReworkNote(props: { children: ReactNode }) {
   );
 }
 
-/** #5 · 이슈 제목 (완료된 이슈) · 바꾼 사람 · 시각 */
+/** #5 이슈 제목 바꾼 사람 시각. 가운뎃점 없이 띄어 써요 (신지님 시안 10/15) */
 function MetaLine(props: { change: MyChange }) {
   const { issue, standard } = props.change;
   return (
@@ -357,7 +357,7 @@ function MetaLine(props: { change: MyChange }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 4,
+        gap: 8,
         minWidth: 0,
         color: C.grey500,
       }}
@@ -367,13 +367,12 @@ function MetaLine(props: { change: MyChange }) {
       </Text>
       <div style={ellipsis}>
         <Text typography="st12" color={C.grey500}>
-          · {issue.title}
-          {issue.status === 'done' ? ' (완료된 이슈)' : ''}
+          {issue.title}
         </Text>
       </div>
       <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
         <Text typography="st12" color={C.grey500}>
-          · {standard.changedBy ?? '모름'} · {formatTime(standard.changedAt)}
+          {standard.changedBy ?? '모름'} {formatTime(standard.changedAt)}
         </Text>
       </div>
     </div>
