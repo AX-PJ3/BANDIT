@@ -304,7 +304,7 @@ export function TextButton(props: {
   );
 }
 
-/** 두세 개 중 하나를 고르는 칸 (전체 / 이슈 별로 보기) */
+/** 두세 개 중 하나를 고르는 칸 (전체 / 이슈별) */
 export function Segmented<T extends string>(props: {
   label: string;
   value: T;
@@ -681,7 +681,11 @@ export function SectionTitle(props: {
       }}
     >
       {texts}
-      {props.right && <div style={{ flexShrink: 0 }}>{props.right}</div>}
+      {props.right && (
+        <div style={{ flexShrink: 1, minWidth: 0, maxWidth: '62%' }}>
+          {props.right}
+        </div>
+      )}
     </div>
   );
 }

@@ -175,8 +175,7 @@ function MyChanges(props: ScreenProps & { me: string }) {
               나에게 온 변경 목록
             </Text>
             <Text typography="t7" color={C.grey600}>
-              {props.me}님 이슈에 걸린 결정 사항이 바뀌면 여기에 와요. 확인한
-              변경은 7일 동안 보여요.
+              답한 변경은 7일 뒤에 목록에서 내려가요
             </Text>
           </div>
           <Segmented
@@ -185,7 +184,7 @@ function MyChanges(props: ScreenProps & { me: string }) {
             onChange={setView}
             options={[
               { value: 'all', label: '전체' },
-              { value: 'by-issue', label: '이슈 별로 보기' },
+              { value: 'by-issue', label: '이슈별' },
             ]}
           />
         </div>

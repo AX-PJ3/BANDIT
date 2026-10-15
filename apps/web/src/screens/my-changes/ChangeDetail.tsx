@@ -4,11 +4,11 @@
  * - 답: 관계있다/관계없다 → 알았다/몰랐다(누르면 바로 저장) 또는 관계없는 이유(100자). 관계없다면 known을 보내지 않아요.
  * - 답할 때 에러: PENDING_CLOSED는 에러 없이 조용히 닫고(notify.answer.one-place), FORBIDDEN이면 답하기를 숨기고,
  *   VALIDATION_FAILED는 입력란 아래에 보여 줘요 (타입명세서 11-4).
- * - 진행 단계는 새 변경 → 확인 완료 → 작업 반영 세 개예요 (app.card.three-steps).
- * - "작업 반영했어요"는 "관계있다"로 답한 카드에만, 답한 뒤에만 켜요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).
+ * - 진행 단계는 결정 사항 변경 → 확인 완료 → 이슈 반영 세 개예요 (app.card.three-steps v3).
+ * - "이슈에 반영했어요"는 "관계있다"로 답한 카드에만, 답한 뒤에만 켜요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).
  */
 import { isSilError, MAX_UNAFFECTED_REASON_LENGTH } from '@sil/core';
-import { useRef, useState, type CSSProperties } from 'react';
+import { useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { api } from '../../api/index.ts';
 import type { MyChange } from '../../api/types.ts';
 import { CheckIcon, InfoIcon } from '../../ui/icons.tsx';
@@ -25,13 +25,14 @@ import {
 } from '../../ui/tds.tsx';
 import { KindChips, SourceChips, StatusChip, statusLabel } from './Badges.tsx';
 import {
+  changeLetter,
   findReplacingVersion,
   formatTime,
-  groupByIssue,
+  groupByChange,
   isNewStandard,
   needsRework,
-  RETURNED_TO_SEEN_TEXT,
   sameStandardVersions,
+  supersededText,
 } from './format.ts';
 
 /**
@@ -42,19 +43,28 @@ const QUESTIONS = {
   relation: '이 변경이 내 이슈와 관계가 있나요?',
   known: '이 변경을 이미 알고 있었나요?',
 };
-const REWORK_NOTICE = '지난번 변경을 반영하셨다면 다시 고쳐야 해요';
+/** 지난번에 "관계있다"로 답한 사람에게 붙이는 안내 (notify.pending.renotify-hint v2) */
+const REWORK_NOTICE =
+  '이전 결정 사항으로 작업 중이었다면 최신 결정 사항을 반영해 주세요';
+/**
+ * 대체된 변경에 붙이는 안내 (신지님 시안 10/15).
+ * 대체한 새 버전이 자동으로 닫혀 답할 카드가 없으면 목록과 같은 "이미 확인한 값으로 돌아왔어요"를 써요 (supersededText)
+ */
+const SUPERSEDED_NOTICE =
+  '확인할 변경이 새 버전으로 대체되었어요. 최신 버전의 확인할 변경에 답해 주세요.';
 
-const STEPS = ['새 변경', '확인 완료', '작업 반영'];
+const STEPS = ['결정 사항 변경', '확인 완료', '이슈 반영'];
 const STEP_DESCRIPTIONS = [
   '아직 확인하지 않은 변경이에요.',
   '담당자가 변경사항을 확인했다고 답한 상태예요.',
-  '실제 작업에 반영한 상태예요.',
+  '실제 이슈에 반영한 상태예요.',
 ];
 
 /** 고르지 않은 큰 버튼 / 고른 큰 버튼 (프로토타입 값 그대로) */
 const UNSELECTED_BUTTON: CSSProperties = {
-  background: 'rgba(222, 222, 255, 0.30)',
-  color: '#FFFFFF',
+  // 고르기 전에는 "현재 결정 사항" 상자와 같은 연한 파랑, 글자는 파랑 (신지님 시안 10/15)
+  background: C.blue50,
+  color: '#1F72EA',
   fontSize: 15,
 };
 const SELECTED_BUTTON: CSSProperties = { fontSize: 15 };
@@ -111,38 +121,28 @@ export function ChangeDetail(props: {
           {standard.title}
         </Text>
         <StatusChip change={change} />
-        <KindChips change={change} />
+        <KindChips change={change} hideRevert />
         <SourceChips change={change} />
-        {change.issue.status === 'done' && (
-          <Chip inline tone="green">
-            완료된 이슈
-          </Chip>
-        )}
       </div>
 
-      {isSuperseded && (
-        <div
-          style={{
-            background: C.grey50,
-            borderRadius: 10,
-            padding: '18px 20px',
-            marginTop: 20,
-          }}
-        >
-          <Text typography="t6" fontWeight="bold" color={C.grey800}>
-            {replacingVersion === null
-              ? RETURNED_TO_SEEN_TEXT
-              : `새 버전(v${replacingVersion})으로 대체됐어요`}
+      {/* 바뀐 이유는 이슈 카드 안이 아니라 결정 사항 제목 바로 아래에 붙어요 (신지님 시안 10/15) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 14,
+          marginTop: 14,
+        }}
+      >
+        <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <Text typography="t7" color={C.grey500}>
+            바뀐 이유
           </Text>
-          <div style={{ marginTop: 4 }}>
-            <Text typography="t7" color={C.grey600}>
-              {replacingVersion === null
-                ? '이 변경에는 답하지 않아도 돼요.'
-                : '답하기 전에 결정이 또 바뀌었어요. 이 변경에는 답하지 않아도 되고, 새 버전을 확인해주세요.'}
-            </Text>
-          </div>
         </div>
-      )}
+        <Text typography="t7" color={C.grey800}>
+          {standard.reason}
+        </Text>
+      </div>
 
       <IssueCard change={change} />
 
@@ -156,24 +156,39 @@ export function ChangeDetail(props: {
         ) : (
           <>
             <ValueBox
-              label="변경 전"
+              label="이전 결정 사항"
               value={`${standard.previousValue} (v${standard.previousVersion})`}
             />
             <ValueBox
-              label="확정된 결과"
+              label="현재 결정 사항"
               value={`${standard.value} (v${standard.version})`}
               isAfter
+              tag={
+                standard.isRevert ? (
+                  <Chip inline tone="purple">
+                    되돌림
+                  </Chip>
+                ) : undefined
+              }
             />
           </>
         )}
       </div>
 
       {isSuperseded ? (
-        replacing && (
-          <>
-            <SectionTitle bottom={0} description="새 버전에 답해 주세요.">
-              지금 해야 할 일
-            </SectionTitle>
+        // 대체된 변경 안내는 "지금 해야 할 일" 옆 노란 안내로 보여 줘요 (신지님 시안 10/15)
+        <>
+          <SectionTitle
+            bottom={0}
+            right={
+              <Notice
+                text={replacing ? SUPERSEDED_NOTICE : supersededText(null)}
+              />
+            }
+          >
+            지금 해야 할 일
+          </SectionTitle>
+          {replacing && (
             <div style={{ marginTop: 16 }}>
               <Button
                 size="large"
@@ -183,8 +198,8 @@ export function ChangeDetail(props: {
                 새 버전 v{replacingVersion} 보러 가기
               </Button>
             </div>
-          </>
-        )
+          )}
+        </>
       ) : change.answer ? (
         <>
           <SectionTitle bottom={0}>내 답변</SectionTitle>
@@ -204,8 +219,10 @@ export function ChangeDetail(props: {
         <>
           <SectionTitle
             bottom={0}
-            description="내 작업이 바뀐 값에 영향을 받는지 답해주세요."
-            right={needsRework(change) ? <ReworkNotice /> : undefined}
+            description="내 이슈가 바뀐 결정 사항에 영향을 받는지 답해주세요"
+            right={
+              needsRework(change) ? <Notice text={REWORK_NOTICE} /> : undefined
+            }
           >
             지금 해야 할 일
           </SectionTitle>
@@ -245,7 +262,7 @@ function PeerTabs(props: {
   onBack: () => void;
   onOpen: (pendingCheckId: string) => void;
 }) {
-  const groups = groupByIssue(props.all);
+  const groups = groupByChange(props.all);
   const currentGroup = groups.find((group) =>
     group.some((item) => item.pendingCheckId === props.change.pendingCheckId),
   );
@@ -288,20 +305,26 @@ function PeerTabs(props: {
             padding: '6px 8px 4px 0',
           }}
         >
-          {groups.map((group) => {
+          {groups.map((group, index) => {
             const first = group[0]!;
+            const label = `변경 ${changeLetter(index)}`;
             const isActive = group === currentGroup;
             const target =
               group.find((item) => item.status === 'pending') ?? first;
             const hasPending = group.some((item) => item.status === 'pending');
             return (
               <button
-                key={first.issue.key}
+                key={`${first.issue.key} ${first.standard.id}`}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                aria-label={`이슈 ${first.issue.key} ${first.standard.title} (${statusLabel(first)})`}
-                title={`${first.standard.title} · ${statusLabel(first)}`}
+                aria-label={`${label} ${first.standard.title} 이슈 ${first.issue.key} (${statusLabel(first)})`}
+                // 지금 보고 있는 칩에는 제목을 띄우지 않아요 (신지님 시안 10/15)
+                title={
+                  isActive
+                    ? undefined
+                    : `${first.standard.title} · 이슈 ${first.issue.key} · ${statusLabel(first)}`
+                }
                 onClick={() => !isActive && props.onOpen(target.pendingCheckId)}
                 style={{
                   position: 'relative',
@@ -314,7 +337,7 @@ function PeerTabs(props: {
                   lineHeight: 0,
                 }}
               >
-                <Pill isActive={isActive}>이슈 {first.issue.key}</Pill>
+                <Pill isActive={isActive}>{label}</Pill>
                 {hasPending && (
                   <span
                     aria-hidden
@@ -472,30 +495,24 @@ function IssueCard(props: { change: MyChange }) {
             {change.standard.changedBy ?? '모름'} ·{' '}
             {formatTime(change.standard.changedAt)}
           </Text>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'baseline',
-              gap: 14,
-              marginTop: 4,
-            }}
-          >
-            <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-              <Text typography="t7" color={C.grey500}>
-                바뀐 이유
-              </Text>
-            </div>
-            <Text typography="t7" color={C.grey800}>
-              {change.standard.reason}
-            </Text>
-          </div>
         </div>
       </div>
     </div>
   );
 }
 
+/** 이슈 카드 오른쪽 상태 칩. 완료된 이슈면 [완료]를 하나 더 붙여요 (신지님 시안 10/15) */
 function IssueStateChips(props: { change: MyChange }) {
+  const { change } = props;
+  return (
+    <>
+      <AnswerStateChips change={change} />
+      {change.issue.status === 'done' && <Chip tone="green">완료</Chip>}
+    </>
+  );
+}
+
+function AnswerStateChips(props: { change: MyChange }) {
   const { change } = props;
   if (change.status === 'pending') return <Chip tone="orange">대기</Chip>;
   if (change.status === 'superseded') return <Chip tone="gray">대체됨</Chip>;
@@ -505,7 +522,7 @@ function IssueStateChips(props: { change: MyChange }) {
         <Chip tone="blue">{change.answer.known ? '알았다' : '몰랐다'}</Chip>
       )}
       {change.reflected ? (
-        <Chip tone="ai">작업 반영</Chip>
+        <Chip tone="ai">이슈 반영</Chip>
       ) : (
         <Chip tone="blue">확인 완료</Chip>
       )}
@@ -513,7 +530,13 @@ function IssueStateChips(props: { change: MyChange }) {
   );
 }
 
-function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
+function ValueBox(props: {
+  label: string;
+  value: string;
+  isAfter?: boolean;
+  /** 이름 옆에 붙는 칩 (되돌림) */
+  tag?: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -527,10 +550,13 @@ function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
         gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', height: 24 }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 8, height: 24 }}
+      >
         <Text typography="st12" color={props.isAfter ? C.blue700 : C.grey600}>
           {props.label}
         </Text>
+        {props.tag}
       </div>
       <Text typography="st11" fontWeight="medium" color={C.grey900}>
         {props.value}
@@ -539,7 +565,8 @@ function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
   );
 }
 
-function ReworkNotice() {
+/** "지금 해야 할 일" 옆 노란 안내 (신지님 시안 10/15: 노란 바탕, 검정 글자) */
+function Notice(props: { text: string }) {
   return (
     <div
       role="note"
@@ -549,13 +576,14 @@ function ReworkNotice() {
         gap: 8,
         padding: '8px 12px',
         borderRadius: 10,
-        background: '#FFF1E0',
-        color: '#E8590C',
+        background: '#FFF4C2',
+        color: '#000000',
+        textAlign: 'left',
       }}
     >
       <InfoIcon />
       <span style={{ fontSize: 13, fontWeight: 500, lineHeight: '19.5px' }}>
-        {REWORK_NOTICE}
+        {props.text}
       </span>
     </div>
   );
@@ -638,7 +666,7 @@ function AnswerForm(props: {
         elapsedSeconds: Math.round((Date.now() - openedAt.current) / 1000),
       });
       await props.onSaved();
-      props.onToast('답했어요. 확인할 변경 상태가 답함으로 바뀌었어요.');
+      props.onToast('답변을 완료했어요.');
     } catch (error: unknown) {
       if (isSilError(error) && error.code === 'PENDING_CLOSED') {
         props.onClosedElsewhere();
@@ -787,7 +815,7 @@ function AnsweredBox(props: {
       );
       await props.onSaved();
       props.onToast(
-        `내 작업 상태를 ${isReflected ? '확인 완료' : '작업 반영'}로 바꿨어요.`,
+        `상태를 바꿨어요 · ${isReflected ? '확인 완료' : '이슈 반영'}`,
       );
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -841,7 +869,7 @@ function AnsweredBox(props: {
             <span style={{ pointerEvents: 'none', display: 'inline-flex' }}>
               <CheckIcon
                 isDone={isReflected}
-                label={isReflected ? '작업 반영함' : '작업 반영 안 함'}
+                label={isReflected ? '이슈 반영함' : '이슈 반영 안 함'}
               />
             </span>
             <span
@@ -852,7 +880,7 @@ function AnsweredBox(props: {
                 color: isReflected ? C.blue700 : C.grey700,
               }}
             >
-              작업 반영했어요
+              이슈에 반영했어요
             </span>
           </button>
         )}
@@ -885,11 +913,44 @@ function AnsweredBox(props: {
           {CHANNEL_LABELS[answer.channel]}에서 답함
         </Text>
         {props.onNext && (
-          <TextButton size="medium" hasArrow onClick={props.onNext}>
-            <span style={{ fontSize: 13, fontWeight: 400, color: C.grey900 }}>
+          // 화살표는 작게(12px), 글자와 같은 얇은 굵기로 (신지님 시안 10/15)
+          <button
+            type="button"
+            onClick={props.onNext}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 2,
+              border: 0,
+              background: 'none',
+              padding: 0,
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              color: C.grey900,
+            }}
+          >
+            <span
+              style={{ fontSize: 13, fontWeight: 400, lineHeight: '19.5px' }}
+            >
               다음 변경
             </span>
-          </TextButton>
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 16 16"
+              fill="none"
+              aria-hidden
+              style={{ flexShrink: 0 }}
+            >
+              <path
+                d="M6 3.5 10.5 8 6 12.5"
+                stroke="currentColor"
+                strokeWidth="1.2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
         )}
       </div>
     </div>

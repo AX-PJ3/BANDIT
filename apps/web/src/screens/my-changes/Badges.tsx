@@ -1,5 +1,5 @@
 /**
- * 카드와 상세에 붙는 칩이에요: 상태, 새 결정 사항, 새 버전, 되돌림, 출처, PR에서 찾음, 완료된 이슈.
+ * 카드와 상세에 붙는 칩이에요: 상태, 새 결정 사항, 새 버전, 되돌림, 출처(PR에서 찾은 변경 포함), 완료된 이슈.
  * 색과 크기는 프로토타입(SIL-69)과 같아요.
  */
 import type { MyChange } from '../../api/types.ts';
@@ -43,8 +43,8 @@ export function StatusChip(props: { change: MyChange }) {
   );
 }
 
-/** 새 결정 사항, 새 버전, 되돌림 */
-export function KindChips(props: { change: MyChange }) {
+/** 새 결정 사항, 새 버전, 되돌림. 상세 제목 옆에서는 되돌림을 빼고 "현재 결정 사항" 상자에 붙여요 (신지님 시안 10/15) */
+export function KindChips(props: { change: MyChange; hideRevert?: boolean }) {
   const { change } = props;
   return (
     <>
@@ -58,7 +58,7 @@ export function KindChips(props: { change: MyChange }) {
           새 버전 v{change.standard.version}
         </Chip>
       )}
-      {change.standard.isRevert && (
+      {change.standard.isRevert && !props.hideRevert && (
         <Chip inline tone="purple">
           되돌림
         </Chip>
@@ -67,25 +67,16 @@ export function KindChips(props: { change: MyChange }) {
   );
 }
 
-/** 출처 칩과 "PR에서 찾음" (app.card.source-chip-only, app.card.found-in-pr-code-only) */
+/**
+ * 출처 칩 하나. 모두 같은 모양이고 AI 대화에만 반짝 아이콘을 붙여요 (신지님 시안 10/15)
+ * (app.card.source-chip-only, app.card.found-in-pr-code-only v2)
+ */
 export function SourceChips(props: { change: MyChange }) {
   const { change } = props;
+  const isAiChat = change.standard.source === 'ai_chat' && !isFoundInPr(change);
   return (
-    <>
-      {change.standard.source === 'ai_chat' ? (
-        <Chip inline tone="ai" icon={<SparkleIcon />}>
-          {sourceChipLabel(change)}
-        </Chip>
-      ) : (
-        <Chip inline tone="gray">
-          {sourceChipLabel(change)}
-        </Chip>
-      )}
-      {isFoundInPr(change) && (
-        <Chip inline tone="gray">
-          PR에서 찾음
-        </Chip>
-      )}
-    </>
+    <Chip inline tone="ai" icon={isAiChat ? <SparkleIcon /> : undefined}>
+      {sourceChipLabel(change)}
+    </Chip>
   );
 }

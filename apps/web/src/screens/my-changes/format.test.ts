@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { MOCK_ME, mockApi } from '../../api/mock.ts';
 import {
+  changeLetter,
   findReplacingVersion,
+  groupByChange,
   groupByIssue,
   isFoundInPr,
   isNewStandard,
@@ -40,13 +42,12 @@ describe('예시 목록', () => {
 });
 
 describe('카드 표시', () => {
-  it('PR에서 찾음은 AI가 찾았고 출처가 코드일 때만 (D61)', () => {
+  it('PR에서 찾은 변경은 AI가 찾았고 출처가 코드일 때만 (D61)', () => {
     expect(isFoundInPr(byId('inbox-coupon-v2'))).toBe(true);
+    expect(sourceChipLabel(byId('inbox-coupon-v2'))).toBe('PR에서 찾은 변경');
     // T1(AI 대화)은 AI가 먼저 알아챘어도 "AI 대화" 칩만
     expect(isFoundInPr(byId('inbox-title-length-v2'))).toBe(false);
-    expect(sourceChipLabel(byId('inbox-title-length-v2'))).toBe(
-      'AI 대화에서 바꿈',
-    );
+    expect(sourceChipLabel(byId('inbox-title-length-v2'))).toBe('AI 대화');
   });
 
   it('출처가 위키면 "위키"예요 (app.card.source-chip-only)', () => {
@@ -56,7 +57,7 @@ describe('카드 표시', () => {
         ...wiki,
         standard: { ...wiki.standard, source: 'wiki' },
       }),
-    ).toBe('위키에서 바꿈');
+    ).toBe('위키');
   });
 
   it('이전 값이 없으면 새 결정 사항', () => {
@@ -124,5 +125,25 @@ describe('이슈 별로 묶기', () => {
     expect(
       sameStandardVersions(byId('inbox-title-length-v2'), changes),
     ).toHaveLength(1);
+  });
+});
+
+describe('상세 위 칩 (app.detail.change-letter)', () => {
+  it('결정 사항과 이슈 한 쌍마다 칩 하나, 먼저 온 쌍이 앞이에요', () => {
+    const groups = groupByChange(changes);
+    for (const group of groups) {
+      expect(new Set(group.map((item) => item.issue.key)).size).toBe(1);
+      expect(new Set(group.map((item) => item.standard.id)).size).toBe(1);
+    }
+    const firstArrived = groups.map((group) =>
+      Math.min(...group.map((item) => Date.parse(item.createdAt))),
+    );
+    expect(firstArrived).toEqual([...firstArrived].sort((a, b) => a - b));
+  });
+
+  it('글자는 A부터, Z 다음은 AA예요', () => {
+    expect(changeLetter(0)).toBe('A');
+    expect(changeLetter(25)).toBe('Z');
+    expect(changeLetter(26)).toBe('AA');
   });
 });

@@ -238,7 +238,10 @@ button {
   flex: 1 1 0;
   min-width: 260px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 16px 28px;
+  box-sizing: border-box;
   background: #fafafa;
   border-radius: 15px;
 }
