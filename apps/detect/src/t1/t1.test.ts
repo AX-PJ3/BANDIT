@@ -4,22 +4,52 @@ import { describe, expect, it } from 'vitest';
 import { renderT1Question, renderT1Saved, T1_COPY } from './copy.ts';
 import {
   clearPending,
+  conflictsPath,
   diffFromPending,
   pendingPath,
+  takeConflicts,
+  writeConflicts,
   writePending,
 } from './pending.ts';
 import {
+  CONFLICTS_DONE,
+  findConflictsToken,
   findPreviewId,
+  isConflictsCommand,
   isPreviewCommand,
   PREVIEW_DONE,
 } from './preview-command.ts';
 import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
-import { COLS, previewScreen } from './screens.ts';
+import {
+  COLS,
+  conflictsScreen,
+  previewScreen,
+  type T1ConflictsInput,
+} from './screens.ts';
 import { textWidth, wrap } from './text.ts';
 
 /** 꾸밈 코드(ANSI)를 지워요 */
 // eslint-disable-next-line no-control-regex -- 터미널 색 코드(ESC)를 지우려면 제어 문자가 필요해요
 const stripAnsi = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, '');
+
+/** 프로토타입 경우 2의 다른 결정 사항 (10/14) */
+const TITLE_CONFLICTS: T1ConflictsInput = {
+  request: '앱 알림 제목 길이를 32자 이하로 바꾸기',
+  conflicts: [
+    {
+      id: 'app.notify.title-length',
+      title: '앱 알림 제목은 40자 이하로 쓴다',
+      kind: 'change',
+      why: '40자 이하로 정한 길이를 32자 이하로 다시 정해요',
+    },
+    {
+      id: 'notify.app-title.from-standard',
+      title: '앱 알림 제목에는 결정 사항 제목을 그대로 쓴다',
+      kind: 'mismatch',
+      why: '결정 사항 제목(최대 40자)을 그대로 쓰면 32자에서 잘려요',
+    },
+  ],
+};
 
 describe('T1 문구', () => {
   it('질문에 제목, 지금 값, 바꿀 값을 넣어요', () => {
@@ -38,8 +68,17 @@ describe('T1 문구', () => {
     expect(question).not.toMatch(/\{\w+\}/);
   });
 
-  it('③ 머리표는 프로토타입에 적힌 말 그대로예요', () => {
+  it('직접 요청 문구는 SIL-94·프로토타입에 적힌 말 그대로예요', () => {
+    expect(T1_COPY.direct.conflicts.head).toBe(
+      '요청하신 변경이 기존 결정 사항과 달라요',
+    );
     expect(T1_COPY.preview.heading).toBe('결정 사항을 이렇게 등록할까요');
+    expect(T1_COPY.direct.confirm).toBe(
+      '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
+    );
+    expect(T1_COPY.direct.noConflict).toBe(
+      '요청하신 변경과 다른 결정 사항이 없어요.',
+    );
   });
 
   it('④ 등록 완료에 버전과 항상 적용을 넣어요', () => {
@@ -71,11 +110,13 @@ describe('T1 문구', () => {
       T1_COPY.reasonPrompt,
       T1_COPY.cancelled.withTask,
       T1_COPY.cancelled.noTask,
+      T1_COPY.direct.noConflict,
     ];
     for (const message of messages) {
       expect(message).toMatch(/\.$/);
     }
     expect(T1_COPY.editPrompt).toMatch(/\?$/);
+    expect(T1_COPY.direct.confirm).toMatch(/\?$/);
   });
 
   it('화면 문구에 "기준" 대신 "결정 사항"을 써요 (copy.term.standard)', () => {
@@ -130,6 +171,28 @@ describe('previewScreen (③)', () => {
       expect(textWidth(line)).toBeLessThanOrEqual(COLS);
     }
     expect(reasonLines[1]?.startsWith(' '.repeat(10))).toBe(true);
+  });
+});
+
+describe('conflictsScreen (직접 요청 다른 결정 사항)', () => {
+  it('프로토타입 경우 2처럼 노란 막대, 요청, 구분 · [영역] 제목 · 판단 이유예요', () => {
+    expect(stripAnsi(conflictsScreen(TITLE_CONFLICTS)).split('\n')).toEqual([
+      '  요청하신 변경이 기존 결정 사항과 달라요',
+      '  요청  앱 알림 제목 길이를 32자 이하로 바꾸기',
+      '',
+      '  변경    [app] 앱 알림 제목은 40자 이하로 쓴다',
+      '          40자 이하로 정한 길이를 32자 이하로 다시 정해요',
+      '  어긋남  [notify] 앱 알림 제목에는 결정 사항 제목을 그대로 쓴다',
+      '          결정 사항 제목(최대 40자)을 그대로 쓰면 32자에서 잘려요',
+    ]);
+  });
+
+  it('머리표는 노란 막대이고 결정 사항 제목은 굵게예요', () => {
+    const screen = conflictsScreen(TITLE_CONFLICTS);
+    expect(screen.startsWith('\u001b[43m \u001b[0m \u001b[33m요청하신')).toBe(
+      true,
+    );
+    expect(screen).toContain('\u001b[1;39m[app] 앱 알림 제목은 40자');
   });
 });
 
@@ -357,8 +420,81 @@ describe('hook-preview.ts', () => {
   });
 });
 
+describe('conflicts.ts와 hook-conflicts.ts (SIL-94)', () => {
+  const runNode = (file: string, input: string) =>
+    execFileSync(
+      process.execPath,
+      [fileURLToPath(new URL(file, import.meta.url))],
+      { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+    );
+  const runHook = (command: string, stdout: string) =>
+    runNode(
+      './hook-conflicts.ts',
+      JSON.stringify({ tool_input: { command }, tool_response: { stdout } }),
+    );
+
+  it('명령이 값을 들고, 직후 hook이 화면을 띄우고 임시 값을 지워요', () => {
+    const stdout = runNode('./conflicts.ts', JSON.stringify(TITLE_CONFLICTS));
+    const token = findConflictsToken(stdout);
+    expect(token).toBeDefined();
+    const output = runHook(
+      `cd "C:/repo/main-2" && node apps/detect/src/t1/conflicts.ts <<'EOF'`,
+      stdout,
+    );
+    const { systemMessage } = JSON.parse(output) as { systemMessage: string };
+    expect(stripAnsi(systemMessage)).toContain(
+      '  어긋남  [notify] 앱 알림 제목에는 결정 사항 제목을 그대로 쓴다',
+    );
+    expect(takeConflicts(token)).toBeNull();
+  });
+
+  it('구분이 change·mismatch가 아니거나 다른 결정 사항이 없으면 거절해요', () => {
+    const [first] = TITLE_CONFLICTS.conflicts;
+    expect(() =>
+      runNode(
+        './conflicts.ts',
+        JSON.stringify({ ...TITLE_CONFLICTS, conflicts: [] }),
+      ),
+    ).toThrow();
+    expect(() =>
+      runNode(
+        './conflicts.ts',
+        JSON.stringify({
+          ...TITLE_CONFLICTS,
+          conflicts: [{ ...first, kind: 'x' }],
+        }),
+      ),
+    ).toThrow();
+  });
+
+  it('다른 명령이면 아무것도 내지 않아요', () => {
+    expect(runHook('git status', '')).toBe('');
+    expect(runHook('node apps/detect/src/t1/preview.ts', '')).toBe('');
+  });
+
+  it('표 형식이 아니면 파일을 찾지 않아요 (경로 문자 막기)', () => {
+    expect(conflictsPath('../../etc')).toBeNull();
+    const token = writeConflicts(TITLE_CONFLICTS);
+    expect(conflictsPath(token)).toMatch(/haribo-t1-conflicts-/);
+    expect(takeConflicts(token)).toEqual(TITLE_CONFLICTS);
+  });
+
+  it('명령 알아보기와 표 찾기', () => {
+    expect(isConflictsCommand('node apps/detect/src/t1/conflicts.ts')).toBe(
+      true,
+    );
+    expect(isConflictsCommand('cat apps/detect/src/t1/conflicts.ts')).toBe(
+      false,
+    );
+    expect(isConflictsCommand('node apps/detect/src/t1/preview.ts')).toBe(
+      false,
+    );
+    expect(findConflictsToken(`${CONFLICTS_DONE} abc\r\n`)).toBe('abc');
+  });
+});
+
 describe('hooks 첫 줄', () => {
-  it('③ hook은 첫 줄을 비워 머리글 다음 줄부터 시작해요', () => {
+  it('두 hook 모두 첫 줄을 비워 머리글 다음 줄부터 시작해요', () => {
     const id = 'test.t1.first-line';
     writePending({
       id,
@@ -390,6 +526,12 @@ describe('hooks 첫 줄', () => {
         `${PREVIEW_DONE} ${id}`,
       );
       expect(preview.startsWith('\n-- 결정 사항을 이렇게')).toBe(true);
+      const conflicts = run(
+        './hook-conflicts.ts',
+        'node apps/detect/src/t1/conflicts.ts',
+        `${CONFLICTS_DONE} ${writeConflicts(TITLE_CONFLICTS)}`,
+      );
+      expect(conflicts.startsWith('\n\u001b[43m')).toBe(true);
     } finally {
       clearPending(id);
     }

@@ -14,7 +14,12 @@ export {
   type T1NewAnswer,
   type T1Trigger,
 } from './t1/save-input.ts';
-export { previewScreen } from './t1/screens.ts';
+export {
+  conflictsScreen,
+  previewScreen,
+  type T1Conflict,
+  type T1ConflictsInput,
+} from './t1/screens.ts';
 export { PR_COPY, renderOutcome } from './pr/copy.ts';
 export {
   runPrPath,
