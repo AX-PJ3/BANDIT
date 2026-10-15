@@ -13,6 +13,7 @@
 | `pnpm sil export`                    | 응답 기록 14칸 CSV + Metric Review 숫자("N건 중 M건")                               |
 | `pnpm sil backup`                    | 표 전체를 JSON으로 남김 (매일 백업 workflow가 씀)                                   |
 | `pnpm sil scope-check`               | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 확인                                |
+| `pnpm sil seed-demo`                 | 시연용 샘플 데이터 쌓기 (기본은 미리 보기, `--apply --confirm-host`로 저장)         |
 
 ## 들어올 명령
 
@@ -33,6 +34,19 @@ pnpm sil import --issues samples/data/issue-links.csv --apply
 - DB에 없는 기준은 새로 저장(출처 `wiki`, 고친 사람 `--by`, 기본 `팀 위키`), 같은 기준은 건너뛰어요. 몇 번 돌려도 같아요.
 - DB와 다른 기준은 알려만 줘요. `--update`를 붙여야 새 버전으로 저장해요 (AI가 그사이 고친 버전을 덮지 않으려고요).
 - 이슈 파일은 `--issues`로 알려 줘요 (없으면 `team-wiki/issues.csv`). 칸: 이슈 번호, 이슈 제목, 담당자, 이슈 상태, 기준 ID.
+
+## `sil seed-demo` (SIL-101)
+
+시연 화면이 비어 보이지 않게 이력을 미리 쌓아요. 순서와 문장은 `src/demo-seed/steps.ts`에 있어요.
+
+```bash
+pnpm sil seed-demo                                          # 미리 보기: 순서와 시드 전 상태 확인
+pnpm sil seed-demo --apply --confirm-host <미리 보기에 나온 주소>  # 저장
+```
+
+- **시연 DB에서만** 돌려요. 결정 사항과 답은 지울 수 없어요. 연결된 DB의 호스트를 `--confirm-host`로 직접 적어야 저장해요.
+- 위키와 이슈를 가져온 직후(`sil import --apply`)의 DB에서 시작해요. 시드할 결정 사항의 버전이 다르거나 확인할 변경이 이미 있으면 하나도 저장하지 않고 멈춰요 (두 번 돌리는 것도 막아요).
+- 끝나면 사람별 확인할 변경·확인한 변경 건수를 기대와 비교해 보여 줘요.
 
 ## 명령 추가하기
 

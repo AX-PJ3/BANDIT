@@ -6,6 +6,7 @@ import { registerDoctor } from './doctor.ts';
 import { registerExport } from './export.ts';
 import { registerImport } from './import.ts';
 import { registerScopeCheck } from './scope-check.ts';
+import { registerSeedDemo } from './seed-demo.ts';
 
 /**
  * 명령 목록이에요. 명령 하나 = 파일 하나 = 이 배열의 한 줄이에요.
@@ -23,4 +24,5 @@ export const commands: Array<(program: Command) => void> = [
   registerExport,
   registerBackup,
   registerScopeCheck,
+  registerSeedDemo,
 ];
