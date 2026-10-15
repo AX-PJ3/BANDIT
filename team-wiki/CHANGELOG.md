@@ -155,3 +155,4 @@
 2026-10-14 11:45 | 호윤 | detect.ask.rollback-if-applied 1→2 | 적용 범위: 화면: 터미널 알림 / 문서: 각자 CLAUDE.md → 화면: 터미널 알림 / 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
 2026-10-14 11:45 | 호윤 | detect.ask.confirm-before-register 1→2 | 적용 범위: 화면: 터미널 알림 / 문서: 각자 CLAUDE.md → 화면: 터미널 알림 / 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
 2026-10-14 11:45 | 호윤 | detect.ask.direct-request-skip-warn 1→2 | 적용 범위: 화면: 터미널 알림 / 문서: 각자 CLAUDE.md → 화면: 터미널 알림 / 문서: 최상단 CLAUDE.md | 팀 위키 규칙을 각자 CLAUDE.md가 아니라 레포 최상단 CLAUDE.md로 옮겨서 적용 범위를 맞춤 (SIL-60, SIL-62) | AI 대화
+2026-10-14 21:30 | 호윤 | goal.scope.no-code-fix new→1 | (없음) → 서비스는 바뀐 내용을 알려 주는 데까지만 하고, 코드를 고치도록 지시하거나 고친 결과를 검사하지 않는다 | 코드를 고치는 일은 AI와 사람의 몫이고, 서비스가 맡으면 이번 범위를 넘는다 | AI 대화

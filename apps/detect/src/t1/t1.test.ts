@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import {
   renderT1Preview,
@@ -5,7 +7,17 @@ import {
   renderT1Saved,
   T1_COPY,
 } from './copy.ts';
-import { diffFromPending, pendingPath } from './pending.ts';
+import {
+  clearPending,
+  diffFromPending,
+  pendingPath,
+  writePending,
+} from './pending.ts';
+import {
+  findPreviewId,
+  isPreviewCommand,
+  PREVIEW_DONE,
+} from './preview-command.ts';
 import { buildT1SaveInput } from './save-input.ts';
 
 describe('T1 문구', () => {
@@ -163,5 +175,95 @@ describe('pendingPath', () => {
   it('결정 사항 ID 형식이 아니면 파일을 만들지 않아요 (경로 문자 막기)', () => {
     expect(pendingPath('../../etc.passwd.x')).toBeNull();
     expect(pendingPath('App.Notify.Title')).toBeNull();
+  });
+});
+
+describe('isPreviewCommand', () => {
+  it('node로 시작하는 ③ 명령을 알아봐요', () => {
+    expect(
+      isPreviewCommand("node apps/detect/src/t1/preview.ts <<'EOF'\n{}\nEOF"),
+    ).toBe(true);
+    expect(isPreviewCommand('node ./apps/detect/src/t1/preview.ts')).toBe(true);
+  });
+
+  it('앞에 cd를 붙이거나 전체 경로로 불러도 알아봐요', () => {
+    expect(
+      isPreviewCommand(
+        `cd "C:/Users/user/orca/workspaces/HARIBO/main-2" && node apps/detect/src/t1/preview.ts <<'EOF'`,
+      ),
+    ).toBe(true);
+    expect(
+      isPreviewCommand('cd /repo; node /repo/apps/detect/src/t1/preview.ts'),
+    ).toBe(true);
+    expect(
+      isPreviewCommand(
+        'node "C:/Users/my name/HARIBO/apps/detect/src/t1/preview.ts"',
+      ),
+    ).toBe(true);
+    expect(
+      isPreviewCommand('node C:\\repo\\apps\\detect\\src\\t1\\preview.ts'),
+    ).toBe(true);
+  });
+
+  it('다른 명령은 알아보지 않아요', () => {
+    expect(isPreviewCommand('cat apps/detect/src/t1/preview.ts')).toBe(false);
+    expect(isPreviewCommand('node apps/detect/src/t1/preview.test.ts')).toBe(
+      false,
+    );
+    expect(isPreviewCommand('node apps/detect/src/t1/hook-preview.ts')).toBe(
+      false,
+    );
+    expect(isPreviewCommand('pnpm test')).toBe(false);
+  });
+});
+
+describe('findPreviewId', () => {
+  it('preview.ts 마지막 줄에서 결정 사항 ID를 찾아요 (Windows 줄바꿈 포함)', () => {
+    expect(findPreviewId(`${PREVIEW_DONE} app.notify.title-length\r\n`)).toBe(
+      'app.notify.title-length',
+    );
+  });
+
+  it('표시 줄이 없으면 undefined예요', () => {
+    expect(findPreviewId('빠진 칸이 있어요: reason')).toBeUndefined();
+  });
+});
+
+describe('hook-preview.ts', () => {
+  const HOOK_PATH = fileURLToPath(
+    new URL('./hook-preview.ts', import.meta.url),
+  );
+  const runHook = (command: string, stdout: string) =>
+    execFileSync(process.execPath, [HOOK_PATH], {
+      input: JSON.stringify({
+        tool_input: { command },
+        tool_response: { stdout },
+      }),
+      encoding: 'utf8',
+    });
+
+  it('앞에 cd가 붙은 ③ 명령에도 꾸민 ③을 띄워요', () => {
+    const id = 'test.t1.hook-preview';
+    writePending({
+      id,
+      title: '시험 제목',
+      value: '시험 값',
+      reason: '시험 이유',
+      alwaysOn: false,
+    });
+    try {
+      const output = runHook(
+        `cd "C:/repo/main-2" && node apps/detect/src/t1/preview.ts <<'EOF'`,
+        `${PREVIEW_DONE} ${id}\n`,
+      );
+      const { systemMessage } = JSON.parse(output) as { systemMessage: string };
+      expect(systemMessage).toContain('\u001b[36m[test] 시험 제목');
+    } finally {
+      clearPending(id);
+    }
+  });
+
+  it('다른 명령이면 아무것도 내지 않아요', () => {
+    expect(runHook('git status', '')).toBe('');
   });
 });

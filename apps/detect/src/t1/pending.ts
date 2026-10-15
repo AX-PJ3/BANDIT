@@ -16,9 +16,6 @@ export type T1Pending = Pick<
   'id' | 'title' | 'value' | 'reason' | 'alwaysOn' | 'area'
 >;
 
-/** preview.ts가 마지막 줄에 남기는 표시. hook-preview.ts가 이 뒤의 결정 사항 ID로 파일을 찾아요 */
-export const PREVIEW_DONE = '③ 등록될 모습 값을 임시로 들고 있어요:';
-
 /** 결정 사항 ID 형식이 맞을 때만 파일 경로를 줘요 (data.standard.id-format) */
 export function pendingPath(id: string): string | null {
   return STANDARD_ID_PATTERN.test(id)
