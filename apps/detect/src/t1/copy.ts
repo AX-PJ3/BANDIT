@@ -14,25 +14,37 @@ export const T1_COPY = {
    */
   ask: {
     header: '결정 사항 등록',
-    // 첫 줄은 FigJam "T1 결정 사항 등록" ①② 문구 (10/13)
-    question:
-      '기존 결정 사항과 다른 작업이에요. 그래도 진행할까요?\n' +
-      '{title}\n' +
-      '  지금 값: {currentValue}\n' +
-      '  바꿀 값: {newValue}',
+    // 지금 값·바꿀 값은 앞의 다른 결정 사항 화면(`conflicts`)이 보여 줘서 질문은 한 줄이에요 (프로토타입 10/14)
+    question: '기존 결정 사항과 다른 작업이에요. 그래도 진행할까요?',
     yes: {
       label: '예',
       description:
         '결정 사항을 등록하고 작업을 진행할게요. 등록될 모습 먼저 보여 드릴게요',
     },
     no: {
-      label: '아니오',
+      label: '아니요',
       description:
         '부탁하신 작업은 멈춰 둘게요. 기존 결정 사항은 그대로 유지할게요',
     },
+    /** 선택지 대신 글로 답했을 때. 이 줄을 쓰고 같은 질문을 다시 물어요 (프로토타입 10/14) */
+    typedReply: '예 또는 아니요로 골라 주세요.',
   },
   /**
-   * 아니오를 고른 뒤. 이 줄을 보여 주고 작업을 멈춰요 (FigJam 10/13 "작업 끝").
+   * 다른 결정 사항 화면. hook(`hook-conflicts.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 show_conflicts, 10/14).
+   * 머리표와 첫 줄 이름은 T1이 어떻게 시작됐는지(`T1Trigger`)에 따라 달라요: 에이전트가 알아챈 작업 / 사람이 직접 한 요청.
+   * 구분은 바꾸려는 결정 사항이면 변경, 바꾸면 함께 어긋나는 다른 결정 사항이면 어긋남이에요.
+   * "충돌"은 용어집에서 동시 수정을 뜻해서 "달라요"를 써요 (10/13)
+   */
+  conflicts: {
+    head: {
+      agent: '부탁하신 작업이 기존 결정 사항과 달라요',
+      direct: '요청하신 변경이 기존 결정 사항과 달라요',
+    },
+    requestLabel: { agent: '작업', direct: '요청' },
+    kinds: { change: '변경', mismatch: '어긋남' },
+  },
+  /**
+   * 아니요를 고른 뒤. 이 줄을 보여 주고 작업을 멈춰요 (FigJam 10/13 "작업 끝").
    * 사람이 "40자로 작업해 줘"처럼 어떻게 할지 다시 말할 때만 진행해요 (10/13 경하님)
    */
   notChanged: '기존 결정 사항을 그대로 유지할게요. 다른 작업을 시작해 주세요.',
@@ -87,16 +99,6 @@ export const T1_COPY = {
   direct: {
     /** 기존 결정 사항이 없을 때(새 결정 사항) 이유·③보다 먼저 보여 주는 한 줄 */
     noConflict: '요청하신 변경과 다른 결정 사항이 없어요.',
-    /**
-     * 다른 결정 사항 화면. hook(`hook-conflicts.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 show_conflicts, 10/14).
-     * 구분은 바꾸려는 결정 사항이면 변경, 바꾸면 함께 어긋나는 다른 결정 사항이면 어긋남이에요.
-     * "충돌"은 용어집에서 동시 수정을 뜻해서 "달라요"를 써요 (10/13)
-     */
-    conflicts: {
-      head: '요청하신 변경이 기존 결정 사항과 달라요',
-      requestLabel: '요청',
-      kinds: { change: '변경', mismatch: '어긋남' },
-    },
     /** 다른 결정 사항 화면과 ③을 띄운 뒤 묻는 선택 창 (`preview.confirm` 대신). 선택지는 ③과 같아요 */
     confirm:
       '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
@@ -106,11 +108,6 @@ export const T1_COPY = {
 } as const;
 
 // 문구에 넣을 값의 모양은 core 타입에서 골라 써요 (타입은 core에만)
-export type T1QuestionValues = Pick<StandardVersion, 'title'> & {
-  currentValue: StandardVersion['value'];
-  newValue: StandardVersion['value'];
-};
-
 export type T1PreviewValues = Pick<Standard, 'area'> &
   Pick<StandardVersion, 'title' | 'value' | 'reason' | 'alwaysOn'>;
 
@@ -125,11 +122,6 @@ function fill(template: string, values: Record<string, string>): string {
     /\{(\w+)\}/g,
     (slot, key: string) => values[key] ?? slot,
   );
-}
-
-/** ①② 질문 문구 */
-export function renderT1Question(values: T1QuestionValues): string {
-  return fill(T1_COPY.ask.question, { ...values });
 }
 
 /** ④ 등록 완료 문구 */
