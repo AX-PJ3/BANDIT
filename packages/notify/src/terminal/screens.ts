@@ -256,7 +256,8 @@ export function detailScreen(
     ...changeLines(item),
     reworkLine(item),
     `${label('이유')}${cutEnd(item.standard.reason, COLS - 8)}`,
-    `${label('이슈')}${issueText(item)}`,
+    // 이슈 줄은 이름표 없이 값 칸에만 써요. 칸은 비워 다른 줄의 값 위치에 맞춰요 (10/15 부건, 앱·터미널 용어 비교 14번)
+    `${' '.repeat(8)}${issueText(item)}`,
     `${label('출처')}${sourceText(item)}`,
   ].join('\n');
 }

@@ -102,7 +102,7 @@ describe('변경 상세 (T3)', () => {
       '  변경  40자 ⭢ 32자',
       '',
       '  이유  Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
-      '  이슈  #5 담당자에게 알리고 답 기록하기',
+      '        #5 담당자에게 알리고 답 기록하기',
       '  출처  AI 대화',
     ]);
   });
@@ -218,7 +218,7 @@ describe('변경 상세 (T3)', () => {
     });
     item.standard = { ...item.standard, source: 'code', aiDetected: true };
     const lines = plain(detailScreen(item, 1, 1, { now: SAME_DAY }));
-    assert.equal(lines[8], '  이슈  #7 앱 알림과 나에게 온 변경 화면 [완료]');
+    assert.equal(lines[8], '        #7 앱 알림과 나에게 온 변경 화면 [완료]');
     assert.equal(lines[9], '  출처  PR · AI가 찾음');
   });
 
