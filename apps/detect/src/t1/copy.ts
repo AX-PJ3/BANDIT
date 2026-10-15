@@ -14,45 +14,63 @@ export const T1_COPY = {
    */
   ask: {
     header: '결정 사항 등록',
-    // 첫 줄은 FigJam "T1 결정 사항 등록" ①② 문구 (10/13)
-    question:
-      '기존 결정 사항과 다른 작업이에요. 그래도 진행할까요?\n' +
-      '{title}\n' +
-      '  지금 값: {currentValue}\n' +
-      '  바꿀 값: {newValue}',
+    // 지금 값·바꿀 값은 앞의 다른 결정 사항 화면(`conflicts`)이 보여 줘서 질문은 한 줄이에요 (프로토타입 10/14)
+    question: '기존 결정 사항과 다른 작업이에요. 그래도 진행할까요?',
     yes: {
       label: '예',
       description:
         '결정 사항을 등록하고 작업을 진행할게요. 등록될 모습 먼저 보여 드릴게요',
     },
     no: {
-      label: '아니오',
+      label: '아니요',
       description:
         '부탁하신 작업은 멈춰 둘게요. 기존 결정 사항은 그대로 유지할게요',
     },
+    /** 선택지 대신 글로 답했을 때. 이 줄을 쓰고 같은 질문을 다시 물어요 (프로토타입 10/14) */
+    typedReply: '예 또는 아니요로 골라 주세요.',
   },
   /**
-   * 아니오를 고른 뒤. 이 줄을 보여 주고 작업을 멈춰요 (FigJam 10/13 "작업 끝").
+   * 다른 결정 사항 화면. hook(`hook-conflicts.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 show_conflicts, 10/14).
+   * 머리표와 첫 줄 이름은 T1이 어떻게 시작됐는지(`T1Trigger`)에 따라 달라요: 에이전트가 알아챈 작업 / 사람이 직접 한 요청.
+   * 구분은 바꾸려는 결정 사항이면 변경, 바꾸면 함께 어긋나는 다른 결정 사항이면 어긋남이에요.
+   * "충돌"은 용어집에서 동시 수정을 뜻해서 "달라요"를 써요 (10/13)
+   */
+  conflicts: {
+    head: {
+      agent: '부탁하신 작업이 기존 결정 사항과 달라요',
+      direct: '요청하신 변경이 기존 결정 사항과 달라요',
+    },
+    requestLabel: { agent: '작업', direct: '요청' },
+    kinds: { change: '변경', mismatch: '어긋남' },
+    /** 다른 결정 사항이 없을 때(새 결정 사항) 요청 줄 없이 초록 막대 한 줄만 (프로토타입 10/13) */
+    none: '요청하신 변경과 다른 결정 사항이 없어요',
+  },
+  /**
+   * 아니요를 고른 뒤. 이 줄을 보여 주고 작업을 멈춰요 (FigJam 10/13 "작업 끝").
    * 사람이 "40자로 작업해 줘"처럼 어떻게 할지 다시 말할 때만 진행해요 (10/13 경하님)
    */
   notChanged: '기존 결정 사항을 그대로 유지할게요. 다른 작업을 시작해 주세요.',
   /** 대화에서 이유를 유추할 수 없을 때 글로 묻기. 답을 한 문장으로 정리해 ③에 넣어요 */
   reasonPrompt:
     '이 결정 사항을 바꾸는 이유를 작성해 주세요. 작성해 주신 내용을 기반으로 정리해 드릴게요.',
-  /** ③ 등록될 모습 (AskUserQuestion). 이슈 표는 이슈를 읽는 도구가 생기면 넣어요 */
+  /**
+   * ③ 등록될 모습. 본문은 hook(`hook-preview.ts`)이 `screens.ts`의 모양으로 띄우고, 그 뒤 AskUserQuestion으로 물어요.
+   * 부건님 프로토타입 "T1 결정 사항 등록"(10/14)과 같아요. 이슈 표는 `preview.ts`가 팀 DB에서 읽은 받는 이슈로 채워요
+   */
   preview: {
     header: '결정 사항 등록',
-    /** hook(`hook-preview.ts`)이 꾸며서 띄우는 ③ 본문 */
-    question:
-      '이렇게 등록할게요.\n' +
-      '[{area}] {title}\n' +
-      '  값: {value}\n' +
-      '  이유: {reason}\n' +
-      '  항상 적용: {alwaysOn}',
+    /** ③ 위 선 안의 머리표 */
+    heading: '결정 사항을 이렇게 등록할까요',
+    labels: { value: '값', reason: '이유', alwaysOn: '항상 적용' },
+    /** 새 결정 사항이면 ③ 제목 줄 오른쪽 끝에 붙여요 (프로토타입 10/14) */
+    newTag: '새 결정 사항',
+    /** 누구에게 알리는지 보는 표의 칸 이름 (프로토타입 10/13) */
+    issueColumns: { id: 'ID', owner: '담당자', issue: '이슈' },
+    /** 받는 이슈가 없을 때 표 대신 보여 주는 한 줄 (프로토타입 10/13) */
+    noTargets: '연결된 이슈가 없어서 알림을 받는 사람은 없어요.',
     register: { label: '등록하기', description: '결정 사항을 저장해요' },
     /**
-     * 연결된 이슈가 있을 때의 등록하기. 저장 전에 연결된 이슈를 알 방법이 없어서
-     * 이슈를 읽는 도구가 생기기 전까지는 `register`만 써요
+     * 받는 이슈가 있을 때의 등록하기. `preview.ts` 출력의 "알림 받는 이슈"가 1개 이상이면 이것을, 아니면 `register`를 써요 (프로토타입 10/13)
      */
     registerWithIssues: {
       label: '등록하기',
@@ -78,23 +96,27 @@ export const T1_COPY = {
       '결정 사항 등록을 취소했어요. 기존 결정 사항이 유지돼 하던 작업은 멈춰 둘게요. 어떻게 진행할지 알려 주세요.',
     noTask: '결정 사항 등록을 취소했어요. 결정 사항은 그대로예요.',
   },
+  /**
+   * 사람이 "결정 사항"이나 "위키"를 바꿔 달라고 직접 요청했을 때 (SIL-94, detect.ask.direct-request-skip-warn).
+   * ①② 묻기는 건너뛰어요. 이미 바꾸기로 한 사람에게 같은 뜻을 두 번 묻지 않아요
+   */
+  direct: {
+    /** 다른 결정 사항 화면과 ③을 띄운 뒤 묻는 선택 창 (`preview.confirm` 대신). 선택지는 ③과 같아요 */
+    confirm:
+      '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
+  },
   /** ④ 등록 완료 (FigJam). 확인할 변경을 보낸 이슈 수는 이슈를 읽는 도구가 생기면 넣어요 */
   saved: '✓ 결정 사항을 등록했어요 (v{version}) · 항상 적용 {alwaysOn}',
 } as const;
 
 // 문구에 넣을 값의 모양은 core 타입에서 골라 써요 (타입은 core에만)
-export type T1QuestionValues = Pick<StandardVersion, 'title'> & {
-  currentValue: StandardVersion['value'];
-  newValue: StandardVersion['value'];
-};
-
 export type T1PreviewValues = Pick<Standard, 'area'> &
   Pick<StandardVersion, 'title' | 'value' | 'reason' | 'alwaysOn'>;
 
 export type T1SavedValues = Pick<SaveStandardResult, 'version'> &
   Pick<StandardVersion, 'alwaysOn'>;
 
-const yesNo = (value: boolean) => (value ? '예' : '아니오');
+export const yesNo = (value: boolean) => (value ? '예' : '아니오');
 
 /** {자리}를 값으로 채워요 */
 function fill(template: string, values: Record<string, string>): string {
@@ -102,19 +124,6 @@ function fill(template: string, values: Record<string, string>): string {
     /\{(\w+)\}/g,
     (slot, key: string) => values[key] ?? slot,
   );
-}
-
-/** ①② 질문 문구 */
-export function renderT1Question(values: T1QuestionValues): string {
-  return fill(T1_COPY.ask.question, { ...values });
-}
-
-/** ③ 등록될 모습 문구 */
-export function renderT1Preview(values: T1PreviewValues): string {
-  return fill(T1_COPY.preview.question, {
-    ...values,
-    alwaysOn: yesNo(values.alwaysOn),
-  });
 }
 
 /** ④ 등록 완료 문구 */

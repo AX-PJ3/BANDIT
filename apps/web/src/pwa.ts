@@ -13,9 +13,19 @@ import { useEffect, useRef, useState } from 'react';
 const OPEN_CHECK = 'haribo:open-check';
 /** 알림을 눌러 새 창이 열릴 때 주소에 붙는 이름이에요 (?check=<확인할 변경 ID>) */
 const CHECK_PARAM = 'check';
+/** 서비스 워커(sw.js)와 같은 이름이에요. 알림을 누를 때 "이 창이 앱 창이야?"를 물어요 */
+const DISPLAY_MODE = 'haribo:display-mode';
 
 export function registerServiceWorker(): void {
   if (!import.meta.env.PROD || !('serviceWorker' in navigator)) return;
+  // 알림을 누르면 서비스 워커가 앱(PWA) 창을 먼저 고를 수 있게 이 창이 앱 창인지 답해요 (app.notify.click-to-inbox)
+  navigator.serviceWorker.addEventListener('message', (event) => {
+    const data = event.data as { type?: unknown } | null;
+    if (data?.type !== DISPLAY_MODE) return;
+    event.ports[0]?.postMessage({
+      isStandalone: currentPlatform() === 'installed',
+    });
+  });
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register(`${import.meta.env.BASE_URL}sw.js`)

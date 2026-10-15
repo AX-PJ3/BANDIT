@@ -1,6 +1,7 @@
-import type { NotifyData, NotifyStore } from './store.ts';
 import type {
   AnswerChannel,
+  NotifyData,
+  NotifyStore,
   IsoDateTime,
   IssueKey,
   IssueStatus,
