@@ -18,6 +18,7 @@ import {
   isConflictsCommand,
   isPreviewCommand,
   PREVIEW_DONE,
+  SCREEN_SHOWN_CONTEXT,
 } from './preview-command.ts';
 import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
 import {
@@ -76,9 +77,10 @@ describe('T1 문구', () => {
     expect(T1_COPY.direct.confirm).toBe(
       '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
     );
-    expect(T1_COPY.direct.noConflict).toBe(
-      '요청하신 변경과 다른 결정 사항이 없어요.',
+    expect(T1_COPY.conflicts.none).toBe(
+      '요청하신 변경과 다른 결정 사항이 없어요',
     );
+    expect(T1_COPY.preview.newTag).toBe('새 결정 사항');
   });
 
   it('④ 등록 완료에 버전과 항상 적용을 넣어요', () => {
@@ -110,7 +112,6 @@ describe('T1 문구', () => {
       T1_COPY.reasonPrompt,
       T1_COPY.cancelled.withTask,
       T1_COPY.cancelled.noTask,
-      T1_COPY.direct.noConflict,
       T1_COPY.preview.noTargets,
       T1_COPY.ask.typedReply,
     ];
@@ -156,10 +157,10 @@ describe('previewScreen (③)', () => {
   });
 
   it('제목은 청록 굵게, 항상 적용은 예일 때만 굵게예요', () => {
-    expect(previewScreen(values)).toContain('\u001b[1;36m[app] 앱 알림');
-    expect(previewScreen(values)).not.toContain('\u001b[1m항상 적용');
+    expect(previewScreen(values)).toContain('\u001b[0;1;36m[app] 앱 알림');
+    expect(previewScreen(values)).not.toContain('\u001b[0;1m항상 적용');
     expect(previewScreen({ ...values, alwaysOn: true })).toContain(
-      '\u001b[1m항상 적용',
+      '\u001b[0;1m항상 적용',
     );
   });
 
@@ -198,6 +199,27 @@ describe('previewScreen (③)', () => {
     ).split('\n');
     expect(textWidth(lines.at(-2) ?? '')).toBeLessThanOrEqual(COLS);
     expect(lines.at(-2)).toMatch(/…$/);
+  });
+
+  it('새 결정 사항이면 제목 줄 오른쪽 끝에 "새 결정 사항"을 붙여요 (프로토타입)', () => {
+    const lines = stripAnsi(
+      previewScreen(
+        { ...values, title: '앱 알림 본문은 2줄 이하로 쓴다' },
+        [],
+        true,
+      ),
+    ).split('\n');
+    expect(lines[1]).toMatch(
+      /^ {2}\[app\] 앱 알림 본문은 2줄 이하로 쓴다 +새 결정 사항$/,
+    );
+    expect(textWidth(lines[1] ?? '')).toBe(COLS);
+  });
+
+  it('제목이 길면 "새 결정 사항"을 다음 줄 오른쪽 끝에 둬요', () => {
+    const lines = stripAnsi(
+      previewScreen({ ...values, title: '가'.repeat(30) }, [], true),
+    ).split('\n');
+    expect(lines[2]).toBe(`${' '.repeat(COLS - 12)}새 결정 사항`);
   });
 
   it('받는 이슈가 없으면 표 대신 받는 사람이 없다는 한 줄이에요', () => {
@@ -255,6 +277,15 @@ describe('pickTargets (③ 받는 이슈)', () => {
 });
 
 describe('conflictsScreen (다른 결정 사항)', () => {
+  it('새 결정 사항이면 요청 줄 없이 초록 막대 한 줄만이에요 (프로토타입)', () => {
+    const screen = conflictsScreen({ ...TITLE_CONFLICTS, conflicts: [] });
+    expect(stripAnsi(screen)).toBe('  요청하신 변경과 다른 결정 사항이 없어요');
+    // 막대는 초록 32에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
+    expect(
+      screen.startsWith('\u001b[0;7;32m \u001b[0;2m \u001b[0;32m요청하신'),
+    ).toBe(true);
+  });
+
   it('경우 1은 "부탁하신 작업이…" 머리표와 작업 한 줄이에요 (프로토타입)', () => {
     const lines = stripAnsi(
       conflictsScreen({
@@ -284,10 +315,10 @@ describe('conflictsScreen (다른 결정 사항)', () => {
   it('머리표는 노란 막대이고 결정 사항 제목은 굵게예요', () => {
     const screen = conflictsScreen(TITLE_CONFLICTS);
     // 막대는 노랑 33에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
-    expect(screen.startsWith('\u001b[7;33m \u001b[0m \u001b[33m요청하신')).toBe(
-      true,
-    );
-    expect(screen).toContain('\u001b[1;39m[app] 앱 알림 제목은 40자');
+    expect(
+      screen.startsWith('\u001b[0;7;33m \u001b[0;2m \u001b[0;33m요청하신'),
+    ).toBe(true);
+    expect(screen).toContain('\u001b[0;1;39m[app] 앱 알림 제목은 40자');
   });
 });
 
@@ -503,7 +534,7 @@ describe('hook-preview.ts', () => {
         `${PREVIEW_DONE} ${id}\n`,
       );
       const { systemMessage } = JSON.parse(output) as { systemMessage: string };
-      expect(systemMessage).toContain('\u001b[1;36m[test] 시험 제목');
+      expect(systemMessage).toContain('\u001b[0;1;36m[test] 시험 제목');
       expect(stripAnsi(systemMessage)).toContain('    값    시험 값');
     } finally {
       clearPending(id);
@@ -543,7 +574,17 @@ describe('conflicts.ts와 hook-conflicts.ts (SIL-94)', () => {
     expect(takeConflicts(token)).toBeNull();
   });
 
-  it('trigger·구분이 정해진 값이 아니거나 다른 결정 사항이 없으면 거절해요', () => {
+  it('다른 결정 사항이 없는 화면은 직접 요청(새 결정 사항)에서만 받아요', () => {
+    const stdout = runNode(
+      './conflicts.ts',
+      JSON.stringify({ ...TITLE_CONFLICTS, conflicts: [] }),
+    );
+    expect(takeConflicts(findConflictsToken(stdout))).toMatchObject({
+      conflicts: [],
+    });
+  });
+
+  it('trigger·구분이 정해진 값이 아니거나, 경우 1인데 다른 결정 사항이 없으면 거절해요', () => {
     const [first] = TITLE_CONFLICTS.conflicts;
     expect(() =>
       runNode(
@@ -554,7 +595,11 @@ describe('conflicts.ts와 hook-conflicts.ts (SIL-94)', () => {
     expect(() =>
       runNode(
         './conflicts.ts',
-        JSON.stringify({ ...TITLE_CONFLICTS, conflicts: [] }),
+        JSON.stringify({
+          ...TITLE_CONFLICTS,
+          trigger: 'agent',
+          conflicts: [],
+        }),
       ),
     ).toThrow();
     expect(() =>
@@ -604,22 +649,29 @@ describe('hooks 첫 줄', () => {
       reason: '이유',
       alwaysOn: false,
     });
-    const run = (file: string, command: string, stdout: string) =>
-      (
-        JSON.parse(
-          execFileSync(
-            process.execPath,
-            [fileURLToPath(new URL(file, import.meta.url))],
-            {
-              input: JSON.stringify({
-                tool_input: { command },
-                tool_response: { stdout },
-              }),
-              encoding: 'utf8',
-            },
-          ),
-        ) as { systemMessage: string }
-      ).systemMessage;
+    const run = (file: string, command: string, stdout: string) => {
+      const output = JSON.parse(
+        execFileSync(
+          process.execPath,
+          [fileURLToPath(new URL(file, import.meta.url))],
+          {
+            input: JSON.stringify({
+              tool_input: { command },
+              tool_response: { stdout },
+            }),
+            encoding: 'utf8',
+          },
+        ),
+      ) as {
+        systemMessage: string;
+        hookSpecificOutput: { additionalContext: string };
+      };
+      // 에이전트에게는 화면을 이미 보여 줬으니 설명하지 말라고만 전해요 (10/15)
+      expect(output.hookSpecificOutput.additionalContext).toBe(
+        SCREEN_SHOWN_CONTEXT,
+      );
+      return output.systemMessage;
+    };
     try {
       const preview = run(
         './hook-preview.ts',
@@ -632,7 +684,7 @@ describe('hooks 첫 줄', () => {
         'node apps/detect/src/t1/conflicts.ts',
         `${CONFLICTS_DONE} ${writeConflicts(TITLE_CONFLICTS)}`,
       );
-      expect(conflicts.startsWith('\n\u001b[7;33m')).toBe(true);
+      expect(conflicts.startsWith('\n\u001b[0;7;33m')).toBe(true);
     } finally {
       clearPending(id);
     }

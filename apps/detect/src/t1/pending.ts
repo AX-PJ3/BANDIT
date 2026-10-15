@@ -15,12 +15,13 @@ import type { T1ConflictsInput } from './screens.ts';
 
 /**
  * 사람에게 ③으로 보여 준 값. 모양은 save_standard 입력에서 골라 써요 (타입은 core에만).
- * `changedBy`는 바꾸는 사람 이름(받는 이슈에서 빼요), `targets`는 `preview.ts`가 읽어 둔 ③ 이슈 표예요(못 읽었으면 null)
+ * `changedBy`는 바꾸는 사람 이름(받는 이슈에서 빼요), `targets`는 `preview.ts`가 읽어 둔 ③ 이슈 표예요(못 읽었으면 null).
+ * `isNew`는 기존 결정 사항이 없는 새 결정 사항일 때 true예요 (SIL-94)
  */
 export type T1Pending = Pick<
   SaveStandardInput,
   'id' | 'title' | 'value' | 'reason' | 'alwaysOn' | 'area' | 'changedBy'
-> & { targets?: T1Target[] | null };
+> & { targets?: T1Target[] | null; isNew?: boolean };
 
 /** 결정 사항 ID 형식이 맞을 때만 파일 경로를 줘요 (data.standard.id-format) */
 export function pendingPath(id: string): string | null {

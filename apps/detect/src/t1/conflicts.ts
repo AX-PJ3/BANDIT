@@ -29,11 +29,12 @@ if (
   !Object.hasOwn(T1_COPY.conflicts.head, input.trigger) ||
   !isFilled(input.request) ||
   !Array.isArray(input.conflicts) ||
-  input.conflicts.length === 0 ||
+  // 다른 결정 사항이 없는 건 새 결정 사항(직접 요청)뿐이에요. 경우 1은 다른 점을 알아채서 시작해요
+  (input.conflicts.length === 0 && input.trigger !== 'direct') ||
   !input.conflicts.every(isConflict)
 ) {
   console.error(
-    'trigger(agent|direct), request, conflicts(하나 이상, 각각 id·title·kind(change|mismatch)·why)가 있어야 해요',
+    'trigger(agent|direct), request, conflicts(각각 id·title·kind(change|mismatch)·why, 빈 목록은 direct일 때만)가 있어야 해요',
   );
   process.exit(1);
 }

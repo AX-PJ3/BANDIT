@@ -4,6 +4,7 @@
  *   node apps/detect/src/t1/preview.ts <<'EOF'
  *   {"id":"app.notify.title-length","title":"…","value":"…","reason":"…","alwaysOn":false,"changedBy":"경하"}
  *   EOF
+ * 기존 결정 사항이 없는 새 결정 사항이면 `"isNew":true`를 더해요 (SIL-94).
  * ③ 이슈 표에 넣을 받는 이슈도 여기서 팀 DB로 읽어 함께 들고 있어요 (SIL-94). 에이전트는 출력의
  * "알림 받는 이슈" 줄을 보고 등록하기 설명을 골라요.
  */
@@ -27,12 +28,20 @@ if (missing.length > 0 || typeof pending.alwaysOn !== 'boolean') {
   process.exit(1);
 }
 
+if (pending.isNew !== undefined && typeof pending.isNew !== 'boolean') {
+  console.error('isNew는 true나 false여야 해요');
+  process.exit(1);
+}
+
 if (!pendingPath(pending.id)) {
   console.error(`결정 사항 ID 형식이 아니에요: ${pending.id}`);
   process.exit(1);
 }
 
-const targets = await loadTargets(pending.id, pending.changedBy);
+// 새 결정 사항에는 아직 연결된 이슈가 없어요 (프로토타입 10/14 "알림 받을 사람이 없어요")
+const targets = pending.isNew
+  ? []
+  : await loadTargets(pending.id, pending.changedBy);
 writePending({ ...pending, targets });
 console.log(
   targets
