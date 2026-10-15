@@ -33,6 +33,7 @@ const screen = previewScreen(
   },
   // preview.ts가 팀 DB에서 읽어 둔 받는 이슈 (못 읽었으면 null)
   pending.targets ?? null,
+  pending.isNew ?? false,
 );
 
 // 첫 줄을 비워 hook 머리글(`PostToolUse:Bash says:`) 바로 다음 줄부터 시작해요 (프로토타입 screens.py)

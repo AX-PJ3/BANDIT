@@ -22,7 +22,7 @@
   7. T1 선택 창을 Esc로 닫으면 취소하기와 같다. 다음 말이 오면 먼저 `cancelled`(5와 같은 기준으로 `withTask`·`noTask`)를 보여 주고 저장하지 않는다. "계속해 줘"처럼 어떻게 할지 분명하지 않으면 작업하지 않고 기다린다. 결정 사항을 바꾸라는 말이면 T1을 1부터 다시 한다.
   8. 직접 요청 (SIL-94, `detect.ask.direct-request-skip-warn`): 사람이 "결정 사항"이나 "위키"를 바꿔 달라고 분명히 말했을 때만 직접 요청으로 본다(10/15 임시 기준, PM과 확인 중). "32자로 자르는 함수를 만들어 줘"처럼 코드만 말하면 직접 요청이 아니라 1부터 한다.
      - 기존 결정 사항이 있으면: 1로 읽고, 2의 다른 결정 사항 화면은 `trigger: "direct"`로 띄우되 `ask`는 묻지 않고 4로 간다(3도 건너뛴다). 5의 선택 창 질문은 `preview.confirm` 대신 `direct.confirm`.
-     - 기존 결정 사항이 없으면(`search_standards`로 찾아도 없음): `direct.noConflict`를 보여 주고 4부터 한다. ID는 `data.standard.id-format`대로 정하고, `alwaysOn`은 사람이 말하지 않았으면 `false`로 ③에 보여 준다. 6에서 `baseVersion`은 `0`, `scope` 칸은 뺀다.
+     - 기존 결정 사항이 없으면(`search_standards`로 찾아도 없음): 2의 다른 결정 사항 화면을 `trigger: "direct"`, `conflicts: []`로 띄우고(초록 막대 한 줄) `ask`는 묻지 않고 4로 간다. 5의 JSON에 `"isNew": true`를 더한다(③ 제목 줄에 "새 결정 사항" 표시, 받는 이슈는 0개). ID는 `data.standard.id-format`대로 정하고, `alwaysOn`은 사람이 말하지 않았으면 `false`로 ③에 보여 준다. 6에서 `baseVersion`은 `0`, `scope` 칸은 뺀다.
      - 6에서 `aiDetected`는 `false`, 취소하기·Esc면 `cancelled.noTask`를 쓴다.
   - 어느 경우든 6에서 저장하지 않았으면 결정 사항과 다른 값으로 코드를 쓰지 않는다.
 - (T1로 저장한 경우는 위 6을 따르고 이 줄은 하지 않는다) 기준을 바꾸기로 하면: 해당 기준의 값·이유·근거를 고치고 버전을 1 올린 뒤, CHANGELOG.md 맨 아래에 한 줄을 남긴다.
