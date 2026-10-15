@@ -27,6 +27,8 @@ import {
   type T1ConflictsInput,
 } from './screens.ts';
 import { textWidth, wrap } from './text.ts';
+import { pickTargets } from './issues.ts';
+import type { Issue } from '@sil/core';
 
 /** 꾸밈 코드(ANSI)를 지워요 */
 // eslint-disable-next-line no-control-regex -- 터미널 색 코드(ESC)를 지우려면 제어 문자가 필요해요
@@ -111,6 +113,7 @@ describe('T1 문구', () => {
       T1_COPY.cancelled.withTask,
       T1_COPY.cancelled.noTask,
       T1_COPY.direct.noConflict,
+      T1_COPY.preview.noTargets,
     ];
     for (const message of messages) {
       expect(message).toMatch(/\.$/);
@@ -171,6 +174,84 @@ describe('previewScreen (③)', () => {
       expect(textWidth(line)).toBeLessThanOrEqual(COLS);
     }
     expect(reasonLines[1]?.startsWith(' '.repeat(10))).toBe(true);
+  });
+
+  it('받는 이슈가 있으면 ID·담당자·이슈 줄을 채워요 (프로토타입 경우 2)', () => {
+    const lines = stripAnsi(
+      previewScreen(values, [
+        { key: '#5', assignee: '민수', title: '담당자에게 알리고 답 기록하기' },
+        { key: '#7', assignee: '신지', title: '앱 알림과 나에게 온 변경 화면' },
+      ]),
+    ).split('\n');
+    expect(lines.slice(-4)).toEqual([
+      '  ID   담당자  이슈',
+      '  #5   민수    담당자에게 알리고 답 기록하기',
+      '  #7   신지    앱 알림과 나에게 온 변경 화면',
+      '-'.repeat(COLS),
+    ]);
+  });
+
+  it('긴 이슈 제목은 화면 너비에서 잘라요', () => {
+    const lines = stripAnsi(
+      previewScreen(values, [
+        { key: '#12', assignee: '경하', title: '가나다라마바사 '.repeat(10) },
+      ]),
+    ).split('\n');
+    expect(textWidth(lines.at(-2) ?? '')).toBeLessThanOrEqual(COLS);
+    expect(lines.at(-2)).toMatch(/…$/);
+  });
+
+  it('받는 이슈가 없으면 표 대신 받는 사람이 없다는 한 줄이에요', () => {
+    const lines = stripAnsi(previewScreen(values, [])).split('\n');
+    expect(lines.slice(-2)).toEqual([
+      '  연결된 이슈가 없어서 알림을 받는 사람은 없어요.',
+      '-'.repeat(COLS),
+    ]);
+  });
+});
+
+describe('pickTargets (③ 받는 이슈)', () => {
+  const issues: Issue[] = [
+    {
+      key: '#3',
+      title: '터미널 알림과 답하기 화면',
+      assignee: '부건',
+      status: 'in_progress',
+      standardIds: ['app.notify.title-length'],
+    },
+    {
+      key: '#5',
+      title: '담당자에게 알리고 답 기록하기',
+      assignee: '민수',
+      status: 'done',
+      standardIds: ['app.notify.title-length', 'notify.terminal.one-change'],
+    },
+    {
+      key: '#8',
+      title: '담당자 없는 이슈',
+      assignee: null,
+      status: 'in_progress',
+      standardIds: ['app.notify.title-length'],
+    },
+    {
+      key: '#9',
+      title: '다른 결정 사항만 연결된 이슈',
+      assignee: '신지',
+      status: 'in_progress',
+      standardIds: ['copy.explain.plain-words'],
+    },
+  ];
+
+  it('연결된 이슈 중 담당자가 있고 바꾼 본인이 아닌 이슈만 받아요 (알리기와 같은 규칙)', () => {
+    expect(pickTargets(issues, 'app.notify.title-length', '부건')).toEqual([
+      { key: '#5', assignee: '민수', title: '담당자에게 알리고 답 기록하기' },
+    ]);
+  });
+
+  it('바꾼 사람을 모르면 본인을 빼지 않아요', () => {
+    expect(
+      pickTargets(issues, 'app.notify.title-length').map((t) => t.key),
+    ).toEqual(['#3', '#5']);
   });
 });
 

@@ -19,6 +19,7 @@
 | `src/t1/save-input.ts`      | 등록하기를 골랐을 때 저장 값. `source: ai_chat`, `aiDetected`는 에이전트가 알아챘으면 `true`·직접 요청이면 `false`(D61), `baseVersion`은 `get_standard`의 `currentVersion`, `alwaysOn`·`scope`는 지금 값. 새 결정 사항은 `buildT1NewSaveInput`(`baseVersion: 0`) |
 | `src/t1/screens.ts`         | hooks가 띄우는 화면 모양(③ 등록될 모습, 다른 결정 사항 화면). 부건님 프로토타입 "T1 결정 사항 등록"(10/14)을 옮겼어요. 칸 계산은 `text.ts`                                                                                                                       |
 | `src/t1/conflicts.ts`       | 다른 결정 사항 화면 값을 임시 파일(`haribo-t1-conflicts-<UUID>.json`)에 들고 있는 명령. hook이 띄운 뒤 바로 지워요 (직접 요청)                                                                                                                                   |
+| `src/t1/issues.ts`          | ③ 이슈 표에 넣을 받는 이슈를 core `listIssues()`로 팀 DB에서 읽어요(팀원 `.env`의 Supabase 주소·공용 키). 알리기와 같은 규칙(담당자 있음, 바꾼 본인 뺌). 못 읽으면 표 칸 이름만 보여요                                                                           |
 | `src/t1/preview.ts`         | ③ 등록될 모습 값을 임시 파일(운영체제 임시 폴더 `haribo-t1-pending-<결정 사항 ID>.json`, 결정 사항마다 따로)에 들고 있는 명령. 에이전트가 터미널로 불러요                                                                                                        |
 | `src/t1/pending.ts`         | 임시 값 쓰기·읽기·지우기·비교. 시간으로 지우지 않고, 다음 ③이 덮어쓰거나 저장하면 지워요                                                                                                                                                                         |
 | `src/t1/preview-command.ts` | Bash 명령이 `preview.ts`·`conflicts.ts` 실행인지 알아보는 규칙. 앞에 `cd "…" &&`를 붙이거나 전체 경로로 불러도 알아봐요. 패키지를 불러오지 않아서 설치 전에도 다른 명령에서 hook 오류가 나지 않아요                                                              |
@@ -40,7 +41,7 @@
 
 안전장치로 `.claude/settings.json`의 `permissions.ask`에 `save_standard`와 `revert`를 넣어, 저장하기 전에 Claude Code가 한 번 더 허락을 받아요. auto mode에서도 뜨고, 허락 창에서 "Yes, and don't ask again"을 골라도 다음에 다시 물어요 (10/13 시험).
 
-아직 없는 것: ③ 이슈 표의 줄(칸 이름만 있음), 경우 1·새 결정 사항에서 연결된 이슈가 있을 때의 등록하기 설명(`registerWithIssues`, 지금은 경우 2만 씀), ④의 "확인할 변경을 보낸 이슈 수"(셋 다 이슈를 읽는 도구가 필요해요), ④를 hooks로 띄우기, `detect.ask.rollback-if-applied`(이미 코드에 들어간 값 되돌리기).
+아직 없는 것: ④를 hooks로 띄우기와 "확인할 변경을 보낸 이슈 수"(`issues.ts`로 셀 수 있어요), `detect.ask.rollback-if-applied`(이미 코드에 들어간 값 되돌리기).
 
 ## PR 경로
 

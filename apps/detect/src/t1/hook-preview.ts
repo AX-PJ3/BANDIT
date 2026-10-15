@@ -22,14 +22,18 @@ const pending = readPending(
 );
 if (!pending) process.exit(0);
 
-const screen = previewScreen({
-  // 영역을 비우면 ID 앞부분이 영역이 돼요 (save_standard 설명)
-  area: pending.area ?? pending.id.split('.')[0] ?? '',
-  title: pending.title,
-  value: pending.value,
-  reason: pending.reason,
-  alwaysOn: pending.alwaysOn,
-});
+const screen = previewScreen(
+  {
+    // 영역을 비우면 ID 앞부분이 영역이 돼요 (save_standard 설명)
+    area: pending.area ?? pending.id.split('.')[0] ?? '',
+    title: pending.title,
+    value: pending.value,
+    reason: pending.reason,
+    alwaysOn: pending.alwaysOn,
+  },
+  // preview.ts가 팀 DB에서 읽어 둔 받는 이슈 (못 읽었으면 null)
+  pending.targets ?? null,
+);
 
 // 첫 줄을 비워 hook 머리글(`PostToolUse:Bash says:`) 바로 다음 줄부터 시작해요 (프로토타입 screens.py)
 process.stdout.write(JSON.stringify({ systemMessage: `\n${screen}` }));

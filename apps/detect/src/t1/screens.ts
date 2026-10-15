@@ -5,6 +5,7 @@
  */
 import type { Standard } from '@sil/core';
 import { T1_COPY, type T1PreviewValues, yesNo } from './copy.ts';
+import type { T1Target } from './issues.ts';
 import { cutEnd, padEnd, textWidth, wrap } from './text.ts';
 
 /** 화면 너비. T2~T5 알림 화면과 같아요 (착수 안내 T3) */
@@ -39,9 +40,15 @@ const RULE = '-';
 const areaTitle = (id: string, title: string) =>
   `[${id.split('.')[0] ?? ''}] ${title}`;
 
-/** ③ 등록될 모습: 위 선 안에 머리표, 청록 굵은 제목, 값·이유·항상 적용, 아래 선 */
-export function previewScreen(values: T1PreviewValues): string {
-  const { heading, labels, issueColumns } = T1_COPY.preview;
+/**
+ * ③ 등록될 모습: 위 선 안에 머리표, 청록 굵은 제목, 값·이유·항상 적용, 받는 이슈 표, 아래 선.
+ * targets가 null이면(팀 DB를 읽지 못함) 표 칸 이름만, 빈 목록이면 받는 사람이 없다는 한 줄을 보여 줘요
+ */
+export function previewScreen(
+  values: T1PreviewValues,
+  targets: T1Target[] | null = null,
+): string {
+  const { heading, labels, issueColumns, noTargets } = T1_COPY.preview;
   const head = `${RULE}${RULE} ${heading} `;
   const lines = [
     // 왼쪽 --와 머리표 글자는 꾸미지 않아요 (10/13)
@@ -64,13 +71,26 @@ export function previewScreen(values: T1PreviewValues): string {
     '',
     `    ${values.alwaysOn ? paint('1', alwaysOnLabel) : alwaysOnLabel}${strong(yesNo(values.alwaysOn), values.alwaysOn)}`,
     '',
-    // 누구에게 알리는지 보는 표. 이슈를 읽는 도구가 없어서 칸 이름만 두고 줄은 비워요 (10/15 경하님)
-    paint(
-      '2',
-      `  ${padEnd(issueColumns.id, 5)}${padEnd(issueColumns.owner, 8)}${issueColumns.issue}`,
-    ),
-    strong(RULE.repeat(COLS)),
   );
+  if (targets?.length === 0) {
+    lines.push(`  ${noTargets}`);
+  } else {
+    // 누구에게 알리는지 보는 표. 칸 이름은 흐리게, 바꾼 본인은 빠져 있어요 (프로토타입 10/13)
+    const ID = 5;
+    const OWNER = 8;
+    lines.push(
+      paint(
+        '2',
+        `  ${padEnd(issueColumns.id, ID)}${padEnd(issueColumns.owner, OWNER)}${issueColumns.issue}`,
+      ),
+    );
+    for (const target of targets ?? []) {
+      lines.push(
+        `  ${padEnd(target.key, ID)}${padEnd(target.assignee ?? '', OWNER)}${cutEnd(target.title, COLS - 2 - ID - OWNER)}`,
+      );
+    }
+  }
+  lines.push(strong(RULE.repeat(COLS)));
   return lines.join('\n');
 }
 
