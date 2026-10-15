@@ -4,7 +4,8 @@
  *   node apps/detect/src/t1/notice.ts <<'EOF'
  *   {"kind":"searchFailed","trigger":"agent"}
  *   EOF
- * kind: searchFailed(trigger 필요) / same·similar(existing: id·title·value 필요) / similarDeclined / saveRace
+ * kind: searchFailed(trigger 필요) / same·similar(existing: id·title·value 필요) / similarDeclined.
+ * 예외 7(저장하는 사이 바뀜)은 저장 도구 hook(`hook-saved.ts`)이 바로 띄워서 여기서 받지 않아요
  */
 import { readFileSync } from 'node:fs';
 import { STANDARD_ID_PATTERN } from '@sil/core';
@@ -33,7 +34,6 @@ function isValid(notice: T1NoticeInput): boolean {
         isFilled(notice.existing.value)
       );
     case 'similarDeclined':
-    case 'saveRace':
       return true;
     default:
       return false;
@@ -42,7 +42,7 @@ function isValid(notice: T1NoticeInput): boolean {
 
 if (!isValid(input)) {
   console.error(
-    'kind(searchFailed|same|similar|similarDeclined|saveRace)와 그 kind에 필요한 칸(trigger 또는 existing의 id·title·value)이 있어야 해요',
+    'kind(searchFailed|same|similar|similarDeclined)와 그 kind에 필요한 칸(trigger 또는 existing의 id·title·value)이 있어야 해요',
   );
   process.exit(1);
 }

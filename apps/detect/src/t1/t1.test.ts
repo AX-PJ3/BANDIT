@@ -22,8 +22,10 @@ import {
   isNoticeCommand,
   isPreviewCommand,
   isSavedResponse,
+  isVersionConflict,
   NOTICE_DONE,
   PREVIEW_DONE,
+  SAVE_RACE_CONTEXT,
   SCREEN_SHOWN_CONTEXT,
 } from './preview-command.ts';
 import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
@@ -760,6 +762,20 @@ describe('isSavedResponse', () => {
   });
 });
 
+describe('isVersionConflict', () => {
+  it('저장 결과나 실패 내용에 VERSION_CONFLICT가 있으면 true예요', () => {
+    expect(isVersionConflict(undefined, '[VERSION_CONFLICT] 바뀌었어요')).toBe(
+      true,
+    );
+    expect(
+      isVersionConflict({ content: [{ text: '[VERSION_CONFLICT] …' }] }),
+    ).toBe(true);
+    expect(isVersionConflict({ content: [{ text: '[FORBIDDEN] …' }] })).toBe(
+      false,
+    );
+  });
+});
+
 describe('hook-saved.ts', () => {
   const runHook = (id: string, response: unknown) =>
     execFileSync(
@@ -811,6 +827,61 @@ describe('hook-saved.ts', () => {
     });
     expect(runHook(id, { isError: true, content: [] })).toBe('');
     clearPending(id);
+  });
+
+  it('그사이 바뀌어 거절되면(VERSION_CONFLICT) 그 자리에서 예외 7 안내를 띄워요 (PostToolUse·PostToolUseFailure)', () => {
+    const id = 'test.t1.hook-saved-race';
+    const pending = {
+      id,
+      title: '시험 제목',
+      value: '시험 값',
+      reason: '시험 이유',
+      alwaysOn: false,
+    };
+    const rejected = {
+      isError: true,
+      content: [
+        { type: 'text', text: '[VERSION_CONFLICT] 그사이 v2로 바뀌었어요' },
+      ],
+    };
+    for (const [eventName, extra] of [
+      ['PostToolUse', { tool_response: rejected }],
+      [
+        'PostToolUseFailure',
+        { error: '[VERSION_CONFLICT] 그사이 v2로 바뀌었어요' },
+      ],
+    ] as const) {
+      writePending(pending);
+      const output = JSON.parse(
+        execFileSync(
+          process.execPath,
+          [fileURLToPath(new URL('./hook-saved.ts', import.meta.url))],
+          {
+            input: JSON.stringify({
+              hook_event_name: eventName,
+              tool_input: { id },
+              ...extra,
+            }),
+            encoding: 'utf8',
+          },
+        ),
+      ) as {
+        systemMessage: string;
+        hookSpecificOutput: {
+          hookEventName: string;
+          additionalContext: string;
+        };
+      };
+      expect(stripAnsi(output.systemMessage).split('\n')).toEqual([
+        '',
+        '  저장하는 사이 다른 사람이 먼저 이 결정 사항을 바꿨어요.',
+        '  바뀐 내용을 다시 확인할게요.',
+      ]);
+      expect(output.hookSpecificOutput).toEqual({
+        hookEventName: eventName,
+        additionalContext: SAVE_RACE_CONTEXT,
+      });
+    }
   });
 
   it('③을 거치지 않은 저장에는 아무것도 띄우지 않아요', () => {
@@ -884,7 +955,10 @@ describe('notice.ts와 hook-notice.ts', () => {
     );
 
   it('명령이 값을 들고, 직후 hook이 안내를 띄우고 임시 값을 지워요', () => {
-    const stdout = runNode('./notice.ts', JSON.stringify({ kind: 'saveRace' }));
+    const stdout = runNode(
+      './notice.ts',
+      JSON.stringify({ kind: 'similarDeclined' }),
+    );
     const token = findNoticeToken(stdout);
     const output = JSON.parse(
       runNode(
@@ -896,7 +970,7 @@ describe('notice.ts와 hook-notice.ts', () => {
       ),
     ) as { systemMessage: string };
     expect(stripAnsi(output.systemMessage)).toContain(
-      '저장하는 사이 다른 사람이 먼저 이 결정 사항을 바꿨어요.',
+      '등록하지 않았어요. 기존 결정 사항을 그대로 둘게요.',
     );
     expect(takeNotice(token)).toBeNull();
   });
@@ -904,6 +978,8 @@ describe('notice.ts와 hook-notice.ts', () => {
   it('kind나 필요한 칸이 없으면 거절해요', () => {
     for (const bad of [
       { kind: 'x' },
+      // 예외 7은 저장 도구 hook이 띄워요
+      { kind: 'saveRace' },
       { kind: 'searchFailed' },
       { kind: 'same', existing: { id: 'app.notify.title-length' } },
     ]) {

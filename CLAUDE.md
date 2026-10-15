@@ -28,7 +28,7 @@
      - 조사 실패(예외 3): T1 중에 `search_standards`·`get_standard`가 실패하면 "다른 결정 사항 없음"으로 넘어가지 않는다. `{"kind":"searchFailed","trigger":…}`(2와 같은 trigger)를 띄우고 하던 작업이나 등록을 멈춘 뒤 사람의 말을 기다린다.
      - 완전히 같음(충돌 3): 직접 요청한 값이 그 결정 사항의 지금 값과 같으면(같은 ID·같은 값) `{"kind":"same","existing":{"id","title","value"}}`를 띄우고 선택지 없이 끝낸다. 저장하지 않는다.
      - 뜻이 같음(충돌 3): 새 결정 사항을 만들어 달라는데 다른 ID의 결정 사항이 같은 뜻이면 `{"kind":"similar","existing":{…}}`를 띄우고 `similarAsk`를 AskUserQuestion으로 묻는다. 예면 새 결정 사항으로 4부터 하고(`isNew`), 아니요면 `{"kind":"similarDeclined"}`를 띄우고 끝낸다.
-     - 저장하는 사이 바뀜(예외 7): `save_standard`가 `VERSION_CONFLICT`로 거절되면 `{"kind":"saveRace"}`를 띄우고 1부터 다시 한다. `get_standard`로 새 `currentVersion`을 읽어 2의 다른 결정 사항 화면을 다시 띄우고, 사람이 이미 고른 예와 정한 이유는 그대로 두고 5(③)부터 다시 묻는다.
+     - 저장하는 사이 바뀜(예외 7): `save_standard`가 `VERSION_CONFLICT`로 거절되면 저장 도구 hook이 노란 막대 안내를 바로 띄운다(`notice.ts`를 실행하지 않는다). 1부터 다시 한다. `get_standard`로 새 `currentVersion`을 읽어 2의 다른 결정 사항 화면을 다시 띄우고, 사람이 이미 고른 예와 정한 이유는 그대로 두고 5(③)부터 다시 묻는다.
   - 어느 경우든 6에서 저장하지 않았으면 결정 사항과 다른 값으로 코드를 쓰지 않는다.
 - (T1로 저장한 경우는 위 6을 따르고 이 줄은 하지 않는다) 기준을 바꾸기로 하면: 해당 기준의 값·이유·근거를 고치고 버전을 1 올린 뒤, CHANGELOG.md 맨 아래에 한 줄을 남긴다.
   형식: 날짜 시각 | 누가 | 기준 ID 이전→새 버전 | 이전 값 → 새 값 | 이유 | 출처(코드/AI 대화/Figma/회의/Slack)
