@@ -31,7 +31,12 @@ export type T1ConflictsInput = {
 };
 
 const ESC = '\u001b[';
-const paint = (code: string, text: string) => `${ESC}${code}m${text}${ESC}0m`;
+/**
+ * Claude Code는 hook 글 전체를 흐리게(회색) 칠해요. 그래서 칠할 때마다 먼저 모두 풀고(0) 색을 입힌 뒤,
+ * 끝나면 다시 흐림(2)으로 돌려 이름표 같은 나머지 글은 회색으로 남겨요 (10/15 시험: 39만으로는 흐림이 안 풀림)
+ */
+const paint = (code: string, text: string) =>
+  `${ESC}0;${code}m${text}${ESC}0;2m`;
 /** 터미널 기본 글자색 (어두우면 흰색, 밝으면 검정). 회색 hook 글 안에서 내용을 또렷하게 보여요 (10/13) */
 const strong = (text: string, isBold = false) =>
   paint(isBold ? '1;39' : '39', text);

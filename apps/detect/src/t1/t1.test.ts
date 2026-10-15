@@ -157,10 +157,10 @@ describe('previewScreen (③)', () => {
   });
 
   it('제목은 청록 굵게, 항상 적용은 예일 때만 굵게예요', () => {
-    expect(previewScreen(values)).toContain('\u001b[1;36m[app] 앱 알림');
-    expect(previewScreen(values)).not.toContain('\u001b[1m항상 적용');
+    expect(previewScreen(values)).toContain('\u001b[0;1;36m[app] 앱 알림');
+    expect(previewScreen(values)).not.toContain('\u001b[0;1m항상 적용');
     expect(previewScreen({ ...values, alwaysOn: true })).toContain(
-      '\u001b[1m항상 적용',
+      '\u001b[0;1m항상 적용',
     );
   });
 
@@ -281,9 +281,9 @@ describe('conflictsScreen (다른 결정 사항)', () => {
     const screen = conflictsScreen({ ...TITLE_CONFLICTS, conflicts: [] });
     expect(stripAnsi(screen)).toBe('  요청하신 변경과 다른 결정 사항이 없어요');
     // 막대는 초록 32에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
-    expect(screen.startsWith('\u001b[7;32m \u001b[0m \u001b[32m요청하신')).toBe(
-      true,
-    );
+    expect(
+      screen.startsWith('\u001b[0;7;32m \u001b[0;2m \u001b[0;32m요청하신'),
+    ).toBe(true);
   });
 
   it('경우 1은 "부탁하신 작업이…" 머리표와 작업 한 줄이에요 (프로토타입)', () => {
@@ -315,10 +315,10 @@ describe('conflictsScreen (다른 결정 사항)', () => {
   it('머리표는 노란 막대이고 결정 사항 제목은 굵게예요', () => {
     const screen = conflictsScreen(TITLE_CONFLICTS);
     // 막대는 노랑 33에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
-    expect(screen.startsWith('\u001b[7;33m \u001b[0m \u001b[33m요청하신')).toBe(
-      true,
-    );
-    expect(screen).toContain('\u001b[1;39m[app] 앱 알림 제목은 40자');
+    expect(
+      screen.startsWith('\u001b[0;7;33m \u001b[0;2m \u001b[0;33m요청하신'),
+    ).toBe(true);
+    expect(screen).toContain('\u001b[0;1;39m[app] 앱 알림 제목은 40자');
   });
 });
 
@@ -534,7 +534,7 @@ describe('hook-preview.ts', () => {
         `${PREVIEW_DONE} ${id}\n`,
       );
       const { systemMessage } = JSON.parse(output) as { systemMessage: string };
-      expect(systemMessage).toContain('\u001b[1;36m[test] 시험 제목');
+      expect(systemMessage).toContain('\u001b[0;1;36m[test] 시험 제목');
       expect(stripAnsi(systemMessage)).toContain('    값    시험 값');
     } finally {
       clearPending(id);
@@ -684,7 +684,7 @@ describe('hooks 첫 줄', () => {
         'node apps/detect/src/t1/conflicts.ts',
         `${CONFLICTS_DONE} ${writeConflicts(TITLE_CONFLICTS)}`,
       );
-      expect(conflicts.startsWith('\n\u001b[7;33m')).toBe(true);
+      expect(conflicts.startsWith('\n\u001b[0;7;33m')).toBe(true);
     } finally {
       clearPending(id);
     }
