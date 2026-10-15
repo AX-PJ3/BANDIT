@@ -83,25 +83,17 @@ BANNER = gray('✻ Welcome to Claude Code!')
 
 COMPARE = {
     'now': term(BANNER + [''] + hook('SessionStart:startup', TEAM_NOW)),
-    'new': term(BANNER + [''] + hook('SessionStart:startup', n.failed_session_start())),
+    'new': term(BANNER + [''] + hook('SessionStart:startup', n.failed_load())),
     'now_prompt': term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', TEAM_NOW) + [''] + CLAUDE_WORK),
-    'new_prompt': term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_prompt()) + [''] + CLAUDE_WORK),
+    'new_prompt': term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_load()) + [''] + CLAUDE_WORK),
 }
 
 # (키, 이름, 언제, 화면, 그다음, 상태, 메모)
 CASES = [
-    ('start', '켤 때 목록을 못 불러옴', 'Claude Code를 켤 때 (SessionStart)',
-     term(BANNER + [''] + hook('SessionStart:startup', n.failed_session_start())),
-     '작업을 입력하면 hooks가 서버를 다시 불러요. 따로 할 일이 없어서 둘째 줄은 안심시키는 말만 둬요.',
-     'decided', '팀 코드에 있음 · 모양과 문구만 바꿈'),
-    ('prompt', '작업을 입력할 때 목록을 못 불러옴', '작업을 입력할 때 (UserPromptSubmit)',
-     term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_prompt()) + [''] + CLAUDE_WORK),
-     '작업은 막지 않고 그대로 진행해요(no-block-retry). 다음 작업을 입력할 때도 다시 불러와요. 서버 주소가 틀림·서버가 꺼짐·느림은 응답이 없어 구분할 수 없어서, 원인을 짐작하지 않고 다음 할 일과 담당자만 알려요.',
-     'decided', '팀 코드에 있음 · 모양과 문구만 바꿈 · 셋째 줄은 T1 예외 3과 같은 말 (10/15)'),
-    ('recall', '"결정 사항 확인"을 입력했는데 못 불러옴', '"결정 사항 확인"만 입력했을 때',
-     term(prompt('결정 사항 확인') + hook('UserPromptSubmit', n.failed_recall())),
-     '방금 그 말을 입력한 사람에게 같은 말을 또 입력하라고 하지 않아요. T1 예외 3과 같은 말로 다시 시도와 담당자를 알려요.',
-     'proposal', '지금은 켤 때와 같은 글이 떠서 "결정 사항 확인을 입력하면"이 어색해요'),
+    ('load', '확인할 변경을 못 불러옴', 'Claude Code를 켤 때 · 작업을 입력할 때 · "결정 사항 확인"을 입력했을 때 (모두 같은 글)',
+     term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_load()) + [''] + CLAUDE_WORK),
+     '작업은 막지 않고 그대로 진행해요(no-block-retry). 상황마다 둘째 줄을 다르게 하면 경우가 너무 많아져서 한 가지 글로 둬요. 서버 주소가 틀림·꺼짐·느림은 구분할 수 없어서 원인을 짐작하지 않고 다음 할 일과 담당자만 알려요.',
+     'decided', '팀 코드에 있음 · 빨간 막대, "못해", 셋째 줄(T1 예외 3과 같은 말)을 바꿈 (10/15)'),
     ('record', '답을 기록하지 못함', '관계·알았나를 고른 뒤 respond가 실패했을 때',
      term(gray("● User answered Claude's questions:") + gray('  ⎿  · 이 변경을 이미 알고 있었나요? → 몰랐다') + ['']
           + hook('PostToolUse:mcp__haribo__respond', n.failed_record()) + [''] + CLAUDE_WORK),
@@ -112,14 +104,10 @@ CASES = [
           + hook('PostToolUse:mcp__haribo__mark_reflected', n.failed_reflect())),
      '아무것도 등록되지 않아요. 고른 변경은 그대로 이슈 반영할 변경으로 남아요.',
      'check', '새 흐름이라 지금 코드에 없어요. 띄울 자리는 기록 실패와 같이 정해요'),
-    ('setup', '설정 파일이 없음', '각자 컴퓨터의 ~/.claude/haribo/config.json이 없을 때 (register를 안 돌렸거나 지움)',
+    ('setup', '설정이 완료되지 않음', '설정 파일(config.json)이 없거나 서버가 팀 토큰·이름을 거절(401)했을 때',
      term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_setup()) + [''] + CLAUDE_WORK),
-     'hooks 스크립트가 파일을 못 읽는 순간 바로 알아요. 사람이 고칠 수 있으니 고치는 법을 둘째 줄에 써요.',
-     'proposal', '지금 팀 코드는 같은 뜻을 괄호 셋째 줄로 붙여요. 문구 위치만 바꿔요'),
-    ('auth', '팀 토큰이나 이름이 맞지 않음', '서버가 토큰·이름을 거절(401)했을 때',
-     term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.failed_auth()) + [''] + CLAUDE_WORK),
-     '서버가 거절로 답해 줘서 구분할 수 있어요. 서버 주소가 틀린 것과 서버가 꺼진 것·느린 것은 구분할 수 없어서 "작업을 입력할 때 못 불러옴"의 글(반복된다면 담당자에게)이 떠요.',
-     'proposal', '지금은 서버가 보낸 거절 문장이나 "서버 응답 401"이 괄호로 붙어요. 우리 문장으로 바꾸려면 hook.mjs를 고쳐야 해요'),
+     '둘 다 pnpm mcp:register를 다시 돌리면 고쳐져서 한 가지 글로 묶어요. 서버 주소가 틀린 것은 응답이 없어 구분할 수 없어서 위 "못 불러옴" 글이 떠요.',
+     'decided', '지금은 설정 파일 없음은 괄호 셋째 줄, 토큰 거절은 서버 거절 문장이 괄호로 붙어요. 바꾸려면 hook.mjs를 고쳐요'),
     ('mcp', 'hooks는 되는데 MCP 도구만 안 붙음', 'Claude Code에 haribo MCP 서버가 연결되지 않았을 때',
      term(prompt('버튼 색 바꿔 줘') + hook('UserPromptSubmit', n.detail_screen(n.load_changes()['changes'][0], 1, 1))[:4]
           + gray('  … (변경 상세)') + ['']
@@ -129,7 +117,7 @@ CASES = [
      'todo', '이 글은 hooks가 아니라 Claude가 쓰는 문장이라 글자가 조금 달라질 수 있어요(근사). 넣을 곳: notify-hooks.ts의 hooks 안내'),
 ]
 
-STATUS = {'decided': ('정함 · 모양만 바꿈', 'ok'), 'todo': ('정함 · 민수님 구현', 'ok'), 'proposal': ('제안', 'new'),
+STATUS = {'decided': ('정함', 'ok'), 'todo': ('정함 · 민수님 구현', 'ok'), 'proposal': ('제안', 'new'),
           'check': ('확인 필요', 'warn')}
 
 cases_html = []

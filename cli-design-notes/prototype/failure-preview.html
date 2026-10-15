@@ -384,7 +384,7 @@
 
 <div class="page">
   <header>
-    <p class="eyebrow">SIL-68 · T2~T5 · 10/15 제안</p>
+    <p class="eyebrow">SIL-68 · T2~T5 · 10/15</p>
     <h1>터미널 연결 실패 화면</h1>
     <p class="lede">
       팀 서버에 연결하지 못했을 때 터미널에 무엇을 띄울지 정리했어요. 결정은
@@ -428,7 +428,7 @@
           <div>
             <span class="col-label new">제안 · 켤 때</span>
             <div class="term">
-              <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  작업을 시작하면 다시 불러올게요.</span></div></pre>
+              <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  하던 작업은 그대로 진행해요. &quot;</span><span class="f-yellow b">결정 사항 확인</span><span class="f-gray">&quot;을 입력하면 다시 불러와요.</span></div><div class="ln">  <span class="f-gray">  반복된다면 담당자에게 알려 주세요.</span></div></pre>
             </div>
           </div>
           <div>
@@ -458,11 +458,11 @@
             <span>T1 "다른 결정 사항을 조회하지 못해"와 같은 말투예요.</span>
           </li>
           <li>
-            <b>둘째 줄을 상황별로</b>
+            <b>둘째 줄은 한 가지로</b>
             <span>
-              "다시 시작해요"는 무엇을 시작하는지 모호하고, 켤 때는 할 일이
-              없어요. 켤 때는 "작업을 시작하면 다시 불러올게요.", 입력할 때는
-              "하던 작업은 그대로 진행해요."를 먼저 말해요.
+              켤 때, 작업을 입력할 때, "결정 사항 확인"을 입력했을 때 모두 같은
+              글이에요. 원인을 알 수 없어서 다음 할 일만 말하고, 셋째 줄에 T1
+              예외 3과 같은 "반복된다면 담당자에게 알려 주세요."를 둬요.
             </span>
           </li>
           <li>
@@ -478,77 +478,33 @@
       <section aria-labelledby="h-cases">
         <h2 id="h-cases">경우별 화면</h2>
         <div>
-          <article class="case" id="case-start">
+          <article class="case" id="case-load">
             <div class="case-meta">
-              <span class="chip ok">정함 · 모양만 바꿈</span>
-              <h3>켤 때 목록을 못 불러옴</h3>
+              <span class="chip ok">정함</span>
+              <h3>확인할 변경을 못 불러옴</h3>
               <dl>
                 <dt>언제</dt>
-                <dd>Claude Code를 켤 때 (SessionStart)</dd>
-                <dt>그다음</dt>
                 <dd>
-                  작업을 입력하면 hooks가 서버를 다시 불러요. 따로 할 일이
-                  없어서 둘째 줄은 안심시키는 말만 둬요.
+                  Claude Code를 켤 때 · 작업을 입력할 때 · &quot;결정 사항
+                  확인&quot;을 입력했을 때 (모두 같은 글)
                 </dd>
-                <dt>메모</dt>
-                <dd>팀 코드에 있음 · 모양과 문구만 바꿈</dd>
-              </dl>
-            </div>
-            <div class="case-screen">
-              <div class="term">
-                <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  작업을 시작하면 다시 불러올게요.</span></div></pre>
-              </div>
-            </div>
-          </article>
-          <article class="case" id="case-prompt">
-            <div class="case-meta">
-              <span class="chip ok">정함 · 모양만 바꿈</span>
-              <h3>작업을 입력할 때 목록을 못 불러옴</h3>
-              <dl>
-                <dt>언제</dt>
-                <dd>작업을 입력할 때 (UserPromptSubmit)</dd>
                 <dt>그다음</dt>
                 <dd>
-                  작업은 막지 않고 그대로 진행해요(no-block-retry). 다음 작업을
-                  입력할 때도 다시 불러와요. 서버 주소가 틀림·서버가 꺼짐·느림은
-                  응답이 없어 구분할 수 없어서, 원인을 짐작하지 않고 다음 할
-                  일과 담당자만 알려요.
+                  작업은 막지 않고 그대로 진행해요(no-block-retry). 상황마다
+                  둘째 줄을 다르게 하면 경우가 너무 많아져서 한 가지 글로 둬요.
+                  서버 주소가 틀림·꺼짐·느림은 구분할 수 없어서 원인을 짐작하지
+                  않고 다음 할 일과 담당자만 알려요.
                 </dd>
                 <dt>메모</dt>
                 <dd>
-                  팀 코드에 있음 · 모양과 문구만 바꿈 · 셋째 줄은 T1 예외 3과
-                  같은 말 (10/15)
+                  팀 코드에 있음 · 빨간 막대, &quot;못해&quot;, 셋째 줄(T1 예외
+                  3과 같은 말)을 바꿈 (10/15)
                 </dd>
               </dl>
             </div>
             <div class="case-screen">
               <div class="term">
                 <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  하던 작업은 그대로 진행해요. &quot;</span><span class="f-yellow b">결정 사항 확인</span><span class="f-gray">&quot;을 입력하면 다시 불러와요.</span></div><div class="ln">  <span class="f-gray">  반복된다면 담당자에게 알려 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
-              </div>
-            </div>
-          </article>
-          <article class="case" id="case-recall">
-            <div class="case-meta">
-              <span class="chip new">제안</span>
-              <h3>&quot;결정 사항 확인&quot;을 입력했는데 못 불러옴</h3>
-              <dl>
-                <dt>언제</dt>
-                <dd>&quot;결정 사항 확인&quot;만 입력했을 때</dd>
-                <dt>그다음</dt>
-                <dd>
-                  방금 그 말을 입력한 사람에게 같은 말을 또 입력하라고 하지
-                  않아요. T1 예외 3과 같은 말로 다시 시도와 담당자를 알려요.
-                </dd>
-                <dt>메모</dt>
-                <dd>
-                  지금은 켤 때와 같은 글이 떠서 &quot;결정 사항 확인을
-                  입력하면&quot;이 어색해요
-                </dd>
-              </dl>
-            </div>
-            <div class="case-screen">
-              <div class="term">
-                <pre><div class="ln"><span class="prompt">&gt; 결정 사항 확인</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  잠시 뒤 다시 입력해 보시고 반복된다면 담당자에게 알려 주세요.</span></div></pre>
               </div>
             </div>
           </article>
@@ -606,55 +562,30 @@
           </article>
           <article class="case" id="case-setup">
             <div class="case-meta">
-              <span class="chip new">제안</span>
-              <h3>설정 파일이 없음</h3>
+              <span class="chip ok">정함</span>
+              <h3>설정이 완료되지 않음</h3>
               <dl>
                 <dt>언제</dt>
                 <dd>
-                  각자 컴퓨터의 ~/.claude/haribo/config.json이 없을 때
-                  (register를 안 돌렸거나 지움)
+                  설정 파일(config.json)이 없거나 서버가 팀 토큰·이름을
+                  거절(401)했을 때
                 </dd>
                 <dt>그다음</dt>
                 <dd>
-                  hooks 스크립트가 파일을 못 읽는 순간 바로 알아요. 사람이 고칠
-                  수 있으니 고치는 법을 둘째 줄에 써요.
+                  둘 다 pnpm mcp:register를 다시 돌리면 고쳐져서 한 가지 글로
+                  묶어요. 서버 주소가 틀린 것은 응답이 없어 구분할 수 없어서 위
+                  &quot;못 불러옴&quot; 글이 떠요.
                 </dd>
                 <dt>메모</dt>
                 <dd>
-                  지금 팀 코드는 같은 뜻을 괄호 셋째 줄로 붙여요. 문구 위치만
-                  바꿔요
+                  지금은 설정 파일 없음은 괄호 셋째 줄, 토큰 거절은 서버 거절
+                  문장이 괄호로 붙어요. 바꾸려면 hook.mjs를 고쳐요
                 </dd>
               </dl>
             </div>
             <div class="case-screen">
               <div class="term">
-                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  설정 파일이 없어요. pnpm mcp:register를 다시 실행해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
-              </div>
-            </div>
-          </article>
-          <article class="case" id="case-auth">
-            <div class="case-meta">
-              <span class="chip new">제안</span>
-              <h3>팀 토큰이나 이름이 맞지 않음</h3>
-              <dl>
-                <dt>언제</dt>
-                <dd>서버가 토큰·이름을 거절(401)했을 때</dd>
-                <dt>그다음</dt>
-                <dd>
-                  서버가 거절로 답해 줘서 구분할 수 있어요. 서버 주소가 틀린
-                  것과 서버가 꺼진 것·느린 것은 구분할 수 없어서 &quot;작업을
-                  입력할 때 못 불러옴&quot;의 글(반복된다면 담당자에게)이 떠요.
-                </dd>
-                <dt>메모</dt>
-                <dd>
-                  지금은 서버가 보낸 거절 문장이나 &quot;서버 응답 401&quot;이
-                  괄호로 붙어요. 우리 문장으로 바꾸려면 hook.mjs를 고쳐야 해요
-                </dd>
-              </dl>
-            </div>
-            <div class="case-screen">
-              <div class="term">
-                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  팀 토큰이나 이름이 맞지 않아요. pnpm mcp:register를 다시 실행해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  설정이 완료되지 않았어요. pnpm mcp:register를 다시 실행해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
               </div>
             </div>
           </article>
@@ -693,24 +624,6 @@
   <section aria-labelledby="h-decide">
     <h2 id="h-decide">정할 것</h2>
     <ol class="decide">
-      <li>
-        <p>실패 줄을 빨간 막대로 바꿀지</p>
-        <p class="who">
-          부건님·민수님 · 바꾸면 <code>connectionFailedNotice</code>와
-          <code>haribo-hook.mjs</code>의 FAILED_NOTICE를 함께 고쳐요. 화면 글
-          원본은 시안의 notice.py이고, 실제 글은 민수님 코드에 옮겨야 해요
-        </p>
-      </li>
-      <li>
-        <p>
-          둘째 줄을 상황별로 나눌지 (켤 때 / 입력할 때 / "결정 사항 확인" 때)
-        </p>
-        <p class="who">
-          부건님 · 서버가 이벤트를 알고 있어서 나누기는 어렵지 않아요. hooks
-          스크립트가 서버에 못 붙은 경우는 스크립트 안의 글이 떠서 거기도 같이
-          고쳐요
-        </p>
-      </li>
       <li>
         <p>답 기록 실패와 이슈 반영 실패를 어디서 띄울지</p>
         <p class="who">
