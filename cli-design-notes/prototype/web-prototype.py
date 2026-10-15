@@ -66,9 +66,9 @@ for total in range(1, len(CHANGES) + 1):
             frag['done'][f'{total}|{answered}|{int(recall)}'] = n.bold(n.done_text(total, answered, recall))
     frag['reminder'][str(total)] = n.skipped_reminder(total)
 
-# 이슈 반영: 관계있다로 답한 변경 2건 이상의 목록 (데이터 순서 그대로), 표시한 뒤 한 줄
+# 이슈 반영: 관계있다로 답한 변경의 목록 (데이터 순서 그대로), 표시한 뒤 한 줄
 for ds in DATASETS.values():
-    for r in range(2, len(ds['ids']) + 1):
+    for r in range(1, len(ds['ids']) + 1):
         for sub in itertools.combinations(ds['ids'], r):
             frag['reflectList']['|'.join(sub)] = n.reflect_screen([BY_ID[i] for i in sub])
 for cid, c in BY_ID.items():
@@ -78,7 +78,9 @@ DATA = {
     'frag': frag,
     'datasets': DATASETS,
     'changes': {cid: {'issue': c['issue'], 'reflectOption': n.reflect_option(c)} for cid, c in BY_ID.items()},
-    'questions': {k: {'question': q['question'], 'options': q['options']} for k, q in n.QUESTIONS.items()},
+    'questions': {**{k: {'question': q['question'], 'options': q['options']} for k, q in n.QUESTIONS.items()},
+                  'reflectOne': {'question': n.REFLECT_ONE_QUESTION['question'], 'options': n.REFLECT_ONE_QUESTION['options']}},
+    'reflectYes': n.REFLECT_YES,
     'recall': n.RECALL,
     'reflect': n.REFLECT,
     'reflectQuestion': {f'{i}|{k}': n.reflect_question(i, k) for k in range(1, 5) for i in range(1, k + 1)},
