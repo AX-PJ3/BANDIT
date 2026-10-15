@@ -17,6 +17,8 @@ const CACHE = `haribo-shell-${BUILD}`;
 const SHELL = new URL('./', self.registration.scope).href;
 // 화면(pwa.ts)과 같은 이름이에요
 const OPEN_CHECK = 'haribo:open-check';
+const DISPLAY_MODE = 'haribo:display-mode';
+const DISPLAY_MODE_TIMEOUT_MS = 500;
 
 self.addEventListener('install', (event) => {
   // 'reload'로 받아요. 브라우저에 남은 옛 HTML을 새 저장 이름에 담지 않으려고요.
@@ -80,6 +82,7 @@ self.addEventListener('fetch', (event) => {
 
 // 알림을 누르면 나에게 온 변경 화면에서 그 변경을 열어요 (app.notify.click-to-inbox).
 // 앱 창이 열려 있으면 그 창을 앞으로 가져와 어떤 변경인지 알려 주고, 없으면 ?check=<ID> 주소로 새 창을 열어요.
+// 설치한 앱(PWA) 창과 브라우저 탭이 둘 다 열려 있으면 앱 창을 먼저 골라요. 결정 사항이 "앱의" 화면을 여는 거라서예요.
 // 알림은 pwa.ts의 showChangeNotification이 data.checkId를 넣어 띄워요.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
@@ -90,11 +93,27 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((windows) => {
-        const open = windows.find((client) => client.url.startsWith(SHELL));
-        if (!open) return self.clients.openWindow(target.href);
+      .then(async (windows) => {
+        const ours = windows.filter((client) => client.url.startsWith(SHELL));
+        if (ours.length === 0) return self.clients.openWindow(target.href);
+        const isStandalone = await Promise.all(ours.map(askIsStandalone));
+        const open = ours[isStandalone.indexOf(true)] ?? ours[0];
         if (checkId) open.postMessage({ type: OPEN_CHECK, checkId });
         return open.focus();
       }),
   );
 });
+
+// 창이 앱(PWA) 창인지는 서비스 워커가 알 수 없어서 창에 물어봐요 (pwa.ts의 registerServiceWorker가 답해요).
+// 답이 없으면(옛 화면, 멈춘 창) 브라우저 탭으로 여겨요.
+function askIsStandalone(client) {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(false), DISPLAY_MODE_TIMEOUT_MS);
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer);
+      resolve(event.data?.isStandalone === true);
+    };
+    client.postMessage({ type: DISPLAY_MODE }, [channel.port2]);
+  });
+}
