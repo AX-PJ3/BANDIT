@@ -7,9 +7,12 @@ export {
   type T1SavedValues,
 } from './t1/copy.ts';
 export {
+  buildT1NewSaveInput,
   buildT1SaveInput,
   type CurrentStandard,
   type T1Answer,
+  type T1NewAnswer,
+  type T1Trigger,
 } from './t1/save-input.ts';
 export { previewScreen } from './t1/screens.ts';
 export { PR_COPY, renderOutcome } from './pr/copy.ts';

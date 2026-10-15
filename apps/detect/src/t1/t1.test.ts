@@ -13,7 +13,7 @@ import {
   isPreviewCommand,
   PREVIEW_DONE,
 } from './preview-command.ts';
-import { buildT1SaveInput } from './save-input.ts';
+import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
 import { COLS, previewScreen } from './screens.ts';
 import { textWidth, wrap } from './text.ts';
 
@@ -173,6 +173,24 @@ describe('buildT1SaveInput', () => {
     expect('evidence' in input).toBe(false);
   });
 
+  it('사람이 직접 요청했으면 AI가 찾았나는 아니오예요 (SIL-94, D61)', () => {
+    const input = buildT1SaveInput(
+      {
+        id: 'app.notify.title-length',
+        alwaysOn: false,
+        scope: null,
+        currentVersion: 1,
+      },
+      { title: '제목', value: '값', reason: '이유' },
+      'direct',
+    );
+    expect(input).toMatchObject({
+      baseVersion: 1,
+      source: 'ai_chat',
+      aiDetected: false,
+    });
+  });
+
   it('적용 범위가 없으면(null) scope 칸을 빼요 (save_standard 도구는 null을 받지 않아요)', () => {
     const input = buildT1SaveInput(
       {
@@ -184,6 +202,28 @@ describe('buildT1SaveInput', () => {
       { title: '제목', value: '값', reason: '이유' },
     );
     expect('scope' in input).toBe(false);
+  });
+});
+
+describe('buildT1NewSaveInput', () => {
+  it('기존 결정 사항이 없는 직접 요청은 새 결정 사항(baseVersion 0)으로, AI가 찾았나는 아니오로 저장해요 (SIL-94)', () => {
+    const input = buildT1NewSaveInput({
+      id: 'app.notify.title-ellipsis',
+      title: '잘린 알림 제목 끝에는 말줄임표를 붙인다',
+      value: '운영체제 알림 제목을 자르면 끝에 말줄임표(…)를 붙인다',
+      reason: '잘렸다는 걸 알 수 있어야 한다',
+      alwaysOn: false,
+    });
+    expect(input).toEqual({
+      id: 'app.notify.title-ellipsis',
+      title: '잘린 알림 제목 끝에는 말줄임표를 붙인다',
+      value: '운영체제 알림 제목을 자르면 끝에 말줄임표(…)를 붙인다',
+      reason: '잘렸다는 걸 알 수 있어야 한다',
+      alwaysOn: false,
+      baseVersion: 0,
+      source: 'ai_chat',
+      aiDetected: false,
+    });
   });
 });
 
