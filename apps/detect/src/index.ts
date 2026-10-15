@@ -1,5 +1,4 @@
 export {
-  renderT1Preview,
   renderT1Question,
   renderT1Saved,
   T1_COPY,
@@ -12,6 +11,7 @@ export {
   type CurrentStandard,
   type T1Answer,
 } from './t1/save-input.ts';
+export { previewScreen } from './t1/screens.ts';
 export { PR_COPY, renderOutcome } from './pr/copy.ts';
 export {
   runPrPath,

@@ -1,12 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import {
-  renderT1Preview,
-  renderT1Question,
-  renderT1Saved,
-  T1_COPY,
-} from './copy.ts';
+import { renderT1Question, renderT1Saved, T1_COPY } from './copy.ts';
 import {
   clearPending,
   diffFromPending,
@@ -19,6 +14,12 @@ import {
   PREVIEW_DONE,
 } from './preview-command.ts';
 import { buildT1SaveInput } from './save-input.ts';
+import { COLS, previewScreen } from './screens.ts';
+import { textWidth, wrap } from './text.ts';
+
+/** 꾸밈 코드(ANSI)를 지워요 */
+// eslint-disable-next-line no-control-regex -- 터미널 색 코드(ESC)를 지우려면 제어 문자가 필요해요
+const stripAnsi = (text: string) => text.replace(/\u001b\[[0-9;]*m/g, '');
 
 describe('T1 문구', () => {
   it('질문에 제목, 지금 값, 바꿀 값을 넣어요', () => {
@@ -37,18 +38,8 @@ describe('T1 문구', () => {
     expect(question).not.toMatch(/\{\w+\}/);
   });
 
-  it('③ 등록될 모습에 영역, 제목, 값, 이유, 항상 적용을 넣어요', () => {
-    const preview = renderT1Preview({
-      area: 'app',
-      title: '앱 알림 제목은 32자 이하다',
-      value: '운영체제 알림 창에 뜨는 제목은 공백 포함 32자 이하로 쓴다',
-      reason: 'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
-      alwaysOn: false,
-    });
-    expect(preview).toContain('[app] 앱 알림 제목은 32자 이하다');
-    expect(preview).toContain('이유: Windows 알림 창에서 32자를 넘으면');
-    expect(preview).toContain('항상 적용: 아니오');
-    expect(preview).not.toMatch(/\{\w+\}/);
+  it('③ 머리표는 프로토타입에 적힌 말 그대로예요', () => {
+    expect(T1_COPY.preview.heading).toBe('결정 사항을 이렇게 등록할까요');
   });
 
   it('④ 등록 완료에 버전과 항상 적용을 넣어요', () => {
@@ -89,6 +80,63 @@ describe('T1 문구', () => {
 
   it('화면 문구에 "기준" 대신 "결정 사항"을 써요 (copy.term.standard)', () => {
     expect(JSON.stringify(T1_COPY)).not.toContain('기준');
+  });
+});
+
+describe('previewScreen (③)', () => {
+  const values = {
+    area: 'app',
+    title: '앱 알림 제목은 32자 이하로 쓴다',
+    value: '공백 포함 32자 이하',
+    reason: 'Windows 알림 창에서는 40자 제목이 잘린다',
+    alwaysOn: false,
+  };
+
+  it('프로토타입처럼 위 선 안 머리표, 제목, 6칸 이름 뒤 값·이유, 항상 적용, 아래 선이에요', () => {
+    expect(stripAnsi(previewScreen(values)).split('\n')).toEqual([
+      `-- 결정 사항을 이렇게 등록할까요 ${'-'.repeat(COLS - 33)}`,
+      '  [app] 앱 알림 제목은 32자 이하로 쓴다',
+      '    값    공백 포함 32자 이하',
+      '    이유  Windows 알림 창에서는 40자 제목이 잘린다',
+      '',
+      '    항상 적용  아니오',
+      '',
+      '  ID   담당자  이슈',
+      '-'.repeat(COLS),
+    ]);
+  });
+
+  it('위아래 선은 화면 너비와 같아요', () => {
+    const lines = stripAnsi(previewScreen(values)).split('\n');
+    expect(textWidth(lines[0] ?? '')).toBe(COLS);
+    expect(textWidth(lines.at(-1) ?? '')).toBe(COLS);
+  });
+
+  it('제목은 청록 굵게, 항상 적용은 예일 때만 굵게예요', () => {
+    expect(previewScreen(values)).toContain('\u001b[1;36m[app] 앱 알림');
+    expect(previewScreen(values)).not.toContain('\u001b[1m항상 적용');
+    expect(previewScreen({ ...values, alwaysOn: true })).toContain(
+      '\u001b[1m항상 적용',
+    );
+  });
+
+  it('긴 이유는 값 칸에 맞춰 다음 줄로 넘겨요', () => {
+    const lines = stripAnsi(
+      previewScreen({ ...values, reason: '가나다 '.repeat(20).trim() }),
+    ).split('\n');
+    const reasonLines = lines.slice(3, lines.indexOf(''));
+    expect(reasonLines.length).toBeGreaterThan(1);
+    for (const line of reasonLines) {
+      expect(textWidth(line)).toBeLessThanOrEqual(COLS);
+    }
+    expect(reasonLines[1]?.startsWith(' '.repeat(10))).toBe(true);
+  });
+});
+
+describe('wrap', () => {
+  it('띄어쓰기에서 나누고, 한 낱말이 너무 길면 글자로 나눠요', () => {
+    expect(wrap('가나 다라 마바', 5)).toEqual(['가나', '다라', '마바']);
+    expect(wrap('가나다라마', 4)).toEqual(['가나', '다라', '마']);
   });
 });
 
@@ -257,7 +305,8 @@ describe('hook-preview.ts', () => {
         `${PREVIEW_DONE} ${id}\n`,
       );
       const { systemMessage } = JSON.parse(output) as { systemMessage: string };
-      expect(systemMessage).toContain('\u001b[36m[test] 시험 제목');
+      expect(systemMessage).toContain('\u001b[1;36m[test] 시험 제목');
+      expect(stripAnsi(systemMessage)).toContain('    값    시험 값');
     } finally {
       clearPending(id);
     }
@@ -265,5 +314,44 @@ describe('hook-preview.ts', () => {
 
   it('다른 명령이면 아무것도 내지 않아요', () => {
     expect(runHook('git status', '')).toBe('');
+  });
+});
+
+describe('hooks 첫 줄', () => {
+  it('③ hook은 첫 줄을 비워 머리글 다음 줄부터 시작해요', () => {
+    const id = 'test.t1.first-line';
+    writePending({
+      id,
+      title: '제목',
+      value: '값',
+      reason: '이유',
+      alwaysOn: false,
+    });
+    const run = (file: string, command: string, stdout: string) =>
+      (
+        JSON.parse(
+          execFileSync(
+            process.execPath,
+            [fileURLToPath(new URL(file, import.meta.url))],
+            {
+              input: JSON.stringify({
+                tool_input: { command },
+                tool_response: { stdout },
+              }),
+              encoding: 'utf8',
+            },
+          ),
+        ) as { systemMessage: string }
+      ).systemMessage;
+    try {
+      const preview = run(
+        './hook-preview.ts',
+        'node apps/detect/src/t1/preview.ts',
+        `${PREVIEW_DONE} ${id}`,
+      );
+      expect(preview.startsWith('\n-- 결정 사항을 이렇게')).toBe(true);
+    } finally {
+      clearPending(id);
+    }
   });
 });

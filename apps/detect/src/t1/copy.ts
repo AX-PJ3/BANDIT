@@ -39,16 +39,17 @@ export const T1_COPY = {
   /** 대화에서 이유를 유추할 수 없을 때 글로 묻기. 답을 한 문장으로 정리해 ③에 넣어요 */
   reasonPrompt:
     '이 결정 사항을 바꾸는 이유를 작성해 주세요. 작성해 주신 내용을 기반으로 정리해 드릴게요.',
-  /** ③ 등록될 모습 (AskUserQuestion). 이슈 표는 이슈를 읽는 도구가 생기면 넣어요 */
+  /**
+   * ③ 등록될 모습. 본문은 hook(`hook-preview.ts`)이 `screens.ts`의 모양으로 띄우고, 그 뒤 AskUserQuestion으로 물어요.
+   * 부건님 프로토타입 "T1 결정 사항 등록"(10/14)과 같아요. 이슈 표는 칸 이름만 두고, 줄은 이슈를 읽는 도구가 생기면 채워요
+   */
   preview: {
     header: '결정 사항 등록',
-    /** hook(`hook-preview.ts`)이 꾸며서 띄우는 ③ 본문 */
-    question:
-      '이렇게 등록할게요.\n' +
-      '[{area}] {title}\n' +
-      '  값: {value}\n' +
-      '  이유: {reason}\n' +
-      '  항상 적용: {alwaysOn}',
+    /** ③ 위 선 안의 머리표 */
+    heading: '결정 사항을 이렇게 등록할까요',
+    labels: { value: '값', reason: '이유', alwaysOn: '항상 적용' },
+    /** 누구에게 알리는지 보는 표의 칸 이름 (프로토타입 10/13) */
+    issueColumns: { id: 'ID', owner: '담당자', issue: '이슈' },
     register: { label: '등록하기', description: '결정 사항을 저장해요' },
     /**
      * 연결된 이슈가 있을 때의 등록하기. 저장 전에 연결된 이슈를 알 방법이 없어서
@@ -94,7 +95,7 @@ export type T1PreviewValues = Pick<Standard, 'area'> &
 export type T1SavedValues = Pick<SaveStandardResult, 'version'> &
   Pick<StandardVersion, 'alwaysOn'>;
 
-const yesNo = (value: boolean) => (value ? '예' : '아니오');
+export const yesNo = (value: boolean) => (value ? '예' : '아니오');
 
 /** {자리}를 값으로 채워요 */
 function fill(template: string, values: Record<string, string>): string {
@@ -107,14 +108,6 @@ function fill(template: string, values: Record<string, string>): string {
 /** ①② 질문 문구 */
 export function renderT1Question(values: T1QuestionValues): string {
   return fill(T1_COPY.ask.question, { ...values });
-}
-
-/** ③ 등록될 모습 문구 */
-export function renderT1Preview(values: T1PreviewValues): string {
-  return fill(T1_COPY.preview.question, {
-    ...values,
-    alwaysOn: yesNo(values.alwaysOn),
-  });
 }
 
 /** ④ 등록 완료 문구 */
