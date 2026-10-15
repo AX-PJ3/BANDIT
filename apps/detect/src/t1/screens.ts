@@ -32,8 +32,20 @@ const paint = (code: string, text: string) => `${ESC}${code}m${text}${ESC}0m`;
 /** 터미널 기본 글자색 (어두우면 흰색, 밝으면 검정). 회색 hook 글 안에서 내용을 또렷하게 보여요 (10/13) */
 const strong = (text: string, isBold = false) =>
   paint(isBold ? '1;39' : '39', text);
-/** 노란 막대 머리표: 색을 반전한 칸 하나 + 빈칸 + 노란 글자. T2~T5 상태 줄과 같은 모양 (10/13) */
-const yellowBar = (text: string) => `${paint('43', ' ')} ${paint('33', text)}`;
+/**
+ * T1 화면 색 (부건님 ANSI 토큰, 10/15): 청록 36 + 굵게 1, 노랑 33, 초록 32, 빨강 31.
+ * 초록·빨강은 새 결정 사항·예외 화면에서 써요
+ */
+export const T1_COLORS = {
+  cyan: '1;36',
+  yellow: '33',
+  green: '32',
+  red: '31',
+} as const;
+type BarColor = Exclude<keyof typeof T1_COLORS, 'cyan'>;
+/** 막대 머리표: 같은 색에 반전 7을 더한 칸 하나(바탕색) + 빈칸 + 그 색 글자. T2~T5 상태 줄과 같은 모양 (10/13) */
+const colorBar = (color: BarColor, text: string) =>
+  `${paint(`7;${T1_COLORS[color]}`, ' ')} ${paint(T1_COLORS[color], text)}`;
 /** 선은 어디서나 1칸인 영문 하이픈 (10/13) */
 const RULE = '-';
 
@@ -54,7 +66,7 @@ export function previewScreen(
     // 왼쪽 --와 머리표 글자는 꾸미지 않아요 (10/13)
     `${RULE}${RULE} ${heading}${strong(` ${RULE.repeat(Math.max(2, COLS - textWidth(head)))}`)}`,
     // 제목은 청록 굵은 글자. T2~T5 상세 제목과 같은 색 (10/13)
-    `  ${paint('1;36', `[${values.area}] ${values.title}`)}`,
+    `  ${paint(T1_COLORS.cyan, `[${values.area}] ${values.title}`)}`,
   ];
   // 이름은 회색, 내용은 기본 글자색. 이름 칸은 6칸 (10/13)
   for (const [label, text] of [
@@ -101,7 +113,7 @@ export function conflictsScreen(input: T1ConflictsInput): string {
   const BODY = COLS - 2 - KIND;
   // 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13)
   const lines = [
-    yellowBar(head),
+    colorBar('yellow', head),
     `  ${requestLabel}  ${cutEnd(input.request, COLS - 8)}`,
     '',
   ];

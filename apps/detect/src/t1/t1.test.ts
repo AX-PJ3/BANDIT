@@ -270,7 +270,8 @@ describe('conflictsScreen (직접 요청 다른 결정 사항)', () => {
 
   it('머리표는 노란 막대이고 결정 사항 제목은 굵게예요', () => {
     const screen = conflictsScreen(TITLE_CONFLICTS);
-    expect(screen.startsWith('\u001b[43m \u001b[0m \u001b[33m요청하신')).toBe(
+    // 막대는 노랑 33에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
+    expect(screen.startsWith('\u001b[7;33m \u001b[0m \u001b[33m요청하신')).toBe(
       true,
     );
     expect(screen).toContain('\u001b[1;39m[app] 앱 알림 제목은 40자');
@@ -612,7 +613,7 @@ describe('hooks 첫 줄', () => {
         'node apps/detect/src/t1/conflicts.ts',
         `${CONFLICTS_DONE} ${writeConflicts(TITLE_CONFLICTS)}`,
       );
-      expect(conflicts.startsWith('\n\u001b[43m')).toBe(true);
+      expect(conflicts.startsWith('\n\u001b[7;33m')).toBe(true);
     } finally {
       clearPending(id);
     }
