@@ -57,12 +57,25 @@ describe('hooks 주소와 명령', () => {
 describe('mergeHooks', () => {
   const script = '/home/me/.claude/haribo/hook.mjs';
 
-  it('빈 설정에 hooks 네 개를 넣어요 (PostToolUse는 respond, mark_reflected 두 개)', () => {
+  it('빈 설정에 hooks를 넣어요 (PostToolUse는 respond, mark_reflected 두 개, 작업을 마친 뒤 Stop)', () => {
     const merged = mergeHooks({}, script);
     expect(Object.keys(merged.hooks ?? {})).toEqual([
       'SessionStart',
       'UserPromptSubmit',
       'PostToolUse',
+      'Stop',
+    ]);
+    // 작업을 마친 뒤 한 줄 (notify.terminal.new-after-answered v2)
+    expect(merged.hooks?.Stop).toEqual([
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${script}" after-work`,
+            timeout: 20,
+          },
+        ],
+      },
     ]);
     expect(merged.hooks?.PostToolUse?.[0]).toEqual({
       matcher: 'mcp__haribo__respond',
@@ -246,5 +259,7 @@ describe('팀원 PC 스크립트 (haribo-hook.mjs)', () => {
     expect(after).toEqual({ code: 0, stdout: '' });
     const afterReflect = await runHook(scriptPath, 'after-reflect', {});
     expect(afterReflect).toEqual({ code: 0, stdout: '' });
+    const afterWork = await runHook(scriptPath, 'after-work', {});
+    expect(afterWork).toEqual({ code: 0, stdout: '' });
   });
 });

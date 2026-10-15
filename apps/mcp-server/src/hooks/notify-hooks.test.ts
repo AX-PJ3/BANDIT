@@ -177,16 +177,52 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
     expect(result.context).toContain('표로 보여 주기');
   });
 
-  it('같은 세션에서 이미 물었는데 남아 있으면 한 줄 알림만 띄워요 (닫고 넘어감, SIL-80 B5)', async () => {
+  it('같은 세션에서 이미 물었는데 남아 있으면 입력 때는 아무것도 안 띄우고, 작업을 마친 뒤 한 줄을 띄워요 (SIL-80 B5, notify.terminal.new-after-answered v2)', async () => {
     await hook('prompt-submit', { session_id: 's1', prompt: '작업 1' });
     const second = await hook('prompt-submit', {
       session_id: 's1',
       prompt: '작업 2',
     });
-    expect(second.screen).toContain(
-      '  확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
-    );
+    expect(second.json.systemMessage).toBeUndefined();
+    expect(second.context).toContain('사용자가 질문을 닫았다');
     expect(second.context).toContain('사용자의 요청을 그대로 처리한다');
+    const done = await hook('after-work', { session_id: 's1' });
+    expect(done.screen).toBe(
+      '\n  확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
+    );
+  });
+
+  it('작업을 마친 뒤 한 줄은 이번 세션에서 물은 적이 있고 대기가 남았을 때만 띄워요', async () => {
+    // 아직 묻지 않은 세션: 다음 입력 때 상세를 띄우니 조용히 있어요
+    expect((await hook('after-work', { session_id: 's9' })).json).toEqual({});
+    // 다 답한 세션: 남은 게 없어요
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    await respond(
+      store,
+      {
+        pendingCheckId: 'c-1',
+        answeredBy: '민수',
+        affected: true,
+        known: true,
+        channel: 'terminal',
+      },
+      { now: '2026-10-14T05:20:00Z' },
+    );
+    expect((await hook('after-work', { session_id: 's1' })).json).toEqual({});
+    // 다 답한 뒤 새 변경이 오면 작업을 마친 뒤 한 줄로 알려요 (B5)
+    await applyNewVersion(
+      store,
+      {
+        ...v2,
+        version: 3,
+        value: '공백 포함 30자 이하',
+        changedAt: '2026-10-14T05:40:00Z',
+      },
+      { now: '2026-10-14T05:40:00Z', makeId: () => 'c-9' },
+    );
+    expect((await hook('after-work', { session_id: 's1' })).screen).toContain(
+      '확인할 변경 1건 · "결정 사항 확인"',
+    );
   });
 
   it('"결정 사항 확인"을 입력하면 다시 상세와 질문을 띄우고, 끝나도 작업을 시작하지 않게 해요', async () => {
@@ -480,7 +516,7 @@ describe('이슈 반영 (SIL-93, 부건님 10/15 시안)', () => {
     expect(next.json).toEqual({});
   });
 
-  it('닫고 넘어간 한 줄 아래에 안내 한 줄을 이어서 띄워요', async () => {
+  it('닫고 넘어간 뒤 입력하면 이슈 반영 안내 한 줄만 띄워요', async () => {
     // #5에 관계있다로 답한 뒤 같은 결정 사항이 다시 바뀌어 새 확인할 변경이 생긴 경우
     await answerAffected();
     await applyNewVersion(
@@ -504,7 +540,8 @@ describe('이슈 반영 (SIL-93, 부건님 10/15 시안)', () => {
       session_id: 's4',
       prompt: '작업 2',
     });
-    expect(skipped.screen).toContain('확인할 변경 1건 · "결정 사항 확인"');
+    // 닫고 넘어간 한 줄은 작업을 마친 뒤 띄우니, 입력 때는 이슈 반영 안내 한 줄만 나와요
+    expect(skipped.screen).not.toContain('"결정 사항 확인"');
     expect(skipped.screen).toContain('"이슈 반영"을 입력해 주세요.');
     expect(skipped.context).toContain('사용자의 요청을 그대로 처리한다');
   });

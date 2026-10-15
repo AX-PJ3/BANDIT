@@ -380,8 +380,8 @@ export function allAnsweredLine(totalAtStart: number, recall: boolean): string {
 }
 
 /**
- * 질문을 닫고 넘어간 뒤 작업을 입력할 때마다 띄우는 한 줄 (notify.terminal.new-after-answered).
- * 모양은 v2 상태 줄(노란 막대)이에요. v2 시안은 작업을 마친 뒤(Stop hooks)에 띄우지만, 띄우는 때는 위키대로 입력할 때예요.
+ * 질문을 닫고 넘어간 뒤 Claude가 작업을 마칠 때마다 입력 칸 바로 위에 띄우는 한 줄 (notify.terminal.new-after-answered v2).
+ * 모양은 v2 상태 줄(노란 막대)이에요. 입력할 때 띄우면 작업 결과에 밀려 올라가서 못 봤어요 (v1 피드백 P1·P3).
  */
 export function skippedReminder(count: number): string {
   return [

@@ -8,6 +8,7 @@
  *   UserPromptSubmit   → 첫 변경 상세 (systemMessage) + Claude에게 질문 순서 안내 (additionalContext)
  *   PostToolUse:respond → 기록 줄 + 다음 변경 상세 또는 마무리 한 줄 (systemMessage)
  *   PostToolUse:mark_reflected → "✓ 이슈에 반영했어요" 한 줄 (systemMessage)
+ *   Stop               → 질문을 닫고 넘어갔으면 작업을 마친 뒤 입력 칸 바로 위에 한 줄 (notify.terminal.new-after-answered v2)
  *
  * "이슈 반영"을 입력하면 관계있다로 답한 변경 목록을 띄우고 Claude에게 물을 질문을 알려 줘요 (SIL-93, 부건님 10/15 시안).
  * 이슈 반영할 변경이 남았으면 상세를 띄우지 않는 입력에서 안내 한 줄을 세션마다 한 번 띄워요.
@@ -46,12 +47,17 @@ import { loadNotifyData } from '../tools/notify/shared.ts';
 const log = createLogger('hooks');
 
 export type HookEvent =
-  'session-start' | 'prompt-submit' | 'after-respond' | 'after-reflect';
+  | 'session-start'
+  | 'prompt-submit'
+  | 'after-respond'
+  | 'after-reflect'
+  | 'after-work';
 export const HOOK_EVENTS: readonly HookEvent[] = [
   'session-start',
   'prompt-submit',
   'after-respond',
   'after-reflect',
+  'after-work',
 ];
 
 /** Claude Code hooks가 표준 출력으로 내보내는 JSON. 비어 있으면 아무것도 띄우지 않아요 */
@@ -111,8 +117,9 @@ function buildGuide(recall: boolean): string {
 3. ${after}`;
 }
 
+/** 닫고 넘어간 뒤 작업을 입력했을 때. 한 줄은 작업을 마친 뒤(Stop) 띄우니 여기서는 화면에 아무것도 안 띄워요 (v2) */
 const SKIPPED_CONTEXT =
-  '[확인할 변경 규칙] 답하지 않은 변경이 있다는 한 줄은 hooks가 이미 보여 줬다. 그 변경에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.';
+  '[확인할 변경 규칙] 답하지 않은 변경이 남아 있지만 사용자가 질문을 닫았다. 그 변경에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.';
 const NOTHING_CONTEXT =
   '[확인할 변경 규칙] 답할 변경이 없다는 것을 hooks가 이미 화면에 보여 줬다. 글을 쓰지 않고 끝낸다.';
 const REMINDER_CONTEXT =
@@ -138,9 +145,10 @@ questions: ${JSON.stringify(questions)}`;
 const FAILED_CONTEXT =
   '[확인할 변경 규칙] 확인할 변경을 불러오지 못했다는 것을 hooks가 이미 화면에 보여 줬다. 그 일에 대해 말하지 말고 사용자의 요청을 그대로 처리한다.';
 
+/** 화면 글이 비면 systemMessage는 빼고 Claude에게 줄 안내만 보내요 */
 function promptOutput(message: string, context: string): HookOutput {
   return {
-    systemMessage: message,
+    ...(message ? { systemMessage: message } : {}),
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
       additionalContext: context,
@@ -285,10 +293,11 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
     }
 
     const previous = flows.get(flowKey);
-    // 이번 세션에서 이미 물었는데 대기가 남았으면 닫고 넘어간 거예요. 다 답한 뒤 새 변경이 와도 같아요 (SIL-80 B5)
+    // 이번 세션에서 이미 물었는데 대기가 남았으면 닫고 넘어간 거예요. 다 답한 뒤 새 변경이 와도 같아요 (SIL-80 B5).
+    // 한 줄은 작업을 마친 뒤(afterWork) 띄워요. 입력할 때 띄우면 작업 결과에 밀려 올라가서 못 봤어요 (notify.terminal.new-after-answered v2)
     if (previous?.asked && !recall) {
       return withReminder(data, user, flowKey, {
-        message: skippedReminder(items.length),
+        message: '',
         context: SKIPPED_CONTEXT,
       });
     }
@@ -394,6 +403,27 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
     }
   }
 
+  /**
+   * Claude가 작업을 마쳤을 때(Stop): 이번 세션에서 질문을 띄웠는데 답하지 않은 변경이 남았으면 입력 칸 바로 위에 한 줄.
+   * 다 답한 뒤 새 변경이 와도 같은 한 줄이에요. 이번 세션에서 아직 묻지 않았으면 다음 입력 때 상세를 띄우니 여기서는 조용히 있어요.
+   * 실패하면 조용히 끝내요. 실패는 다음 입력 때 알려요.
+   */
+  async function afterWork(
+    user: string,
+    input: HookInput,
+  ): Promise<HookOutput> {
+    if (!flows.get(key(user, input))?.asked) return {};
+    try {
+      const { items } = await pending(user);
+      return items.length > 0
+        ? { systemMessage: skippedReminder(items.length) }
+        : {};
+    } catch (error) {
+      logFailure('after-work', user, error);
+      return {};
+    }
+  }
+
   return {
     handle(event: HookEvent, user: string, input: HookInput) {
       switch (event) {
@@ -405,6 +435,8 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
           return afterRespond(user, input);
         case 'after-reflect':
           return afterReflect(user, input);
+        case 'after-work':
+          return afterWork(user, input);
       }
     },
   };

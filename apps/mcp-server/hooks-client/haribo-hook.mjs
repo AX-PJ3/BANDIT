@@ -2,7 +2,7 @@
 /**
  * haribo 터미널 알림 hooks (SIL-67). `pnpm mcp:register`가 ~/.claude/haribo/에 복사해 두는 파일이에요.
  *
- *   node ~/.claude/haribo/hook.mjs session-start | prompt-submit | after-respond | after-reflect
+ *   node ~/.claude/haribo/hook.mjs session-start | prompt-submit | after-respond | after-reflect | after-work
  *
  * Claude Code가 hooks 이벤트(JSON)를 표준 입력으로 주면, 그대로 팀 MCP 서버의 /hooks/<이벤트>로 보내고
  * 서버가 돌려준 JSON(systemMessage 등)을 그대로 출력해요. 화면 글은 서버가 만들어요.
@@ -19,6 +19,7 @@ const EVENTS = [
   'prompt-submit',
   'after-respond',
   'after-reflect',
+  'after-work',
 ];
 /** 무료 호스팅은 쉬다가 깨어나느라 느릴 수 있어서 넉넉히 기다려요. Claude Code hooks 시간 제한(설정 20초)보다 짧게 둬요 */
 const TIMEOUT_MS = 15_000;
@@ -35,9 +36,13 @@ const FAILED_CONTEXT =
 
 const event = process.argv[2];
 
-/** 실패를 알리는 출력. 도구를 부른 뒤(after-respond, after-reflect)에는 Claude가 결과를 이미 받아서 조용히 끝내요 */
+/**
+ * 실패를 알리는 출력. 도구를 부른 뒤(after-respond, after-reflect)에는 Claude가 결과를 이미 받아서,
+ * 작업을 마친 뒤(after-work)에는 다음 입력 때 실패를 알리니 조용히 끝내요
+ */
 function failed(detail) {
-  if (event === 'after-respond' || event === 'after-reflect') return '';
+  if (['after-respond', 'after-reflect', 'after-work'].includes(event))
+    return '';
   const message = detail ? `${FAILED_NOTICE}\n  (${detail})` : FAILED_NOTICE;
   if (event === 'prompt-submit') {
     return JSON.stringify({
