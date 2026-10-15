@@ -25,9 +25,10 @@ import {
 } from '../../ui/tds.tsx';
 import { KindChips, SourceChips, StatusChip, statusLabel } from './Badges.tsx';
 import {
+  changeLetter,
   findReplacingVersion,
   formatTime,
-  groupByIssue,
+  groupByChange,
   isNewStandard,
   needsRework,
   sameStandardVersions,
@@ -261,7 +262,7 @@ function PeerTabs(props: {
   onBack: () => void;
   onOpen: (pendingCheckId: string) => void;
 }) {
-  const groups = groupByIssue(props.all);
+  const groups = groupByChange(props.all);
   const currentGroup = groups.find((group) =>
     group.some((item) => item.pendingCheckId === props.change.pendingCheckId),
   );
@@ -304,24 +305,25 @@ function PeerTabs(props: {
             padding: '6px 8px 4px 0',
           }}
         >
-          {groups.map((group) => {
+          {groups.map((group, index) => {
             const first = group[0]!;
+            const label = `변경 ${changeLetter(index)}`;
             const isActive = group === currentGroup;
             const target =
               group.find((item) => item.status === 'pending') ?? first;
             const hasPending = group.some((item) => item.status === 'pending');
             return (
               <button
-                key={first.issue.key}
+                key={`${first.issue.key} ${first.standard.id}`}
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                aria-label={`이슈 ${first.issue.key} ${first.standard.title} (${statusLabel(first)})`}
-                // 지금 보고 있는 이슈 칩에는 제목을 띄우지 않아요 (신지님 시안 10/15)
+                aria-label={`${label} ${first.standard.title} 이슈 ${first.issue.key} (${statusLabel(first)})`}
+                // 지금 보고 있는 칩에는 제목을 띄우지 않아요 (신지님 시안 10/15)
                 title={
                   isActive
                     ? undefined
-                    : `${first.standard.title} · ${statusLabel(first)}`
+                    : `${first.standard.title} · 이슈 ${first.issue.key} · ${statusLabel(first)}`
                 }
                 onClick={() => !isActive && props.onOpen(target.pendingCheckId)}
                 style={{
@@ -335,7 +337,7 @@ function PeerTabs(props: {
                   lineHeight: 0,
                 }}
               >
-                <Pill isActive={isActive}>이슈 {first.issue.key}</Pill>
+                <Pill isActive={isActive}>{label}</Pill>
                 {hasPending && (
                   <span
                     aria-hidden

@@ -129,6 +129,36 @@ export function groupByIssue(items: MyChange[]): MyChange[][] {
     );
 }
 
+/**
+ * 상세 위 칩: 결정 사항과 내 이슈 한 쌍마다 하나예요. 받은 순서(그 쌍에 처음 온 시각)대로 놓아서
+ * 답하거나 새 변경이 와도 이미 붙은 글자가 바뀌지 않아요. 새 쌍은 맨 뒤예요 (app.detail.change-letter)
+ */
+export function groupByChange(items: MyChange[]): MyChange[][] {
+  const groups = new Map<string, MyChange[]>();
+  for (const item of items) {
+    const key = `${item.issue.key}\u0000${item.standard.id}`;
+    groups.set(key, [...(groups.get(key) ?? []), item]);
+  }
+  const firstArrived = (group: MyChange[]) =>
+    Math.min(...group.map((item) => Date.parse(item.createdAt)));
+  return [...groups.values()]
+    .map((group) =>
+      [...group].sort((a, b) => b.standard.version - a.standard.version),
+    )
+    .sort((a, b) => firstArrived(a) - firstArrived(b));
+}
+
+/** 0 → "A", 25 → "Z", 26 → "AA" (app.detail.change-letter) */
+export function changeLetter(index: number): string {
+  let rest = index;
+  let letters = '';
+  do {
+    letters = String.fromCharCode(65 + (rest % 26)) + letters;
+    rest = Math.floor(rest / 26) - 1;
+  } while (rest >= 0);
+  return letters;
+}
+
 /** 상세 위 버전 탭: 같은 이슈에서 같은 결정 사항의 버전만, 높은 버전부터. 하나뿐이면 탭을 그리지 않아요 */
 export function sameStandardVersions(
   change: MyChange,
