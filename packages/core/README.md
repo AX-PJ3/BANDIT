@@ -10,7 +10,7 @@
 | `src/rules.ts`            | 팀 위키 형식 규칙: 기준 ID 모양, 문장 경고(`check_wiki.py`와 같음), 확인할 변경 상태, 출처 이름 | `@sil/core`                                 |
 | `src/changelog.ts`        | CHANGELOG 한 줄 만들기 (`data.changelog.format`)                                                | `@sil/core`                                 |
 | `src/errors.ts`           | 팀 공통 에러 (`SilError`, `DbNotConfiguredError`, `NotImplementedError`)                        | `@sil/core`                                 |
-| `src/fixtures/`           | 쿠폰 예시 데이터 (10/13 통합 확인 시나리오)                                                     | `@sil/core`                                 |
+| `src/fixtures/`           | 쿠폰 예시 데이터 (10/13 통합 확인 시나리오), 나에게 온 변경 예시(`inbox.ts`, 웹 앱 예시 데이터) | `@sil/core`                                 |
 | `src/node/env.ts`         | `.env` 읽기와 검사                                                                              | `@sil/core/node`                            |
 | `src/node/logger.ts`      | 로그 (항상 stderr)                                                                              | `@sil/core/node`                            |
 | `src/data/client.ts`      | Supabase 연결 (공용 키), DB 에러 → 우리 에러. 브라우저와 Node 모두 (D50)                        | `@sil/core/data`, `@sil/core/node`          |
@@ -55,6 +55,7 @@
 - **쓰기는 데이터베이스 함수로만**: `saveStandard`, `revertStandard`, `deprecateStandard`, `saveIssue`, `resolveConflict`, `saveAnswer`, `saveReflected`는 `save_standard`, `save_answer`, `save_reflected` 등 SQL 함수를 불러요. 형식 검사, 잠금, 버전 충돌(`baseVersion`), 되돌림 표시가 함수 안에 있어요. 거절하면 hint에 우리 에러 코드를 담아 보내고, `toSilError`가 같은 코드의 `SilError`로 바꿔요.
 - **DB가 돌려준 모양은 zod로 한 번 더 확인해요.** 스키마와 코드가 어긋나면 엉뚱한 값 대신 "마이그레이션을 확인해 주세요"라고 알려요.
 - 스키마는 저장소 맨 위 `supabase/migrations/`, 규칙 검사는 `supabase/tests/`의 `wiki.test.sql`, `v2.test.sql`(SIL-65 조건, 데모 순서), `compat.test.sql`(팀 위키 기준), `always_on_per_version.test.sql`(항상 적용 버전마다)에 있어요. 루트 README의 "데이터베이스" 절을 봐 주세요.
+- **실시간 구독**: `watchPendingChecks({ recipient, onChange, onError })`는 그 사람의 확인할 변경이 생기거나 바뀌면 알려 줘요 (Realtime, app.notify.realtime). 웹 앱이 OS 알림(A1)에 써요. 돌려준 함수로 끊어요.
 - **불러오지 못하면 빈 목록 대신 에러를 던져요.** 화면이 실패를 "변경 없음"으로 보여 주면 안 돼요 (`notify.error.not-empty`).
 
 ### 함수 추가하기
