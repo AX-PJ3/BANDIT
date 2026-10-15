@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { STANDARD_ID_PATTERN, type SaveStandardInput } from '@sil/core';
 import type { T1Target } from './issues.ts';
-import type { T1ConflictsInput } from './screens.ts';
+import type { T1ConflictsInput, T1NoticeInput } from './screens.ts';
 
 /**
  * 사람에게 ③으로 보여 준 값. 모양은 save_standard 입력에서 골라 써요 (타입은 core에만).
@@ -58,33 +58,45 @@ export function diffFromPending(
 }
 
 /**
- * 다른 결정 사항 화면 값도 같은 임시 폴더에 둬요 (SIL-94 직접 요청).
+ * 다른 결정 사항 화면과 예외 안내 값도 같은 임시 폴더에 둬요 (SIL-94, SIL-66).
  * 저장과 비교하지 않아서 결정 사항 ID 대신 명령마다 새 표(UUID)로 파일을 나누고, hook이 띄운 뒤 바로 지워요.
  */
+type ShownKind = 'conflicts' | 'notice';
 const TOKEN_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 
 /** 표 형식이 맞을 때만 파일 경로를 줘요 (경로 문자 막기) */
-export function conflictsPath(token: string): string | null {
+function shownPath(kind: ShownKind, token: string): string | null {
   return TOKEN_PATTERN.test(token)
-    ? join(tmpdir(), `haribo-t1-conflicts-${token}.json`)
+    ? join(tmpdir(), `haribo-t1-${kind}-${token}.json`)
     : null;
 }
 
 /** 값을 쓰고 표를 돌려줘요 */
-export function writeConflicts(input: T1ConflictsInput): string {
+function writeShown(kind: ShownKind, input: unknown): string {
   const token = randomUUID();
-  writeFileSync(conflictsPath(token) as string, JSON.stringify(input, null, 2));
+  writeFileSync(
+    shownPath(kind, token) as string,
+    JSON.stringify(input, null, 2),
+  );
   return token;
 }
 
 /** 읽고 바로 지워요. 없으면 null */
-export function takeConflicts(
-  token: string | undefined,
-): T1ConflictsInput | null {
-  const path = token ? conflictsPath(token) : null;
+function takeShown<T>(kind: ShownKind, token: string | undefined): T | null {
+  const path = token ? shownPath(kind, token) : null;
   if (!path || !existsSync(path)) return null;
-  const input = JSON.parse(readFileSync(path, 'utf8')) as T1ConflictsInput;
+  const input = JSON.parse(readFileSync(path, 'utf8')) as T;
   rmSync(path, { force: true });
   return input;
 }
+
+export const conflictsPath = (token: string) => shownPath('conflicts', token);
+export const writeConflicts = (input: T1ConflictsInput) =>
+  writeShown('conflicts', input);
+export const takeConflicts = (token: string | undefined) =>
+  takeShown<T1ConflictsInput>('conflicts', token);
+export const writeNotice = (input: T1NoticeInput) =>
+  writeShown('notice', input);
+export const takeNotice = (token: string | undefined) =>
+  takeShown<T1NoticeInput>('notice', token);

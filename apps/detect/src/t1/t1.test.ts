@@ -9,26 +9,34 @@ import {
   diffFromPending,
   pendingPath,
   takeConflicts,
+  takeNotice,
   writeConflicts,
   writePending,
 } from './pending.ts';
 import {
   CONFLICTS_DONE,
   findConflictsToken,
+  findNoticeToken,
   findPreviewId,
   isConflictsCommand,
+  isNoticeCommand,
   isPreviewCommand,
   isSavedResponse,
+  isVersionConflict,
+  NOTICE_DONE,
   PREVIEW_DONE,
+  SAVE_RACE_CONTEXT,
   SCREEN_SHOWN_CONTEXT,
 } from './preview-command.ts';
 import { buildT1NewSaveInput, buildT1SaveInput } from './save-input.ts';
 import {
   COLS,
   conflictsScreen,
+  noticeScreen,
   previewScreen,
   savedScreen,
   type T1ConflictsInput,
+  type T1NoticeInput,
 } from './screens.ts';
 import { textWidth, wrap } from './text.ts';
 import { pickTargets } from './issues.ts';
@@ -754,6 +762,20 @@ describe('isSavedResponse', () => {
   });
 });
 
+describe('isVersionConflict', () => {
+  it('저장 결과나 실패 내용에 VERSION_CONFLICT가 있으면 true예요', () => {
+    expect(isVersionConflict(undefined, '[VERSION_CONFLICT] 바뀌었어요')).toBe(
+      true,
+    );
+    expect(
+      isVersionConflict({ content: [{ text: '[VERSION_CONFLICT] …' }] }),
+    ).toBe(true);
+    expect(isVersionConflict({ content: [{ text: '[FORBIDDEN] …' }] })).toBe(
+      false,
+    );
+  });
+});
+
 describe('hook-saved.ts', () => {
   const runHook = (id: string, response: unknown) =>
     execFileSync(
@@ -807,7 +829,167 @@ describe('hook-saved.ts', () => {
     clearPending(id);
   });
 
+  it('그사이 바뀌어 거절되면(VERSION_CONFLICT) 그 자리에서 예외 7 안내를 띄워요 (PostToolUse·PostToolUseFailure)', () => {
+    const id = 'test.t1.hook-saved-race';
+    const pending = {
+      id,
+      title: '시험 제목',
+      value: '시험 값',
+      reason: '시험 이유',
+      alwaysOn: false,
+    };
+    const rejected = {
+      isError: true,
+      content: [
+        { type: 'text', text: '[VERSION_CONFLICT] 그사이 v2로 바뀌었어요' },
+      ],
+    };
+    for (const [eventName, extra] of [
+      ['PostToolUse', { tool_response: rejected }],
+      [
+        'PostToolUseFailure',
+        { error: '[VERSION_CONFLICT] 그사이 v2로 바뀌었어요' },
+      ],
+    ] as const) {
+      writePending(pending);
+      const output = JSON.parse(
+        execFileSync(
+          process.execPath,
+          [fileURLToPath(new URL('./hook-saved.ts', import.meta.url))],
+          {
+            input: JSON.stringify({
+              hook_event_name: eventName,
+              tool_input: { id },
+              ...extra,
+            }),
+            encoding: 'utf8',
+          },
+        ),
+      ) as {
+        systemMessage: string;
+        hookSpecificOutput: {
+          hookEventName: string;
+          additionalContext: string;
+        };
+      };
+      expect(stripAnsi(output.systemMessage).split('\n')).toEqual([
+        '',
+        '  저장하는 사이 다른 사람이 먼저 이 결정 사항을 바꿨어요.',
+        '  바뀐 내용을 다시 확인할게요.',
+      ]);
+      expect(output.hookSpecificOutput).toEqual({
+        hookEventName: eventName,
+        additionalContext: SAVE_RACE_CONTEXT,
+      });
+    }
+  });
+
   it('③을 거치지 않은 저장에는 아무것도 띄우지 않아요', () => {
     expect(runHook('test.t1.no-pending', saved('test.t1.no-pending'))).toBe('');
+  });
+});
+
+describe('noticeScreen (예외 안내, 10/14 확정)', () => {
+  const existing = {
+    id: 'app.notify.title-length',
+    title: '앱 알림 제목은 32자 이하로 쓴다',
+    value: '공백 포함 32자 이하',
+  };
+  const lines = (input: T1NoticeInput) =>
+    stripAnsi(noticeScreen(input)).split('\n');
+
+  it('예외 3 조사 실패: 경우 1은 작업을, 경우 2는 등록을 멈췄다고 빨간 막대로 알려요', () => {
+    expect(lines({ kind: 'searchFailed', trigger: 'agent' })).toEqual([
+      '  다른 결정 사항을 조회하지 못해 하던 작업을 멈췄어요.',
+      '  잠시 뒤 다시 시도해 보시고 반복된다면 담당자에게 알려 주세요.',
+    ]);
+    expect(lines({ kind: 'searchFailed', trigger: 'direct' })[0]).toBe(
+      '  다른 결정 사항을 조회하지 못해 등록을 멈췄어요.',
+    );
+    expect(
+      noticeScreen({ kind: 'searchFailed', trigger: 'agent' }).startsWith(
+        '\u001b[0;7;31m',
+      ),
+    ).toBe(true);
+  });
+
+  it('충돌 3 완전히 같음은 빨간 막대, 뜻이 같음은 노란 막대와 기존 결정 사항 줄이에요', () => {
+    expect(lines({ kind: 'same', existing })).toEqual([
+      '  같은 결정 사항이 있어서 등록하지 않았어요.',
+      '  [app] 앱 알림 제목은 32자 이하로 쓴다 · 공백 포함 32자 이하',
+    ]);
+    expect(lines({ kind: 'similar', existing })[0]).toBe(
+      '  같은 뜻의 결정 사항이 이미 있어요.',
+    );
+    expect(
+      noticeScreen({ kind: 'similar', existing }).startsWith('\u001b[0;7;33m'),
+    ).toBe(true);
+  });
+
+  it('뜻이 같음 → 아니요는 기본 글자색 막대, 예외 7은 노란 막대와 노란 줄이에요', () => {
+    expect(noticeScreen({ kind: 'similarDeclined' })).toContain(
+      '\u001b[0;7;39m',
+    );
+    expect(lines({ kind: 'saveRace' })).toEqual([
+      '  저장하는 사이 다른 사람이 먼저 이 결정 사항을 바꿨어요.',
+      '  바뀐 내용을 다시 확인할게요.',
+    ]);
+  });
+
+  it('뜻이 같음 질문은 예/아니요예요 (제안 문구)', () => {
+    expect(T1_COPY.similarAsk.question).toBe(
+      '그래도 새 결정 사항으로 등록할까요?',
+    );
+    expect([T1_COPY.similarAsk.yes.label, T1_COPY.similarAsk.no.label]).toEqual(
+      ['예', '아니요'],
+    );
+  });
+});
+
+describe('notice.ts와 hook-notice.ts', () => {
+  const runNode = (file: string, input: string) =>
+    execFileSync(
+      process.execPath,
+      [fileURLToPath(new URL(file, import.meta.url))],
+      { input, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
+    );
+
+  it('명령이 값을 들고, 직후 hook이 안내를 띄우고 임시 값을 지워요', () => {
+    const stdout = runNode(
+      './notice.ts',
+      JSON.stringify({ kind: 'similarDeclined' }),
+    );
+    const token = findNoticeToken(stdout);
+    const output = JSON.parse(
+      runNode(
+        './hook-notice.ts',
+        JSON.stringify({
+          tool_input: { command: 'node apps/detect/src/t1/notice.ts' },
+          tool_response: { stdout },
+        }),
+      ),
+    ) as { systemMessage: string };
+    expect(stripAnsi(output.systemMessage)).toContain(
+      '등록하지 않았어요. 기존 결정 사항을 그대로 둘게요.',
+    );
+    expect(takeNotice(token)).toBeNull();
+  });
+
+  it('kind나 필요한 칸이 없으면 거절해요', () => {
+    for (const bad of [
+      { kind: 'x' },
+      // 예외 7은 저장 도구 hook이 띄워요
+      { kind: 'saveRace' },
+      { kind: 'searchFailed' },
+      { kind: 'same', existing: { id: 'app.notify.title-length' } },
+    ]) {
+      expect(() => runNode('./notice.ts', JSON.stringify(bad))).toThrow();
+    }
+  });
+
+  it('다른 명령은 알아보지 않아요', () => {
+    expect(isNoticeCommand('node apps/detect/src/t1/notice.ts')).toBe(true);
+    expect(isNoticeCommand('node apps/detect/src/t1/conflicts.ts')).toBe(false);
+    expect(findNoticeToken(`${NOTICE_DONE} abc\r\n`)).toBe('abc');
   });
 });

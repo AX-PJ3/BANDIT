@@ -14,9 +14,24 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-conflicts.ts\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-notice.ts\""
           }
         ]
       },
+      {
+        "matcher": "mcp__haribo__save_standard",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-saved.ts\""
+          }
+        ]
+      }
+    ],
+    "PostToolUseFailure": [
       {
         "matcher": "mcp__haribo__save_standard",
         "hooks": [

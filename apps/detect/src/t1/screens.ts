@@ -3,7 +3,7 @@
  * `previewScreen`·`conflictsScreen`을 옮겼어요. 문구는 `copy.ts`에만 있어요.
  * Claude Code가 hook 글을 회색으로 감싸서, 강조할 글만 색 코드로 꾸며요.
  */
-import type { Standard } from '@sil/core';
+import type { Standard, StandardVersion } from '@sil/core';
 import { T1_COPY, type T1PreviewValues, yesNo } from './copy.ts';
 import type { T1Target } from './issues.ts';
 import type { T1Trigger } from './save-input.ts';
@@ -50,10 +50,13 @@ export const T1_COLORS = {
   green: '32',
   red: '31',
 } as const;
-type BarColor = Exclude<keyof typeof T1_COLORS, 'cyan'>;
+/** plain은 터미널 기본 글자색 막대예요 (뜻이 같음 → 아니요, 10/14) */
+type BarColor = Exclude<keyof typeof T1_COLORS, 'cyan'> | 'plain';
 /** 막대 머리표: 같은 색에 반전 7을 더한 칸 하나(바탕색) + 빈칸 + 그 색 글자. T2~T5 상태 줄과 같은 모양 (10/13) */
-const colorBar = (color: BarColor, text: string) =>
-  `${paint(`7;${T1_COLORS[color]}`, ' ')} ${paint(T1_COLORS[color], text)}`;
+const colorBar = (color: BarColor, text: string) => {
+  const code = color === 'plain' ? '39' : T1_COLORS[color];
+  return `${paint(`7;${code}`, ' ')} ${paint(code, text)}`;
+};
 /** 선은 어디서나 1칸인 영문 하이픈 (10/13) */
 const RULE = '-';
 
@@ -121,6 +124,47 @@ export function previewScreen(
   }
   lines.push(strong(RULE.repeat(COLS)));
   return lines.join('\n');
+}
+
+/** 예외 안내에 넣을 값 (10/14 확정 예외) */
+export type T1NoticeInput =
+  | { kind: 'searchFailed'; trigger: T1Trigger }
+  | {
+      kind: 'same' | 'similar';
+      /** 이미 있는 결정 사항 (get_standard의 최신 버전) */
+      existing: Pick<Standard, 'id'> & Pick<StandardVersion, 'title' | 'value'>;
+    }
+  | { kind: 'similarDeclined' }
+  | { kind: 'saveRace' };
+
+/** 예외 안내: 색 막대 한 줄과 설명 한 줄 (프로토타입 failFlow·sameFlow·race) */
+export function noticeScreen(input: T1NoticeInput): string {
+  const { notices } = T1_COPY;
+  switch (input.kind) {
+    case 'searchFailed':
+      return [
+        colorBar('red', notices.searchFailed.head[input.trigger]),
+        `  ${notices.searchFailed.body}`,
+      ].join('\n');
+    case 'same':
+    case 'similar': {
+      const { existing } = input;
+      return [
+        input.kind === 'same'
+          ? colorBar('red', notices.same)
+          : colorBar('yellow', notices.similar),
+        // 이미 있는 결정 사항: 굵은 [영역] 제목 · 값 (프로토타입 existingLine)
+        `  ${strong(areaTitle(existing.id, existing.title), true)}${strong(` · ${existing.value}`)}`,
+      ].join('\n');
+    }
+    case 'similarDeclined':
+      return colorBar('plain', notices.similarDeclined);
+    case 'saveRace':
+      return [
+        colorBar('yellow', notices.saveRace.head),
+        `  ${paint(T1_COLORS.yellow, notices.saveRace.body)}`,
+      ].join('\n');
+  }
 }
 
 /**

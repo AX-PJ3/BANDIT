@@ -10,6 +10,9 @@ export const PREVIEW_DONE = '③ 등록될 모습 값을 임시로 들고 있어
 /** conflicts.ts가 마지막 줄에 남기는 표시. hook-conflicts.ts가 이 뒤의 표로 파일을 찾아요 */
 export const CONFLICTS_DONE = '다른 결정 사항 화면 값을 임시로 들고 있어요:';
 
+/** notice.ts가 마지막 줄에 남기는 표시. hook-notice.ts가 이 뒤의 표로 파일을 찾아요 */
+export const NOTICE_DONE = 'T1 안내 값을 임시로 들고 있어요:';
+
 /**
  * hook이 화면을 띄운 뒤 에이전트에게만 전하는 말(additionalContext). 사람에게는 보이지 않아요.
  * 에이전트는 hook 글이 사람 화면에 떴는지 몰라서 "화면을 띄웠어요" 같은 설명을 덧붙여요 (10/15 시험)
@@ -17,16 +20,37 @@ export const CONFLICTS_DONE = '다른 결정 사항 화면 값을 임시로 들�
 export const SCREEN_SHOWN_CONTEXT =
   'T1 화면을 hook이 사람에게 이미 보여 줬어요. 화면을 띄웠다거나 무엇을 보여 줬는지 설명하는 글을 쓰지 말고, CLAUDE.md T1의 다음 단계로 바로 가세요.';
 
-/** hook 출력: 사람에게 보이는 화면과 에이전트에게만 가는 말 */
-export function screenHookOutput(screen: string): string {
+/** 예외 7: 저장이 거절돼 hook이 안내를 띄운 뒤 에이전트에게만 전하는 말 */
+export const SAVE_RACE_CONTEXT =
+  '저장하는 사이 다른 사람이 먼저 이 결정 사항을 바꿔 저장이 거절됐고, 그 안내를 hook이 사람에게 이미 보여 줬어요. 안내를 설명하지 말고 CLAUDE.md T1 9의 "저장하는 사이 바뀜"대로 1부터 다시 하세요.';
+
+/**
+ * hook 출력: 사람에게 보이는 화면과 에이전트에게만 가는 말.
+ * eventName은 hook이 불린 때예요. 저장이 실패하면 Claude Code가 PostToolUseFailure로 부를 수 있어요
+ */
+export function screenHookOutput(
+  screen: string,
+  context: string = SCREEN_SHOWN_CONTEXT,
+  eventName = 'PostToolUse',
+): string {
   return JSON.stringify({
     // 첫 줄을 비워 hook 머리글(`PostToolUse:Bash says:`) 바로 다음 줄부터 시작해요 (프로토타입 screens.py)
     systemMessage: `\n${screen}`,
     hookSpecificOutput: {
-      hookEventName: 'PostToolUse',
-      additionalContext: SCREEN_SHOWN_CONTEXT,
+      hookEventName: eventName,
+      additionalContext: context,
     },
   });
+}
+
+/** save_standard가 그사이 바뀐 버전 때문에 거절됐는지 봐요 (서버 오류 코드 VERSION_CONFLICT, SIL-15 동시 수정) */
+export function isVersionConflict(...responses: unknown[]): boolean {
+  return responses.some((response) =>
+    (typeof response === 'string'
+      ? response
+      : (JSON.stringify(response) ?? '')
+    ).includes('VERSION_CONFLICT'),
+  );
 }
 
 // 앞에 `cd "…" &&`를 붙이거나 전체 경로로 불러도 알아봐요 (10/14 main-2에서 cd가 붙어 ③이 안 뜸)
@@ -37,6 +61,7 @@ const t1Command = (file: string) =>
   );
 const PREVIEW_COMMAND = t1Command('preview');
 const CONFLICTS_COMMAND = t1Command('conflicts');
+const NOTICE_COMMAND = t1Command('notice');
 
 export function isPreviewCommand(command: string): boolean {
   return PREVIEW_COMMAND.test(command);
@@ -85,4 +110,13 @@ export function findPreviewId(stdout: string): string | undefined {
 /** conflicts.ts 출력에서 이번 화면의 표를 찾아요. 없으면 undefined */
 export function findConflictsToken(stdout: string): string | undefined {
   return findAfter(stdout, CONFLICTS_DONE);
+}
+
+export function isNoticeCommand(command: string): boolean {
+  return NOTICE_COMMAND.test(command);
+}
+
+/** notice.ts 출력에서 이번 안내의 표를 찾아요. 없으면 undefined */
+export function findNoticeToken(stdout: string): string | undefined {
+  return findAfter(stdout, NOTICE_DONE);
 }
