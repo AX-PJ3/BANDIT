@@ -20,7 +20,7 @@
 | `src/t1/screens.ts`         | hooks가 띄우는 화면 모양(③ 등록될 모습, 다른 결정 사항 화면). 부건님 프로토타입 "T1 결정 사항 등록"(10/14)을 옮겼어요. 칸 계산은 `text.ts`                                                                                                                       |
 | `src/t1/conflicts.ts`       | 다른 결정 사항 화면 값을 임시 파일(`haribo-t1-conflicts-<UUID>.json`)에 들고 있는 명령. hook이 띄운 뒤 바로 지워요 (경우 1·2)                                                                                                                                    |
 | `src/t1/issues.ts`          | ③ 이슈 표에 넣을 받는 이슈를 core `listIssues()`로 팀 DB에서 읽어요(팀원 `.env`의 Supabase 주소·공용 키). 알리기와 같은 규칙(담당자 있음, 바꾼 본인 뺌). 못 읽으면 표 칸 이름만 보여요                                                                           |
-| `src/t1/notice.ts`          | 예외 안내(조사 실패, 완전히 같음, 뜻이 같음) 값을 임시 파일(`haribo-t1-notice-<UUID>.json`)에 들고 있는 명령. hook이 띄운 뒤 바로 지워요 (10/14 확정 예외)                                                                                                       |
+| `src/t1/notice.ts`          | 예외 안내(조사 실패, 완전히 같음, 뜻이 같음, 되돌릴 값이 지금과 같음) 값을 임시 파일(`haribo-t1-notice-<UUID>.json`)에 들고 있는 명령. hook이 띄운 뒤 바로 지워요 (10/14 확정 예외)                                                                              |
 | `src/t1/preview.ts`         | ③ 등록될 모습 값을 임시 파일(운영체제 임시 폴더 `haribo-t1-pending-<결정 사항 ID>.json`, 결정 사항마다 따로)에 들고 있는 명령. 에이전트가 터미널로 불러요                                                                                                        |
 | `src/t1/pending.ts`         | 임시 값 쓰기·읽기·지우기·비교. 시간으로 지우지 않고, 다음 ③이 덮어쓰거나 저장하면 지워요                                                                                                                                                                         |
 | `src/t1/preview-command.ts` | Bash 명령이 `preview.ts`·`conflicts.ts` 실행인지 알아보는 규칙. 앞에 `cd "…" &&`를 붙이거나 전체 경로로 불러도 알아봐요. 패키지를 불러오지 않아서 설치 전에도 다른 명령에서 hook 오류가 나지 않아요                                                              |
@@ -31,7 +31,7 @@
 직접 요청(SIL-94, `detect.ask.direct-request-skip-warn`): 사람이 "결정 사항"이나 "위키"를 바꿔 달라고 분명히 말했을 때만이에요(10/15 임시 기준, PM과 확인 중). "32자로 자르는 함수를 만들어 줘"처럼 코드만 말하면 위 흐름이에요.
 
 - 기존 결정 사항이 있으면: `conflicts.ts`를 `trigger: "direct"`로 실행(머리표 "요청하신 변경이 기존 결정 사항과 달라요") → 묻기(예/아니요)는 건너뛰고 이유 → ③ → "달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?"
-- vN으로 되돌려 달라는 요청: T1 화면 없이 `get_standard`로 읽고 haribo `revert`로 되돌린 뒤 CHANGELOG에 한 줄 붙이기
+- vN으로 되돌려 달라는 요청: T1 화면 없이 `get_standard`로 읽고 haribo `revert`로 되돌린 뒤 CHANGELOG에 한 줄 붙이기. 지금 값이 이미 vN과 같으면 되돌리지 않고 `revertSame` 안내로 끝내기
 - 기존 결정 사항이 없으면: `conflicts.ts`를 `conflicts: []`로 실행(hook이 초록 막대 "요청하신 변경과 다른 결정 사항이 없어요"를 띄움) → 이유 → `preview.ts`에 `"isNew": true`(③ 제목 줄에 "새 결정 사항", 받는 이슈 없음) → "이대로 등록할까요?" → 새 결정 사항으로 저장
 
 | hook                | 언제                            | 하는 일                                                                                                                                                                                          |

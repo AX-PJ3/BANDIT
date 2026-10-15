@@ -926,6 +926,18 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
     ).toBe(true);
   });
 
+  it('되돌릴 버전이 지금 값과 같으면 빨간 막대로 되돌리지 않았다고 알려요 (SIL-104)', () => {
+    expect(lines({ kind: 'revertSame', version: 2, existing })).toEqual([
+      '  지금 값이 이미 v2의 값과 같아서 되돌리지 않았어요.',
+      '  [app] 앱 알림 제목은 32자 이하로 쓴다 · 공백 포함 32자 이하',
+    ]);
+    expect(
+      noticeScreen({ kind: 'revertSame', version: 2, existing }).startsWith(
+        '\u001b[0;7;31m',
+      ),
+    ).toBe(true);
+  });
+
   it('뜻이 같음 → 아니요는 기본 글자색 막대, 예외 7은 노란 막대와 노란 줄이에요', () => {
     expect(noticeScreen({ kind: 'similarDeclined' })).toContain(
       '\u001b[0;7;39m',
@@ -995,6 +1007,11 @@ describe('notice.ts와 hook-notice.ts', () => {
       { kind: 'saveRace' },
       { kind: 'searchFailed' },
       { kind: 'same', existing: { id: 'app.notify.title-length' } },
+      // 되돌림이 같음은 몇 버전인지 있어야 해요
+      {
+        kind: 'revertSame',
+        existing: { id: 'app.notify.title-length', title: '제목', value: '값' },
+      },
     ]) {
       expect(() => runNode('./notice.ts', JSON.stringify(bad))).toThrow();
     }
