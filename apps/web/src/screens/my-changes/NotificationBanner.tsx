@@ -17,16 +17,29 @@ import { C, Text } from '../../ui/tds.tsx';
 /** 펼침 애니메이션 시간 (styles.css .notify-panel과 같아요) */
 const PANEL_MS = 420;
 
-/** 안내 그림(public/notify-guide.svg) 한 장에서 세 칸을 잘라 보여 줘요 */
-const GUIDE_COLUMNS = [
-  { x: 20, width: 240 },
-  { x: 324, width: 240 },
-  { x: 630, width: 220 },
-];
+/**
+ * 설정 방법 3단계: 그림(public/notify-step-1~3.svg, 240 × 100)과 그 아래 진짜 글자예요 (신지님 시안 10/15).
+ * 글자 크기는 안내 머리글과 같아요: 제목 t6 굵게, 설명 st12
+ */
 const GUIDE_STEPS = [
-  '사이트 정보 아이콘을 클릭. 브라우저에서 주소창 왼쪽의 자물쇠 또는 사이트 정보 아이콘을 클릭합니다',
-  '알림 권한을 허용으로 변경하세요. 사이트 설정 메뉴에서 알림 항목을 찾아 허용으로 변경합니다',
-  '이제 알림을 받을 수 있어요. 설정 변경 후 이 화면으로 돌아와 권한을 다시 확인해 주세요',
+  {
+    image: 'notify-step-1.svg',
+    title: '사이트 정보 아이콘을 클릭',
+    lines: [
+      '브라우저에서 주소창 왼쪽의',
+      '자물쇠 또는 사이트 정보 아이콘을 클릭해요',
+    ],
+  },
+  {
+    image: 'notify-step-2.svg',
+    title: '알림 권한을 허용으로 변경하세요',
+    lines: ['사이트 설정 메뉴에서', '알림 항목을 찾아 허용으로 변경해요'],
+  },
+  {
+    image: 'notify-step-3.svg',
+    title: '이제 알림을 받을 수 있어요',
+    lines: ['설정 변경 후 이 화면으로 돌아와', '권한을 다시 확인해 주세요'],
+  },
 ];
 
 const DESCRIPTIONS: Record<
@@ -212,39 +225,49 @@ function Banner(props: {
         >
           <div className="notify-guide">
             <div className="notify-guide-cols">
-              {GUIDE_COLUMNS.map((column) => (
-                <div key={column.x} className="notify-guide-box">
+              {GUIDE_STEPS.map((step) => (
+                <div key={step.title} className="notify-guide-box">
+                  <img
+                    src={`${import.meta.env.BASE_URL}${step.image}`}
+                    alt=""
+                    draggable={false}
+                    width={240}
+                    height={100}
+                    style={{ display: 'block', flexShrink: 0 }}
+                  />
                   <div
                     style={{
-                      position: 'relative',
-                      flexShrink: 0,
-                      width: column.width,
-                      height: 244,
-                      overflow: 'hidden',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 3,
+                      marginTop: 20,
+                      textAlign: 'center',
                     }}
                   >
-                    <img
-                      src={`${import.meta.env.BASE_URL}notify-guide.svg`}
-                      alt=""
-                      draggable={false}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: -column.x,
-                        width: 870,
-                        height: 244,
-                        maxWidth: 'none',
-                      }}
-                    />
+                    <Text
+                      typography="t6"
+                      fontWeight="bold"
+                      color={C.grey900}
+                      style={{ lineHeight: '22px' }}
+                    >
+                      {step.title}
+                    </Text>
+                    <Text
+                      typography="st12"
+                      color={C.grey700}
+                      style={{ lineHeight: '20px' }}
+                    >
+                      {step.lines.map((line) => (
+                        <span key={line} style={{ display: 'block' }}>
+                          {line}
+                        </span>
+                      ))}
+                    </Text>
                   </div>
                 </div>
               ))}
             </div>
-            <ol className="sr-only">
-              {GUIDE_STEPS.map((step) => (
-                <li key={step}>{step}</li>
-              ))}
-            </ol>
           </div>
         </div>
       )}
