@@ -818,3 +818,110 @@ def after_quiz(change_id):
     if change_id not in load_quiz():
         return None
     return '\n'.join(next_screen())
+
+
+# ---------- 이슈 반영 (SIL-93, PR #45 mark_reflected, 10/15 부건) ----------
+# 관계있다로 답한 변경을 내 이슈에 반영했다고 사람이 직접 표시한다 (위키 notify.check.reflected v2). AI가 코드를 보고 짐작하지 않는다.
+# 다시 부르는 말과 같이 입력 전체가 이 말일 때만 받는다. 한 건이면 바로 표시하고, 여러 건이면 목록을 띄우고 고르게 한다.
+# 말은 위키 app.card.three-steps v2의 진행 단계 "이슈 반영"과 같게 둔다 (copy.same-words.everywhere, 10/15 SIL-92).
+# 터미널에서 "작업"은 지금 진행 중인 코드 작업이라, 배정된 일에 반영한 것은 "이슈"로 부른다. 완료 줄은 용어 표 51번 버튼 이름 "이슈에 반영했어요"
+REFLECT = '이슈 반영'
+REFLECT_QUESTION = {'question': '어느 변경을 이슈에 반영했나요?', 'header': REFLECT}
+# 선택 화면은 질문 하나에 보기 2~4개, 한 번에 질문 4개까지라서 5건부터는 질문을 나눠 탭으로 띄운다 (10/15 부건).
+# 탭마다 보기가 2개 이상이어야 해서 4건씩 채우지 않고 고르게 나눈다 (5건 → 3+2). 16건이 넘으면 앞 16건만 묻는다
+REFLECT_PER_QUESTION, REFLECT_MAX_QUESTIONS = 4, 4
+
+
+def reflect_groups(count):
+    """이슈 반영할 변경 count건을 질문 몇 개에 몇 건씩 나눌지. 예: 5 → [3, 2], 9 → [3, 3, 3], 4 → [4]"""
+    count = min(count, REFLECT_PER_QUESTION * REFLECT_MAX_QUESTIONS)
+    k = -(-count // REFLECT_PER_QUESTION)
+    return [count // k + (1 if i < count % k else 0) for i in range(k)]
+
+
+def reflect_question(index, total):
+    """나눠 물을 때 질문과 이름표 끝에 몇 번째인지 붙인다. 이름표는 12자 이하 (이슈 반영 1/2 = 9자)."""
+    if total == 1:
+        return dict(REFLECT_QUESTION)
+    return {'question': f"{REFLECT_QUESTION['question']} ({index}/{total})",
+            'header': f"{REFLECT_QUESTION['header']} {index}/{total}"}
+
+
+def is_reflect(prompt):
+    return (prompt or '').strip().rstrip('.!?') == REFLECT
+
+
+def reflect_word():
+    """입력할 말: 다시 부르는 말과 같은 노란 굵은 글자, 따옴표는 기본 글자색."""
+    return f'"{esc("1")}{esc(COUNT_COLOR)}{REFLECT}{esc(STRONG)}{esc("22")}"'
+
+
+def reflect_value_line(c):
+    """목록에서 무엇이 바뀌었는지 한 줄: 작게 바뀌면 변경 줄, 크게 바뀌거나 신규면 지금 값, 폐기면 없어진 값(회색)."""
+    old, new = c['old'], c['new']
+    if c['kind'] == 'deprecated' or new is None:
+        return '  상세  ' + t2.cut_end(old, COLS - 8)
+    if c['kind'] == 'new' or old is None:
+        return '  상세  ' + color_line(t2.cut_end(new, COLS - 8), NEW_COLOR)
+    pre, old_mid, new_mid, suf = t2.find_change(old, new)
+    if t2.is_large_change(old, new, old_mid, new_mid):
+        return '  상세  ' + color_line(t2.cut_end(new, COLS - 8), NEW_COLOR)
+    return '  변경  ' + change_what(old, new)
+
+
+def reflect_screen(changes):
+    """여러 건일 때 목록. 상세와 같은 위아래 선으로 묶고, 한 건은 제목 · 바뀐 것 · 이슈 세 줄이다.
+    고르는 것은 바로 아래 선택 화면(여러 개 고르기)이 한다. 목록과 선택 화면의 순서가 같다."""
+    head = f'관계있다로 답한 변경이 {len(changes)}건 있어요 '
+    lead = f'{RULE * 2} '
+    top = f'{color_line(lead, NEW_COLOR)}{head}{color_line(RULE * max(2, COLS - t2.text_width(lead + head)), NEW_COLOR)}'
+    rows = []
+    for c in changes:
+        rows += [title_line(c), reflect_value_line(c), '  이슈  ' + issue_text(c)]
+    return '\n'.join(['', top, *rows, rule_bottom()])
+
+
+def reflect_option(c):
+    """선택 화면 보기: 이름은 이슈와 제목, 설명은 종류와 바뀐 것. 선택 화면에는 색을 쓸 수 없어 글만 넣는다."""
+    tag = TAGS.get(c['kind'], '')
+    old, new = c['old'], c['new']
+    if c['kind'] == 'new' or old is None:
+        what = '새로 생긴 결정 사항이에요'
+    elif c['kind'] == 'deprecated' or new is None:
+        what = '결정 사항을 폐기했어요'
+    else:
+        old_w, new_w = changed_words(old, new)
+        pre, old_mid, new_mid, suf = t2.find_change(old, new)
+        if t2.is_large_change(old, new, old_mid, new_mid) or not (old_w and new_w):
+            what = '문장을 새로 썼어요'
+        else:
+            what = f'{old_w} {ARROW} {new_w}'
+    return {'label': t2.cut_end(f'{c["issue"]} {c["title"]}', 60), 'description': f'{tag} · {what}'}
+
+
+def reflected_line(c):
+    """✓ 이슈에 반영했어요  #7 · 앱 알림 제목은 32자 이하로 쓴다
+    기록 줄(✓ 기록했어요)과 같은 모양: 앞은 초록(완료) 글자, 이슈와 제목은 터미널 기본 글자색."""
+    done = '✓ 이슈에 반영했어요'
+    rest = t2.cut_end(f'{c["issue"]} · {c["title"]}', COLS - t2.text_width(done) - 2)
+    return f'{esc(DONE_COLOR)}{done}{esc("39")}  {color_line(rest, NEW_COLOR)}'
+
+
+def nothing_to_reflect():
+    """이슈 반영할 변경이 없을 때. 관계없다로 답했거나 아직 답하지 않은 변경은 표시할 수 없다는 것을 함께 알려 준다."""
+    return '\n'.join(['', f'{esc(DONE_COLOR)}✓{esc("39")} 이슈 반영할 변경이 없어요.',
+                      '  관계있다로 답한 변경만 이슈 반영으로 표시할 수 있어요.'])
+
+
+# 안내 줄 앞 회색 막대: 글자색을 따로 주지 않고 반전만 해서 Claude Code 회색이 칸 바탕이 된다
+GRAY_BAR = f'{esc("7")} {esc("27")} '
+
+
+def reflect_reminder():
+    """이슈 반영할 변경이 남았을 때 Claude가 작업을 마칠 때마다(Stop) 입력 칸 바로 위에 띄우는 한 줄 (10/15 부건).
+    상태 줄이 아니라 안내라서 노란 막대 없이 Claude Code 기본 회색으로 쓰고, 입력할 말 "이슈 반영"만 노란 굵은 글자 (10/15 부건).
+    건수는 넣지 않는다. 앞에는 노란 막대 대신 회색 막대(Claude Code 회색을 반전한 칸)를 세운다 (10/15 부건).
+    막대와 빈칸이 2칸이라 위 상태 줄의 글자 시작과 맞는다.
+    "이슈 반영"을 입력한 바로 그 차례에는 띄우지 않는다."""
+    word = f'{esc("1")}{esc(COUNT_COLOR)}{REFLECT}{esc("39")}{esc("22")}'
+    return '\n'.join(['', f'{GRAY_BAR}확인한 결정 사항을 이슈에도 반영했다면, "{word}"을 입력해 주세요.'])
