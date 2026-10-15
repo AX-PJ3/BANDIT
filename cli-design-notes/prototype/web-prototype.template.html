@@ -428,9 +428,10 @@
         </li>
         <li>1건이면 묻지 않고 바로 표시하고 한 줄로 알려요.</li>
         <li>
-          이슈 반영할 변경이 남아 있으면 Claude가 작업을 마칠 때마다 입력 칸
-          바로 위에 한 줄로 알려요. <code>이슈 반영</code>을 입력한 차례에는
-          띄우지 않아요.
+          이슈 반영할 변경이 남아 있으면 Claude가 작업을 마친 뒤 입력 칸 바로
+          위에 한 줄로 알려요. 한 세션에 한 번만 띄우고, 이미
+          <code>이슈 반영</code>을 입력한 세션에는 띄우지 않아요. 다시 궁금하면
+          Claude에게 물어보면 돼요.
         </li>
         <li>
           2건 이상이면 목록을 띄우고 여러 개 고르기로 반영한 것을 골라요. Esc로
@@ -493,6 +494,7 @@
       busy: false,
       deferred: new Set(),
       reflected: new Set(),
+      reflectHinted: 0, // 이슈 반영 안내 한 줄을 띄운(또는 이슈 반영을 입력한) 세션. 한 세션에 한 번만 띄운다
     };
     const ids = () => DATA.datasets[S.ds].ids;
     const pending = () => ids().filter((id) => !(id in S.answers));
@@ -959,13 +961,17 @@
       // after_work.py (Stop): 이번 세션에서 질문을 닫고 넘어간 변경이 남아 있으면 입력 칸 바로 위에 한 줄
       // 잘 모르겠다로 남긴 변경은 건수에서 빼고, 그것만 남았으면 띄우지 않는다
       // 이슈 반영할 변경(관계있다로 답하고 아직 표시하지 않은 것)이 있으면 그 아래 한 줄 더 (10/15).
-      // "이슈 반영"을 입력한 바로 그 차례에는 띄우지 않는다
+      // 한 세션에 한 번만. 이번 세션에 "이슈 반영"을 입력했으면 아는 것으로 보고 띄우지 않는다. 궁금하면 Claude에게 물어보면 된다
       const rows = [];
       const items = flowPending();
       if (items.length && wasSkipped())
         rows.push(DATA.frag.reminder[String(items.length)]);
       const left = reflectable();
-      if (left.length && !isReflectTurn) rows.push(DATA.frag.reflectReminder);
+      if (isReflectTurn) S.reflectHinted = S.session;
+      if (left.length && S.reflectHinted !== S.session) {
+        rows.push(DATA.frag.reflectReminder);
+        S.reflectHinted = S.session;
+      }
       if (rows.length) {
         blank();
         hook('Stop', rows.map((r) => r.replace(/^\n/, '')).join('\n'));
