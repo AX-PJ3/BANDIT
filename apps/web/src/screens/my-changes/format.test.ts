@@ -40,13 +40,12 @@ describe('예시 목록', () => {
 });
 
 describe('카드 표시', () => {
-  it('PR에서 찾음은 AI가 찾았고 출처가 코드일 때만 (D61)', () => {
+  it('PR에서 찾은 변경은 AI가 찾았고 출처가 코드일 때만 (D61)', () => {
     expect(isFoundInPr(byId('inbox-coupon-v2'))).toBe(true);
+    expect(sourceChipLabel(byId('inbox-coupon-v2'))).toBe('PR에서 찾은 변경');
     // T1(AI 대화)은 AI가 먼저 알아챘어도 "AI 대화" 칩만
     expect(isFoundInPr(byId('inbox-title-length-v2'))).toBe(false);
-    expect(sourceChipLabel(byId('inbox-title-length-v2'))).toBe(
-      'AI 대화에서 바꿈',
-    );
+    expect(sourceChipLabel(byId('inbox-title-length-v2'))).toBe('AI 대화');
   });
 
   it('출처가 위키면 "위키"예요 (app.card.source-chip-only)', () => {
@@ -56,7 +55,7 @@ describe('카드 표시', () => {
         ...wiki,
         standard: { ...wiki.standard, source: 'wiki' },
       }),
-    ).toBe('위키에서 바꿈');
+    ).toBe('위키');
   });
 
   it('이전 값이 없으면 새 결정 사항', () => {

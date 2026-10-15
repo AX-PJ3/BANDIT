@@ -32,12 +32,17 @@ export function formatTime(iso: string, now = new Date()): string {
     : `${dateFormat.format(date)} ${time}`;
 }
 
-/** 출처 칩 글자. 예: "AI 대화에서 바꿈" (app.card.source-chip-only) */
+/**
+ * 출처 칩 글자. 칩은 하나만 붙여요. 예: "AI 대화", "코드" (app.card.source-chip-only)
+ * AI가 찾았고 출처가 코드면 "PR에서 찾은 변경" (app.card.found-in-pr-code-only v2)
+ */
 export function sourceChipLabel(change: MyChange): string {
-  return `${SOURCE_CHIP_LABELS[change.standard.source]}에서 바꿈`;
+  return isFoundInPr(change)
+    ? 'PR에서 찾은 변경'
+    : SOURCE_CHIP_LABELS[change.standard.source];
 }
 
-/** "PR에서 찾음"은 AI가 찾았고 출처가 코드일 때만 (app.card.found-in-pr-code-only, D61) */
+/** AI가 찾았고 출처가 코드일 때만 PR에서 찾은 변경이에요 (app.card.found-in-pr-code-only, D61) */
 export function isFoundInPr(change: MyChange): boolean {
   return change.standard.aiDetected && change.standard.source === 'code';
 }
