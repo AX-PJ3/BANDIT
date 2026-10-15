@@ -21,6 +21,14 @@ BY_ID = {c['id']: c for c in CHANGES}
 DATASETS = {
     'v2': {'name': '5건 (변경·신규·되돌림·폐기·크게 바뀐 변경)', 'ids': [c['id'] for c in CHANGES]},
     'one': {'name': '1건 (칩 없는 머리표)', 'ids': [CHANGES[0]['id']]},
+    # 이슈 반영 해 보기 (10/15): 이미 답한 상태로 시작한다. answered는 브라우저가 답으로 넣는다
+    'reflect-many': {'name': '이슈 반영 · 관계있다 3건 답함', 'ids': [CHANGES[i]['id'] for i in (0, 1, 2, 4)],
+                     'answered': {CHANGES[0]['id']: '관계있다', CHANGES[1]['id']: '관계있다',
+                                  CHANGES[2]['id']: '관계있다', CHANGES[4]['id']: '관계없다'}},
+    'reflect-five': {'name': '이슈 반영 · 관계있다 5건 답함 (탭으로 나눔)', 'ids': [c['id'] for c in CHANGES],
+                     'answered': {c['id']: '관계있다' for c in CHANGES}},
+    'reflect-one': {'name': '이슈 반영 · 관계있다 1건 답함', 'ids': [CHANGES[0]['id'], CHANGES[4]['id']],
+                    'answered': {CHANGES[0]['id']: '관계있다', CHANGES[4]['id']: '관계없다'}},
 }
 REASONS = [label for label, _ in n.QUESTIONS['reason']['options']]
 CUSTOM = '§'          # 직접 쓴 이유 자리. 브라우저가 칸 수에 맞춰 줄여 넣는다
@@ -36,7 +44,8 @@ def recorded(c, relation, second):
 
 
 frag = {'session': {}, 'detail': {}, 'recorded': {}, 'done': {}, 'reminder': {}, 'nothing': n.nothing_left(),
-        'unsure': n.unsure_line()}
+        'unsure': n.unsure_line(), 'reflectNone': n.nothing_to_reflect(), 'reflectList': {}, 'reflected': {},
+        'reflectReminder': n.reflect_reminder()}
 for ds in DATASETS.values():
     ids = ds['ids']
     for r in range(1, len(ids) + 1):
@@ -57,12 +66,23 @@ for total in range(1, len(CHANGES) + 1):
             frag['done'][f'{total}|{answered}|{int(recall)}'] = n.bold(n.done_text(total, answered, recall))
     frag['reminder'][str(total)] = n.skipped_reminder(total)
 
+# 이슈 반영: 관계있다로 답한 변경 2건 이상의 목록 (데이터 순서 그대로), 표시한 뒤 한 줄
+for ds in DATASETS.values():
+    for r in range(2, len(ds['ids']) + 1):
+        for sub in itertools.combinations(ds['ids'], r):
+            frag['reflectList']['|'.join(sub)] = n.reflect_screen([BY_ID[i] for i in sub])
+for cid, c in BY_ID.items():
+    frag['reflected'][cid] = n.reflected_line(c)
+
 DATA = {
     'frag': frag,
     'datasets': DATASETS,
-    'changes': {cid: {'issue': c['issue']} for cid, c in BY_ID.items()},
+    'changes': {cid: {'issue': c['issue'], 'reflectOption': n.reflect_option(c)} for cid, c in BY_ID.items()},
     'questions': {k: {'question': q['question'], 'options': q['options']} for k, q in n.QUESTIONS.items()},
     'recall': n.RECALL,
+    'reflect': n.REFLECT,
+    'reflectQuestion': {f'{i}|{k}': n.reflect_question(i, k) for k in range(1, 5) for i in range(1, k + 1)},
+    'reflectGroups': {str(c): n.reflect_groups(c) for c in range(2, 17)},
     'unsure': n.UNSURE,
     'answerBudget': n.COLS - 16,
 }
