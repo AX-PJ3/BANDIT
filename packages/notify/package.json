@@ -5,11 +5,15 @@
   "description": "담당자에게 알리기. 새 버전이 저장되면 확인할 변경을 만들고, 답을 기록해요 (SIL-67)",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./browser": "./src/browser.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test \"src/**/*.test.ts\"",
     "demo": "node src/demo.ts"
+  },
+  "dependencies": {
+    "@sil/core": "workspace:*"
   }
 }
