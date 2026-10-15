@@ -1,0 +1,786 @@
+<title>터미널 연결 실패 화면</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Nanum+Gothic+Coding:wght@400;700&display=swap"
+/>
+<style>
+  /* 레이아웃: 위에 지금 → 제안 비교 두 칸, 아래 경우별로 설명(왼쪽)과 터미널 화면(오른쪽), 끝에 정할 것. 좁으면 한 줄로 */
+  :root {
+    --bg: #f1f2f4;
+    --surface: #ffffff;
+    --ink: #1b1f24;
+    --muted: #59616d;
+    --line: #d6dae0;
+    --accent: #a8322b;
+    --accent-soft: #f8e4e2;
+    --ok: #2d6a3a;
+    --ok-soft: #e1f1e4;
+    --warn: #8a5800;
+    --warn-soft: #fbedcf;
+    --sans:
+      'IBM Plex Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui,
+      sans-serif;
+    --mono: 'Nanum Gothic Coding', 'D2Coding', 'SF Mono', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #121417;
+      --surface: #1b1e23;
+      --ink: #e7e9ec;
+      --muted: #9ba3ae;
+      --line: #30353d;
+      --accent: #f08a80;
+      --accent-soft: #3a1f1d;
+      --ok: #8fd19b;
+      --ok-soft: #1c3021;
+      --warn: #f0c46c;
+      --warn-soft: #382c14;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #121417;
+    --surface: #1b1e23;
+    --ink: #e7e9ec;
+    --muted: #9ba3ae;
+    --line: #30353d;
+    --accent: #f08a80;
+    --accent-soft: #3a1f1d;
+    --ok: #8fd19b;
+    --ok-soft: #1c3021;
+    --warn: #f0c46c;
+    --warn-soft: #382c14;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.65 var(--sans);
+  }
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding-inline: 16px;
+    padding-block: 32px 64px;
+    display: grid;
+    gap: 40px;
+  }
+  @media (min-width: 720px) {
+    .page {
+      padding-inline: 28px;
+    }
+  }
+  header {
+    display: grid;
+    gap: 10px;
+    max-width: 72ch;
+  }
+  .eyebrow {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  h1 {
+    margin: 0;
+    font-size: 30px;
+    line-height: 1.25;
+    text-wrap: balance;
+  }
+  h2 {
+    margin: 0;
+    font-size: 20px;
+    text-wrap: balance;
+  }
+  h3 {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+  p {
+    margin: 0;
+  }
+  .lede {
+    color: var(--muted);
+  }
+  code {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    background: var(--accent-soft);
+    padding: 0 4px;
+    border-radius: 3px;
+  }
+  section {
+    display: grid;
+    gap: 16px;
+  }
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .toolbar button {
+    font: 500 13px var(--sans);
+    color: var(--ink);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 4px 12px;
+    cursor: pointer;
+  }
+  .toolbar button[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--bg);
+    border-color: var(--ink);
+  }
+  button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* 비교 */
+  .compare {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+  @media (max-width: 720px) {
+    .compare {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .compare > div {
+    min-width: 0;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+  }
+  .col-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .col-label.new {
+    color: var(--accent);
+  }
+  .changes {
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    display: grid;
+    gap: 8px;
+    list-style: none;
+  }
+  .changes li {
+    display: grid;
+    grid-template-columns: 12em 1fr;
+    gap: 12px;
+  }
+  .changes b {
+    font-weight: 600;
+  }
+  @media (max-width: 560px) {
+    .changes li {
+      grid-template-columns: 1fr;
+      gap: 2px;
+    }
+  }
+
+  /* 경우별 */
+  .case {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.55fr);
+    gap: 20px;
+    padding-block: 20px;
+    border-top: 1px solid var(--line);
+  }
+  @media (max-width: 860px) {
+    .case {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+  .case-meta {
+    display: grid;
+    gap: 8px;
+    align-content: start;
+    min-width: 0;
+  }
+  dl {
+    margin: 0;
+    display: grid;
+    grid-template-columns: 3.5em 1fr;
+    gap: 6px 10px;
+    font-size: 14px;
+  }
+  dt {
+    color: var(--muted);
+    font-weight: 500;
+  }
+  dd {
+    margin: 0;
+  }
+  .chip {
+    justify-self: start;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 1px 10px;
+    border-radius: 999px;
+  }
+  .chip.ok {
+    background: var(--ok-soft);
+    color: var(--ok);
+  }
+  .chip.new {
+    background: var(--accent-soft);
+    color: var(--accent);
+  }
+  .chip.warn {
+    background: var(--warn-soft);
+    color: var(--warn);
+  }
+  .case-screen {
+    min-width: 0;
+  }
+
+  /* 터미널: 테마는 터미널 앱의 색이라 페이지 테마와 따로 고른다 (웹 프로토타입과 같은 근사값) */
+  .terms {
+    --t-bg: #1e2227;
+    --t-fg: #f2f2f2;
+    --t-gray: #9da3ad;
+    --t-yellow: #d7ba5c;
+    --t-green: #5fb36b;
+    --t-cyan: #56b6c2;
+    --t-red: #e06c75;
+    --t-prompt: #2c3138;
+    --t-border: #0d0f12;
+  }
+  .terms[data-term='light'] {
+    --t-bg: #ffffff;
+    --t-fg: #2e3436;
+    --t-gray: #6b6f76;
+    --t-yellow: #c4a000;
+    --t-green: #4e9a06;
+    --t-cyan: #06989a;
+    --t-red: #cc0000;
+    --t-prompt: #eceef1;
+    --t-border: #c9ced4;
+  }
+  .term {
+    background: var(--t-bg);
+    border: 1px solid var(--t-border);
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  .term pre {
+    margin: 0;
+    padding: 14px 16px;
+    font: 13.5px/1.6 var(--mono);
+    color: var(--t-gray);
+    white-space: pre;
+  }
+  .ln {
+    min-height: 1.6em;
+  }
+  .prompt {
+    display: block;
+    background: var(--t-prompt);
+    color: var(--t-fg);
+    margin-inline: -6px;
+    padding-inline: 6px;
+  }
+  .f-gray {
+    color: var(--t-gray);
+  }
+  .f-fg {
+    color: var(--t-fg);
+  }
+  .f-yellow {
+    color: var(--t-yellow);
+  }
+  .f-green {
+    color: var(--t-green);
+  }
+  .f-cyan {
+    color: var(--t-cyan);
+  }
+  .f-red {
+    color: var(--t-red);
+  }
+  .r-gray {
+    background: var(--t-gray);
+    color: var(--t-bg);
+  }
+  .r-fg {
+    background: var(--t-fg);
+    color: var(--t-bg);
+  }
+  .r-yellow {
+    background: var(--t-yellow);
+    color: var(--t-bg);
+  }
+  .r-red {
+    background: var(--t-red);
+    color: var(--t-bg);
+  }
+  .b {
+    font-weight: 700;
+  }
+  .d {
+    opacity: 0.55;
+  }
+
+  /* 정할 것 */
+  ol.decide {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 10px;
+    counter-reset: q;
+  }
+  ol.decide li {
+    counter-increment: q;
+    display: grid;
+    grid-template-columns: 2em 1fr;
+    gap: 4px 10px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  ol.decide li::before {
+    content: counter(q);
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  ol.decide li > * {
+    grid-column: 2;
+  }
+  ol.decide .who {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer {
+    font-size: 13px;
+    color: var(--muted);
+    max-width: 80ch;
+    display: grid;
+    gap: 6px;
+  }
+</style>
+
+<div class="page">
+  <header>
+    <p class="eyebrow">SIL-68 · T2~T5 · 10/15 제안</p>
+    <h1>터미널 연결 실패 화면</h1>
+    <p class="lede">
+      팀 서버에 연결하지 못했을 때 터미널에 무엇을 띄울지 정리했어요. 결정은
+      위키 <code>notify.error.not-empty</code>(실패를 "변경 없음"으로 보여 주지
+      않는다)와 <code>notify.error.no-block-retry</code>(작업은 막지 않고 다시
+      시작하는 법을 알린다) 그대로이고, 모양과 문구를 v2에 맞췄어요.
+    </p>
+  </header>
+
+  <div class="terms" id="terms" data-term="dark">
+    <div style="display: grid; gap: 40px">
+      <div class="toolbar" role="group" aria-label="터미널 색">
+        <span>터미널</span>
+        <button
+          type="button"
+          id="term-dark"
+          data-term="dark"
+          aria-pressed="true"
+        >
+          어두움
+        </button>
+        <button
+          type="button"
+          id="term-light"
+          data-term="light"
+          aria-pressed="false"
+        >
+          밝음
+        </button>
+      </div>
+
+      <section aria-labelledby="h-compare">
+        <h2 id="h-compare">지금 팀 코드 → 제안</h2>
+        <div class="compare">
+          <div>
+            <span class="col-label">지금 · 켤 때 (haribo-hook.mjs)</span>
+            <div class="term">
+              <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="f-fg">● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  </span><span class="f-gray b">&quot;결정 사항 확인&quot;</span><span class="f-gray">을 입력하면 다시 시작해요.</span></div></pre>
+            </div>
+          </div>
+          <div>
+            <span class="col-label new">제안 · 켤 때</span>
+            <div class="term">
+              <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  작업을 시작하면 다시 불러올게요.</span></div></pre>
+            </div>
+          </div>
+          <div>
+            <span class="col-label">지금 · 작업을 입력할 때</span>
+            <div class="term">
+              <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="f-fg">● 서버에 연결하지 못해서 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  </span><span class="f-gray b">&quot;결정 사항 확인&quot;</span><span class="f-gray">을 입력하면 다시 시작해요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+            </div>
+          </div>
+          <div>
+            <span class="col-label new">제안 · 작업을 입력할 때</span>
+            <div class="term">
+              <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  하던 작업은 그대로 진행해요. &quot;</span><span class="f-yellow b">결정 사항 확인</span><span class="f-gray">&quot;을 입력하면 다시 불러와요.</span></div><div class="ln">  <span class="f-gray">  반복된다면 담당자에게 알려 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+            </div>
+          </div>
+        </div>
+        <ul class="changes">
+          <li>
+            <b>● → 빨간 막대</b>
+            <span>
+              ●는 Claude 답의 점과 모양·색이 같아 Claude의 말처럼 읽혔어요(v1
+              피드백). v2 상태 줄은 막대를 쓰고, 실패는 T1 예외 3(조사 실패)과
+              같은 빨간 막대와 빨간 첫 줄로 맞춰요.
+            </span>
+          </li>
+          <li>
+            <b>못해서 → 못해</b>
+            <span>T1 "다른 결정 사항을 조회하지 못해"와 같은 말투예요.</span>
+          </li>
+          <li>
+            <b>둘째 줄을 상황별로</b>
+            <span>
+              "다시 시작해요"는 무엇을 시작하는지 모호하고, 켤 때는 할 일이
+              없어요. 켤 때는 "작업을 시작하면 다시 불러올게요.", 입력할 때는
+              "하던 작업은 그대로 진행해요."를 먼저 말해요.
+            </span>
+          </li>
+          <li>
+            <b>"결정 사항 확인"은 노랑</b>
+            <span>
+              v2에서 입력할 말은 노란 굵은 글자예요(닫은 뒤 한 줄, 잘 모르겠다
+              뒤 한 줄과 같게).
+            </span>
+          </li>
+        </ul>
+      </section>
+
+      <section aria-labelledby="h-cases">
+        <h2 id="h-cases">경우별 화면</h2>
+        <div>
+          <article class="case" id="case-start">
+            <div class="case-meta">
+              <span class="chip ok">정함 · 모양만 바꿈</span>
+              <h3>켤 때 목록을 못 불러옴</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>Claude Code를 켤 때 (SessionStart)</dd>
+                <dt>그다음</dt>
+                <dd>
+                  작업을 입력하면 hooks가 서버를 다시 불러요. 따로 할 일이
+                  없어서 둘째 줄은 안심시키는 말만 둬요.
+                </dd>
+                <dt>메모</dt>
+                <dd>팀 코드에 있음 · 모양과 문구만 바꿈</dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="f-gray">✻ Welcome to Claude Code!</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ SessionStart:startup says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  작업을 시작하면 다시 불러올게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-prompt">
+            <div class="case-meta">
+              <span class="chip ok">정함 · 모양만 바꿈</span>
+              <h3>작업을 입력할 때 목록을 못 불러옴</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>작업을 입력할 때 (UserPromptSubmit)</dd>
+                <dt>그다음</dt>
+                <dd>
+                  작업은 막지 않고 그대로 진행해요(no-block-retry). 다음 작업을
+                  입력할 때도 다시 불러와요. 서버 주소가 틀림·서버가 꺼짐·느림은
+                  응답이 없어 구분할 수 없어서, 원인을 짐작하지 않고 다음 할
+                  일과 담당자만 알려요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  팀 코드에 있음 · 모양과 문구만 바꿈 · 셋째 줄은 T1 예외 3과
+                  같은 말 (10/15)
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  하던 작업은 그대로 진행해요. &quot;</span><span class="f-yellow b">결정 사항 확인</span><span class="f-gray">&quot;을 입력하면 다시 불러와요.</span></div><div class="ln">  <span class="f-gray">  반복된다면 담당자에게 알려 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-recall">
+            <div class="case-meta">
+              <span class="chip new">제안</span>
+              <h3>&quot;결정 사항 확인&quot;을 입력했는데 못 불러옴</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>&quot;결정 사항 확인&quot;만 입력했을 때</dd>
+                <dt>그다음</dt>
+                <dd>
+                  방금 그 말을 입력한 사람에게 같은 말을 또 입력하라고 하지
+                  않아요. T1 예외 3과 같은 말로 다시 시도와 담당자를 알려요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  지금은 켤 때와 같은 글이 떠서 &quot;결정 사항 확인을
+                  입력하면&quot;이 어색해요
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="prompt">&gt; 결정 사항 확인</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  잠시 뒤 다시 입력해 보시고 반복된다면 담당자에게 알려 주세요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-record">
+            <div class="case-meta">
+              <span class="chip warn">확인 필요</span>
+              <h3>답을 기록하지 못함</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>관계·알았나를 고른 뒤 respond가 실패했을 때</dd>
+                <dt>그다음</dt>
+                <dd>
+                  그 변경은 대기로 남아요. 서버가 안 되면 다음 기록도 실패해서
+                  남은 변경은 더 묻지 않고 작업으로 넘어가요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  지금은 기록 뒤 단계에서 실패하면 아무것도 안 띄워요. 실패한
+                  도구 뒤에 hooks 글을 띄울 수 있는지 민수님 확인
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="f-gray">● User answered Claude&#x27;s questions:</span></div><div class="ln"><span class="f-gray">  ⎿  · 이 변경을 이미 알고 있었나요? → 몰랐다</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ PostToolUse:mcp__haribo__respond says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 답을 기록하지 못했어요.</span></div><div class="ln">  <span class="f-gray">  답하지 않은 변경으로 남아요. &quot;</span><span class="f-yellow b">결정 사항 확인</span><span class="f-gray">&quot;을 입력하면 다시 물어요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-reflect">
+            <div class="case-meta">
+              <span class="chip warn">확인 필요</span>
+              <h3>이슈 반영을 등록하지 못함</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>
+                  &quot;이슈 반영&quot;에서 고른 뒤 mark_reflected가 실패했을 때
+                </dd>
+                <dt>그다음</dt>
+                <dd>
+                  아무것도 등록되지 않아요. 고른 변경은 그대로 이슈 반영할
+                  변경으로 남아요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  새 흐름이라 지금 코드에 없어요. 띄울 자리는 기록 실패와 같이
+                  정해요
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="f-gray">● User answered Claude&#x27;s questions:</span></div><div class="ln"><span class="f-gray">  ⎿  · 어느 변경을 이슈에 반영했나요? → #7 앱 알림 제목은 32자 이하로 쓴다</span></div><div class="ln"></div><div class="ln"><span class="f-gray">⎿ PostToolUse:mcp__haribo__mark_reflected says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 이슈 반영을 등록하지 못했어요.</span></div><div class="ln">  <span class="f-gray">  잠시 뒤 &quot;</span><span class="f-yellow b">이슈 반영</span><span class="f-gray">&quot;을 다시 입력해 주세요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-setup">
+            <div class="case-meta">
+              <span class="chip new">제안</span>
+              <h3>설정 파일이 없음</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>
+                  각자 컴퓨터의 ~/.claude/haribo/config.json이 없을 때
+                  (register를 안 돌렸거나 지움)
+                </dd>
+                <dt>그다음</dt>
+                <dd>
+                  hooks 스크립트가 파일을 못 읽는 순간 바로 알아요. 사람이 고칠
+                  수 있으니 고치는 법을 둘째 줄에 써요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  지금 팀 코드는 같은 뜻을 괄호 셋째 줄로 붙여요. 문구 위치만
+                  바꿔요
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  설정 파일이 없어요. pnpm mcp:register를 다시 실행해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-auth">
+            <div class="case-meta">
+              <span class="chip new">제안</span>
+              <h3>팀 토큰이나 이름이 맞지 않음</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>서버가 토큰·이름을 거절(401)했을 때</dd>
+                <dt>그다음</dt>
+                <dd>
+                  서버가 거절로 답해 줘서 구분할 수 있어요. 서버 주소가 틀린
+                  것과 서버가 꺼진 것·느린 것은 구분할 수 없어서 &quot;작업을
+                  입력할 때 못 불러옴&quot;의 글(반복된다면 담당자에게)이 떠요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  지금은 서버가 보낸 거절 문장이나 &quot;서버 응답 401&quot;이
+                  괄호로 붙어요. 우리 문장으로 바꾸려면 hook.mjs를 고쳐야 해요
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="r-red"> </span><span class="f-gray"> </span><span class="f-red">서버에 연결하지 못해 확인할 변경을 불러오지 못했어요.</span></div><div class="ln">  <span class="f-gray">  팀 토큰이나 이름이 맞지 않아요. pnpm mcp:register를 다시 실행해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+          <article class="case" id="case-mcp">
+            <div class="case-meta">
+              <span class="chip ok">정함 · 민수님 구현</span>
+              <h3>hooks는 되는데 MCP 도구만 안 붙음</h3>
+              <dl>
+                <dt>언제</dt>
+                <dd>Claude Code에 haribo MCP 서버가 연결되지 않았을 때</dd>
+                <dt>그다음</dt>
+                <dd>
+                  지금은 상세만 뜨고 Claude가 아무 말 없이 작업으로 넘어가요.
+                  hooks가 입력할 때마다 Claude에게 보내는 안내에 &quot;haribo
+                  도구가 없으면 이 문장을 쓰고 작업을 이어가라&quot;를 넣어요.
+                  MCP 서버 안내문은 끊기면 안 와서 안 돼요.
+                </dd>
+                <dt>메모</dt>
+                <dd>
+                  이 글은 hooks가 아니라 Claude가 쓰는 문장이라 글자가 조금
+                  달라질 수 있어요(근사). 넣을 곳: notify-hooks.ts의 hooks 안내
+                </dd>
+              </dl>
+            </div>
+            <div class="case-screen">
+              <div class="term">
+                <pre><div class="ln"><span class="prompt">&gt; 버튼 색 바꿔 줘</span></div><div class="ln"><span class="f-gray">⎿ UserPromptSubmit says:</span></div><div class="ln">  <span class="f-fg">-- </span><span class="f-gray">작업 전에 확인할 변경이 1건 있어요 </span><span class="f-fg">--------------------------------------</span></div><div class="ln">  <span class="f-fg">[app] </span><span class="f-cyan b">앱 알림 제목은 32자 이하로 쓴다</span><span class="f-fg d"> (변경)</span></div><div class="ln">  <span class="f-gray">      </span><span class="f-gray">부건님이 오후 2:13에 변경했어요.</span></div><div class="ln"><span class="f-gray">  … (변경 상세)</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 질문 도구(haribo)에 연결하지 못해 지금은 답을 받을 수 없어요.</span></div><div class="ln"><span class="f-gray">  /mcp에서 haribo 연결을 확인해 주세요.</span></div><div class="ln"></div><div class="ln"><span class="f-fg">● 작업을 시작할게요.</span></div></pre>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <section aria-labelledby="h-decide">
+    <h2 id="h-decide">정할 것</h2>
+    <ol class="decide">
+      <li>
+        <p>실패 줄을 빨간 막대로 바꿀지</p>
+        <p class="who">
+          부건님·민수님 · 바꾸면 <code>connectionFailedNotice</code>와
+          <code>haribo-hook.mjs</code>의 FAILED_NOTICE를 함께 고쳐요. 화면 글
+          원본은 시안의 notice.py이고, 실제 글은 민수님 코드에 옮겨야 해요
+        </p>
+      </li>
+      <li>
+        <p>
+          둘째 줄을 상황별로 나눌지 (켤 때 / 입력할 때 / "결정 사항 확인" 때)
+        </p>
+        <p class="who">
+          부건님 · 서버가 이벤트를 알고 있어서 나누기는 어렵지 않아요. hooks
+          스크립트가 서버에 못 붙은 경우는 스크립트 안의 글이 떠서 거기도 같이
+          고쳐요
+        </p>
+      </li>
+      <li>
+        <p>답 기록 실패와 이슈 반영 실패를 어디서 띄울지</p>
+        <p class="who">
+          민수님 · 지금은 기록 뒤 단계가 실패하면 조용히 끝나요. 실패한 도구
+          뒤에 hooks 글을 띄울 수 없으면 Claude가 정해진 문장을 그대로 쓰게
+          안내문에 넣어요
+        </p>
+      </li>
+      <li>
+        <p>바꾼 문구를 언제 반영할지</p>
+        <p class="who">
+          부건님·민수님 · 서버가 만드는 글(screens.ts, hooks 안내)은 서버를 다시
+          올리면 바로 바뀌어요. 서버에 아예 못 붙을 때 뜨는 글과 설정 파일·토큰
+          문장은 각자 컴퓨터의 hook.mjs에 있어서 팀원 모두 pnpm mcp:register를
+          다시 돌려야 해요. 작업 뒤 한 줄(Stop) 결정과 같은 때 묶으면 재설치가
+          한 번이에요
+        </p>
+      </li>
+      <li>
+        <p>실패가 계속되면 입력할 때마다 띄울지</p>
+        <p class="who">
+          부건님 · 지금은 매번 떠요. 실패를 "변경 없음"으로 숨기지 않는 게
+          원칙이라 매번 두는 쪽을 추천해요
+        </p>
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>
+      화면 글 원본은
+      <code>cli-design-notes/prototype/notify-prototype/proto/notice.py</code>의
+      <code>failed_*</code> 함수(제안)와
+      <code>apps/mcp-server/hooks-client/haribo-hook.mjs</code>의
+      FAILED_NOTICE(지금)예요. 선택 화면, Claude 문장, 머리줄은 근사예요.
+    </p>
+    <p>
+      근거: 위키 notify.error.not-empty · notify.error.no-block-retry (SIL-80
+      B4, 10/14) · T1 예외 3 (apps/detect/src/t1/copy.ts) · v1 피드백 P1·P2
+    </p>
+  </footer>
+</div>
+
+<script>
+  (function () {
+    'use strict';
+    const terms = document.getElementById('terms');
+    function setTerm(mode) {
+      terms.dataset.term = mode;
+      document
+        .querySelectorAll('button[data-term]')
+        .forEach((b) =>
+          b.setAttribute('aria-pressed', String(b.dataset.term === mode)),
+        );
+      try {
+        localStorage.setItem('failure-preview-term', mode);
+      } catch (_e) {
+        /* 저장 못 해도 화면은 그대로 */
+      }
+    }
+    document
+      .querySelectorAll('button[data-term]')
+      .forEach((b) =>
+        b.addEventListener('click', () => setTerm(b.dataset.term)),
+      );
+    try {
+      const saved = localStorage.getItem('failure-preview-term');
+      if (saved === 'dark' || saved === 'light') setTerm(saved);
+    } catch (_e) {
+      /* 기본 어두움 */
+    }
+  })();
+</script>
