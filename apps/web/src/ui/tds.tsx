@@ -681,7 +681,11 @@ export function SectionTitle(props: {
       }}
     >
       {texts}
-      {props.right && <div style={{ flexShrink: 0 }}>{props.right}</div>}
+      {props.right && (
+        <div style={{ flexShrink: 1, minWidth: 0, maxWidth: '62%' }}>
+          {props.right}
+        </div>
+      )}
     </div>
   );
 }

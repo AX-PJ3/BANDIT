@@ -4,8 +4,8 @@
  * - 답: 관계있다/관계없다 → 알았다/몰랐다(누르면 바로 저장) 또는 관계없는 이유(100자). 관계없다면 known을 보내지 않아요.
  * - 답할 때 에러: PENDING_CLOSED는 에러 없이 조용히 닫고(notify.answer.one-place), FORBIDDEN이면 답하기를 숨기고,
  *   VALIDATION_FAILED는 입력란 아래에 보여 줘요 (타입명세서 11-4).
- * - 진행 단계는 새 변경 → 확인 완료 → 작업 반영 세 개예요 (app.card.three-steps).
- * - "작업 반영했어요"는 "관계있다"로 답한 카드에만, 답한 뒤에만 켜요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).
+ * - 진행 단계는 결정 사항 변경 → 확인 완료 → 이슈 반영 세 개예요 (app.card.three-steps v3).
+ * - "이슈에 반영했어요"는 "관계있다"로 답한 카드에만, 답한 뒤에만 켜요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected).
  */
 import { isSilError, MAX_UNAFFECTED_REASON_LENGTH } from '@sil/core';
 import { useRef, useState, type CSSProperties } from 'react';
@@ -30,7 +30,6 @@ import {
   groupByIssue,
   isNewStandard,
   needsRework,
-  RETURNED_TO_SEEN_TEXT,
   sameStandardVersions,
 } from './format.ts';
 
@@ -42,13 +41,18 @@ const QUESTIONS = {
   relation: '이 변경이 내 이슈와 관계가 있나요?',
   known: '이 변경을 이미 알고 있었나요?',
 };
-const REWORK_NOTICE = '지난번 변경을 반영하셨다면 다시 고쳐야 해요';
+/** 지난번에 "관계있다"로 답한 사람에게 붙이는 안내 (notify.pending.renotify-hint v2) */
+const REWORK_NOTICE =
+  '이전 결정 사항으로 작업 중이었다면 최신 결정 사항을 반영해 주세요';
+/** 대체된 변경에 붙이는 안내 (신지님 시안 10/15) */
+const SUPERSEDED_NOTICE =
+  '확인할 변경이 새 버전으로 대체되었어요. 최신 버전의 확인할 변경에 답해 주세요.';
 
-const STEPS = ['새 변경', '확인 완료', '작업 반영'];
+const STEPS = ['결정 사항 변경', '확인 완료', '이슈 반영'];
 const STEP_DESCRIPTIONS = [
   '아직 확인하지 않은 변경이에요.',
   '담당자가 변경사항을 확인했다고 답한 상태예요.',
-  '실제 작업에 반영한 상태예요.',
+  '실제 이슈에 반영한 상태예요.',
 ];
 
 /** 고르지 않은 큰 버튼 / 고른 큰 버튼 (프로토타입 값 그대로) */
@@ -120,30 +124,6 @@ export function ChangeDetail(props: {
         )}
       </div>
 
-      {isSuperseded && (
-        <div
-          style={{
-            background: C.grey50,
-            borderRadius: 10,
-            padding: '18px 20px',
-            marginTop: 20,
-          }}
-        >
-          <Text typography="t6" fontWeight="bold" color={C.grey800}>
-            {replacingVersion === null
-              ? RETURNED_TO_SEEN_TEXT
-              : `새 버전(v${replacingVersion})으로 대체됐어요`}
-          </Text>
-          <div style={{ marginTop: 4 }}>
-            <Text typography="t7" color={C.grey600}>
-              {replacingVersion === null
-                ? '이 변경에는 답하지 않아도 돼요.'
-                : '답하기 전에 결정이 또 바뀌었어요. 이 변경에는 답하지 않아도 되고, 새 버전을 확인해주세요.'}
-            </Text>
-          </div>
-        </div>
-      )}
-
       <IssueCard change={change} />
 
       <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
@@ -169,11 +149,12 @@ export function ChangeDetail(props: {
       </div>
 
       {isSuperseded ? (
-        replacing && (
-          <>
-            <SectionTitle bottom={0} description="새 버전에 답해 주세요.">
-              지금 해야 할 일
-            </SectionTitle>
+        // 대체된 변경 안내는 "지금 해야 할 일" 옆 노란 안내로 보여 줘요 (신지님 시안 10/15)
+        <>
+          <SectionTitle bottom={0} right={<Notice text={SUPERSEDED_NOTICE} />}>
+            지금 해야 할 일
+          </SectionTitle>
+          {replacing && (
             <div style={{ marginTop: 16 }}>
               <Button
                 size="large"
@@ -183,8 +164,8 @@ export function ChangeDetail(props: {
                 새 버전 v{replacingVersion} 보러 가기
               </Button>
             </div>
-          </>
-        )
+          )}
+        </>
       ) : change.answer ? (
         <>
           <SectionTitle bottom={0}>내 답변</SectionTitle>
@@ -205,7 +186,9 @@ export function ChangeDetail(props: {
           <SectionTitle
             bottom={0}
             description="내 작업이 바뀐 값에 영향을 받는지 답해주세요."
-            right={needsRework(change) ? <ReworkNotice /> : undefined}
+            right={
+              needsRework(change) ? <Notice text={REWORK_NOTICE} /> : undefined
+            }
           >
             지금 해야 할 일
           </SectionTitle>
@@ -505,7 +488,7 @@ function IssueStateChips(props: { change: MyChange }) {
         <Chip tone="blue">{change.answer.known ? '알았다' : '몰랐다'}</Chip>
       )}
       {change.reflected ? (
-        <Chip tone="ai">작업 반영</Chip>
+        <Chip tone="ai">이슈 반영</Chip>
       ) : (
         <Chip tone="blue">확인 완료</Chip>
       )}
@@ -539,7 +522,8 @@ function ValueBox(props: { label: string; value: string; isAfter?: boolean }) {
   );
 }
 
-function ReworkNotice() {
+/** "지금 해야 할 일" 옆 노란 안내 (신지님 시안 10/15: 노란 바탕, 검정 글자) */
+function Notice(props: { text: string }) {
   return (
     <div
       role="note"
@@ -549,13 +533,14 @@ function ReworkNotice() {
         gap: 8,
         padding: '8px 12px',
         borderRadius: 10,
-        background: '#FFF1E0',
-        color: '#E8590C',
+        background: '#FFF4C2',
+        color: '#000000',
+        textAlign: 'left',
       }}
     >
       <InfoIcon />
       <span style={{ fontSize: 13, fontWeight: 500, lineHeight: '19.5px' }}>
-        {REWORK_NOTICE}
+        {props.text}
       </span>
     </div>
   );
@@ -787,7 +772,7 @@ function AnsweredBox(props: {
       );
       await props.onSaved();
       props.onToast(
-        `내 작업 상태를 ${isReflected ? '확인 완료' : '작업 반영'}로 바꿨어요.`,
+        `상태를 바꿨어요 · ${isReflected ? '확인 완료' : '이슈 반영'}`,
       );
     } catch (caught: unknown) {
       setError(caught instanceof Error ? caught.message : String(caught));
@@ -841,7 +826,7 @@ function AnsweredBox(props: {
             <span style={{ pointerEvents: 'none', display: 'inline-flex' }}>
               <CheckIcon
                 isDone={isReflected}
-                label={isReflected ? '작업 반영함' : '작업 반영 안 함'}
+                label={isReflected ? '이슈 반영함' : '이슈 반영 안 함'}
               />
             </span>
             <span
@@ -852,7 +837,7 @@ function AnsweredBox(props: {
                 color: isReflected ? C.blue700 : C.grey700,
               }}
             >
-              작업 반영했어요
+              이슈에 반영했어요
             </span>
           </button>
         )}

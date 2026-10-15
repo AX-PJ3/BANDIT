@@ -236,7 +236,8 @@ function ChangeRow(props: {
             <ValueLine change={change} />
             {isPending && needsRework(change) && (
               <ReworkNote>
-                지난번 변경을 반영하셨다면 다시 고쳐야 해요
+                이전 결정 사항으로 작업 중이었다면 최신 결정 사항을 반영해
+                주세요
               </ReworkNote>
             )}
             {isSuperseded && (

@@ -51,7 +51,7 @@ export type MyChangeStandard = PendingItemStandard;
 export type MyChangeIssue = PendingItemIssue;
 /** 내가 한 답 (A4). 대기·대체됨이면 MyChange.answer가 null이에요 */
 export type MyChangeAnswer = PendingItemAnswer;
-/** 같은 이슈에서 이전 버전에 한 마지막 답. "관계있다"였으면 "다시 고쳐야 해요" 안내를 붙여요 */
+/** 같은 이슈에서 이전 버전에 한 마지막 답. "관계있다"였으면 "최신 결정 사항을 반영해 주세요" 안내를 붙여요 (notify.pending.renotify-hint v2) */
 export type MyChangePreviousAnswer = PreviousAnswer;
 
 /** 나에게 온 변경에 답하기. 답한 사람과 답한 곳('app')은 api가 채워요 */
@@ -69,7 +69,7 @@ export interface SilApi {
   listMyChanges(me: string): Promise<MyChange[]>;
   /** 답하기. 이미 닫혔으면 PENDING_CLOSED, 받은 사람이 아니면 FORBIDDEN, 이유가 비었거나 길면 VALIDATION_FAILED */
   answer(me: string, input: MyAnswerInput): Promise<SaveAnswerResult>;
-  /** 작업 반영함 켜기·끄기. 답한 변경에만 돼요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected) */
+  /** 이슈 반영함 켜기·끄기. 답한 변경에만 돼요. 풀어도 이슈를 다시 열지 않아요 (notify.check.reflected) */
   markReflected(
     me: string,
     pendingCheckId: string,
