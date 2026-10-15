@@ -1,6 +1,6 @@
 /**
  * ③ 등록될 모습에 보여 준 값을 저장하기 전까지 임시로 들고 있어요 (SIL-66 T1).
- * - `preview.ts`가 쓰고, hook(`hook-preview.ts`, `hook-guard.ts`, `hook-clear.ts`)이 읽고 지워요.
+ * - `preview.ts`가 쓰고, hook(`hook-preview.ts`, `hook-guard.ts`, `hook-saved.ts`)이 읽고 지워요.
  * - 파일은 운영체제 임시 폴더에 둬서 저장소에 남지 않아요.
  * - 결정 사항마다 파일을 따로 둬요. Claude Code 창 여러 개가 다른 결정 사항을 T1으로 바꿔도 서로 덮어쓰지 않아요.
  * - 시간으로 지우지 않아요. 다음 ③이 덮어쓰고, 저장하면 지워요.

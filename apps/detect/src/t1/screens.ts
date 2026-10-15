@@ -123,6 +123,32 @@ export function previewScreen(
   return lines.join('\n');
 }
 
+/**
+ * ④ 등록 완료: 초록 첫 줄, [영역] 제목 · (새 결정 사항 ·) 항상 적용, 받는 이슈 줄 (프로토타입 10/14).
+ * targets는 ③에서 읽어 둔 받는 이슈예요. null이면(팀 DB를 읽지 못함) 받는 이슈 줄을 빼요
+ */
+export function savedScreen(
+  values: Pick<T1PreviewValues, 'area' | 'title' | 'alwaysOn'>,
+  targets: T1Target[] | null = null,
+  isNew = false,
+): string {
+  const { head, sent } = T1_COPY.saved;
+  const { labels, newTag, noTargets } = T1_COPY.preview;
+  const alwaysOn = `${labels.alwaysOn} ${yesNo(values.alwaysOn)}`;
+  const tag = isNew ? `${newTag} · ${alwaysOn}` : alwaysOn;
+  const lines = [
+    // 첫 줄 전체 초록 (10/13)
+    paint(T1_COLORS.green, head),
+    `  ${strong(`[${values.area}] ${values.title}`)}  ${tag}`,
+  ];
+  if (targets) {
+    lines.push(
+      `  ${targets.length > 0 ? sent.replace('{count}', String(targets.length)) : noTargets}`,
+    );
+  }
+  return lines.join('\n');
+}
+
 /** 다른 결정 사항 화면: 노란 막대 머리표, 작업(경우 1)·요청(경우 2) 한 줄, 결정 사항마다 구분 · [영역] 제목 · 판단 이유 */
 export function conflictsScreen(input: T1ConflictsInput): string {
   const { head, requestLabel, kinds, none } = T1_COPY.conflicts;

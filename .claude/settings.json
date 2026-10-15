@@ -22,7 +22,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-clear.ts\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-saved.ts\""
           }
         ]
       }
