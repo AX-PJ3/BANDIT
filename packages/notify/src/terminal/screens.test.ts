@@ -10,12 +10,22 @@ import {
   detailScreen,
   formatWhen,
   isRecall,
+  isReflectPrompt,
   nothingLeft,
+  nothingToReflect,
   recordedLines,
+  reflectableItems,
+  reflectedLine,
+  reflectReminder,
+  reflectScreen,
   sessionNotice,
   skippedReminder,
 } from './screens.ts';
-import { questionsFor } from './questions.ts';
+import {
+  questionsFor,
+  reflectGroups,
+  reflectQuestionsFor,
+} from './questions.ts';
 import { stripAnsi, textWidth } from './text.ts';
 
 /** 착수 안내 데모 예시: 부건님이 알림 제목 길이를 40자에서 32자로 바꿈. 받는 사람은 민수, 이슈 #5 */
@@ -379,5 +389,134 @@ describe('질문', () => {
       ['알았다', '몰랐다'],
     );
     assert.equal(q.reason.options.length, 3);
+  });
+});
+
+describe('이슈 반영 (SIL-93, 부건님 10/15 시안)', () => {
+  /** 관계있다로 답한 변경 n개 (#1 … #n) */
+  function answeredItems(count: number): PendingItem[] {
+    return Array.from({ length: count }, (_, i) =>
+      demoItem({
+        pendingCheckId: `c-${i + 1}`,
+        status: 'answered',
+        issue: {
+          key: `#${i + 1}`,
+          title: `이슈 ${i + 1}`,
+          status: 'in_progress',
+        },
+        answer: {
+          affected: true,
+          known: false,
+          unaffectedReason: null,
+          channel: 'terminal',
+          answeredAt: SAME_DAY,
+        },
+      }),
+    );
+  }
+
+  it('입력 전체가 "이슈 반영"일 때만 부른 것으로 본다', () => {
+    assert.equal(isReflectPrompt('이슈 반영'), true);
+    assert.equal(isReflectPrompt(' 이슈 반영! '), true);
+    assert.equal(isReflectPrompt('이슈 반영이 안 됐는데?'), false);
+  });
+
+  it('관계있다로 답했고 아직 표시하지 않은 변경만 고른다', () => {
+    const [affected, other] = answeredItems(2);
+    const unaffected = {
+      ...other!,
+      answer: { ...other!.answer!, affected: false },
+    };
+    const done = { ...affected!, pendingCheckId: 'c-9', reflected: true };
+    const pending = demoItem();
+    assert.deepEqual(
+      reflectableItems([affected!, unaffected, done, pending]).map(
+        (i) => i.pendingCheckId,
+      ),
+      ['c-1'],
+    );
+  });
+
+  it('목록은 위아래 선 안에 제목 · 바뀐 것 · 이슈 세 줄씩이고, 여러 건이면 Esc 안내를 붙인다', () => {
+    const text = reflectScreen(answeredItems(2));
+    assertFits(text);
+    const lines = plain(text);
+    assert.match(lines[1] ?? '', /^-- 관계있다로 답한 변경이 2건 있어요 -+$/);
+    assert.deepEqual(lines.slice(2, 5), [
+      '[app] 앱 알림 제목은 32자 이하로 쓴다 (변경)',
+      '  변경  40자 ⭢ 32자',
+      '  이슈  #1 이슈 1',
+    ]);
+    assert.equal(lines[8], '-'.repeat(COLS));
+    assert.equal(
+      lines[9],
+      '  반영한 변경이 하나도 없으면 Esc를 눌러 닫아 주세요.',
+    );
+    assert.equal(plain(reflectScreen(answeredItems(1))).length, 6);
+  });
+
+  it('한 건은 예/아니오로 묻고, 이름표는 이슈 번호다', () => {
+    const [question] = reflectQuestionsFor(answeredItems(1));
+    assert.deepEqual(
+      {
+        question: question?.question,
+        header: question?.header,
+        multiSelect: question?.multiSelect,
+      },
+      {
+        question: '이 변경을 이슈에 반영했나요?',
+        header: '#1',
+        multiSelect: false,
+      },
+    );
+    assert.deepEqual(
+      question?.options.map((o) => o.label),
+      ['이슈에 반영했어요', '아직 안 했어요'],
+    );
+  });
+
+  it('여러 건은 여러 개 고르기이고, 보기 설명은 종류와 바뀐 것이다', () => {
+    const questions = reflectQuestionsFor(answeredItems(3));
+    assert.equal(questions.length, 1);
+    assert.deepEqual(
+      { header: questions[0]?.header, multiSelect: questions[0]?.multiSelect },
+      { header: '이슈 반영', multiSelect: true },
+    );
+    assert.deepEqual(questions[0]?.options[0], {
+      label: '#1 앱 알림 제목은 32자 이하로 쓴다',
+      description: '변경 · 40자 ⭢ 32자',
+      pendingCheckId: 'c-1',
+    });
+  });
+
+  it('5건부터는 질문을 고르게 나눠 탭으로 띄우고, 16건까지만 묻는다', () => {
+    assert.deepEqual(reflectGroups(4), [4]);
+    assert.deepEqual(reflectGroups(5), [3, 2]);
+    assert.deepEqual(reflectGroups(9), [3, 3, 3]);
+    assert.deepEqual(reflectGroups(20), [4, 4, 4, 4]);
+    const questions = reflectQuestionsFor(answeredItems(5));
+    assert.deepEqual(
+      questions.map((q) => [q.question, q.header, q.options.length]),
+      [
+        ['어느 변경을 이슈에 반영했나요? (1/2)', '이슈 반영 1/2', 3],
+        ['어느 변경을 이슈에 반영했나요? (2/2)', '이슈 반영 2/2', 2],
+      ],
+    );
+  });
+
+  it('표시한 뒤 한 줄, 없을 때, 안내 한 줄', () => {
+    assert.equal(
+      stripAnsi(reflectedLine(answeredItems(1)[0]!)),
+      '✓ 이슈에 반영했어요  #1 · 앱 알림 제목은 32자 이하로 쓴다',
+    );
+    assert.deepEqual(plain(nothingToReflect()), [
+      '',
+      '✓ 이슈 반영할 변경이 없어요.',
+      '  관계있다로 답한 변경만 이슈 반영으로 등록할 수 있어요.',
+    ]);
+    assert.equal(
+      plain(reflectReminder())[1],
+      '  확인한 결정 사항을 이슈에도 반영했다면, "이슈 반영"을 입력해 주세요.',
+    );
   });
 });

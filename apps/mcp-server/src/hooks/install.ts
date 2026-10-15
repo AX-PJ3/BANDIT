@@ -38,6 +38,13 @@ const HOOK_TABLE: {
     event: 'after-respond',
     matcher: `mcp__${SERVER_INFO.name}__respond`,
   },
+  {
+    claudeEvent: 'PostToolUse',
+    event: 'after-reflect',
+    matcher: `mcp__${SERVER_INFO.name}__mark_reflected`,
+  },
+  // 작업을 마친 뒤 닫고 넘어간 변경 한 줄 (notify.terminal.new-after-answered v2)
+  { claudeEvent: 'Stop', event: 'after-work' },
 ];
 
 interface HookCommand {

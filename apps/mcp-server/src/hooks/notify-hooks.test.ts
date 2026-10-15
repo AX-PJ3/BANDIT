@@ -177,16 +177,52 @@ describe('② 작업을 입력할 때 (prompt-submit)', () => {
     expect(result.context).toContain('표로 보여 주기');
   });
 
-  it('같은 세션에서 이미 물었는데 남아 있으면 한 줄 알림만 띄워요 (닫고 넘어감, SIL-80 B5)', async () => {
+  it('같은 세션에서 이미 물었는데 남아 있으면 입력 때는 아무것도 안 띄우고, 작업을 마친 뒤 한 줄을 띄워요 (SIL-80 B5, notify.terminal.new-after-answered v2)', async () => {
     await hook('prompt-submit', { session_id: 's1', prompt: '작업 1' });
     const second = await hook('prompt-submit', {
       session_id: 's1',
       prompt: '작업 2',
     });
-    expect(second.screen).toContain(
-      '  확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
-    );
+    expect(second.json.systemMessage).toBeUndefined();
+    expect(second.context).toContain('사용자가 질문을 닫았다');
     expect(second.context).toContain('사용자의 요청을 그대로 처리한다');
+    const done = await hook('after-work', { session_id: 's1' });
+    expect(done.screen).toBe(
+      '\n  확인할 변경 1건 · "결정 사항 확인"을 입력하면 변경 내역을 볼 수 있어요.',
+    );
+  });
+
+  it('작업을 마친 뒤 한 줄은 이번 세션에서 물은 적이 있고 대기가 남았을 때만 띄워요', async () => {
+    // 아직 묻지 않은 세션: 다음 입력 때 상세를 띄우니 조용히 있어요
+    expect((await hook('after-work', { session_id: 's9' })).json).toEqual({});
+    // 다 답한 세션: 남은 게 없어요
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    await respond(
+      store,
+      {
+        pendingCheckId: 'c-1',
+        answeredBy: '민수',
+        affected: true,
+        known: true,
+        channel: 'terminal',
+      },
+      { now: '2026-10-14T05:20:00Z' },
+    );
+    expect((await hook('after-work', { session_id: 's1' })).json).toEqual({});
+    // 다 답한 뒤 새 변경이 오면 작업을 마친 뒤 한 줄로 알려요 (B5)
+    await applyNewVersion(
+      store,
+      {
+        ...v2,
+        version: 3,
+        value: '공백 포함 30자 이하',
+        changedAt: '2026-10-14T05:40:00Z',
+      },
+      { now: '2026-10-14T05:40:00Z', makeId: () => 'c-9' },
+    );
+    expect((await hook('after-work', { session_id: 's1' })).screen).toContain(
+      '확인할 변경 1건 · "결정 사항 확인"',
+    );
   });
 
   it('"결정 사항 확인"을 입력하면 다시 상세와 질문을 띄우고, 끝나도 작업을 시작하지 않게 해요', async () => {
@@ -355,5 +391,190 @@ describe('답한 뒤 (after-respond)', () => {
       ],
     });
     expect(result.json).toEqual({});
+  });
+});
+
+describe('이슈 반영 (SIL-93, 부건님 10/15 시안)', () => {
+  /** 민수님이 c-1(#5)에 관계있다·몰랐다로 답한 상태 */
+  async function answerAffected(affected = true) {
+    await respond(
+      store,
+      {
+        pendingCheckId: 'c-1',
+        answeredBy: '민수',
+        affected,
+        known: affected ? false : null,
+        unaffectedReason: affected ? null : '내 작업 범위가 아니에요',
+        channel: 'terminal',
+      },
+      { now: '2026-10-14T05:20:00Z' },
+    );
+  }
+
+  it('"이슈 반영"을 입력했는데 관계있다로 답한 변경이 없으면 없다는 한 줄을 띄워요', async () => {
+    const result = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '이슈 반영',
+    });
+    expect(result.screen).toContain('✓ 이슈 반영할 변경이 없어요.');
+    expect(result.screen).toContain(
+      '관계있다로 답한 변경만 이슈 반영으로 등록할 수 있어요.',
+    );
+    expect(result.context).toContain('글을 쓰지 않고 끝낸다');
+  });
+
+  it('관계없다로 답한 변경은 이슈 반영 목록에 나오지 않아요 (notify.check.reflected v2)', async () => {
+    await answerAffected(false);
+    const result = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '이슈 반영',
+    });
+    expect(result.screen).toContain('✓ 이슈 반영할 변경이 없어요.');
+  });
+
+  it('1건이면 목록을 띄우고, 바로 저장하지 않고 예/아니오로 묻게 해요', async () => {
+    await answerAffected();
+    const result = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '이슈 반영',
+    });
+    expect(result.screen).toContain('-- 관계있다로 답한 변경이 1건 있어요 ');
+    expect(result.screen).toContain('[app] 앱 알림 제목은 32자 이하로 쓴다');
+    expect(result.screen).toContain('  변경  40자 ⭢ 32자');
+    expect(result.screen).toContain('  이슈  #5 담당자에게 알리고 답 기록하기');
+    expect(result.context).toContain('mcp__haribo__mark_reflected');
+    const questions = JSON.parse(
+      result.context.slice(result.context.indexOf('questions: ') + 11),
+    ) as {
+      header: string;
+      multiSelect: boolean;
+      options: { label: string; pendingCheckId: string }[];
+    }[];
+    expect(questions).toHaveLength(1);
+    expect(questions[0]).toMatchObject({
+      question: '이 변경을 이슈에 반영했나요?',
+      header: '#5',
+      multiSelect: false,
+    });
+    expect(questions[0]?.options.map((o) => o.label)).toEqual([
+      '이슈에 반영했어요',
+      '아직 안 했어요',
+    ]);
+    expect(questions[0]?.options[0]?.pendingCheckId).toBe('c-1');
+  });
+
+  it('이미 이슈 반영으로 표시한 변경은 다시 나오지 않아요', async () => {
+    await answerAffected();
+    const data = await store.read();
+    await store.write({
+      ...data,
+      pendingChecks: data.pendingChecks.map((c) =>
+        c.id === 'c-1'
+          ? { ...c, reflected: true, reflectedAt: '2026-10-14T05:30:00Z' }
+          : c,
+      ),
+    });
+    const result = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '이슈 반영',
+    });
+    expect(result.screen).toContain('✓ 이슈 반영할 변경이 없어요.');
+  });
+
+  it('이슈 반영할 변경이 남았으면 작업을 입력할 때 안내 한 줄을 세션마다 한 번만 띄워요', async () => {
+    await answerAffected();
+    const first = await hook('prompt-submit', {
+      session_id: 's2',
+      prompt: '로그인 화면 고쳐 줘',
+    });
+    expect(first.screen).toContain(
+      '확인한 결정 사항을 이슈에도 반영했다면, "이슈 반영"을 입력해 주세요.',
+    );
+    expect(first.context).toContain(
+      '이슈 반영 안내 한 줄은 hooks가 이미 보여 줬다',
+    );
+    const second = await hook('prompt-submit', {
+      session_id: 's2',
+      prompt: '버튼 색도 바꿔 줘',
+    });
+    expect(second.json).toEqual({});
+    // 새 세션이면 다시 한 번
+    const other = await hook('prompt-submit', {
+      session_id: 's3',
+      prompt: '작업',
+    });
+    expect(other.screen).toContain('"이슈 반영"을 입력해 주세요.');
+  });
+
+  it('이번 세션에 "이슈 반영"을 이미 입력했으면 안내 한 줄을 띄우지 않아요', async () => {
+    await answerAffected();
+    await hook('prompt-submit', { session_id: 's2', prompt: '이슈 반영' });
+    const next = await hook('prompt-submit', {
+      session_id: 's2',
+      prompt: '작업',
+    });
+    expect(next.json).toEqual({});
+  });
+
+  it('닫고 넘어간 뒤 입력하면 이슈 반영 안내 한 줄만 띄워요', async () => {
+    // #5에 관계있다로 답한 뒤 같은 결정 사항이 다시 바뀌어 새 확인할 변경이 생긴 경우
+    await answerAffected();
+    await applyNewVersion(
+      store,
+      {
+        ...v2,
+        version: 3,
+        value: '공백 포함 30자 이하',
+        changedAt: '2026-10-14T05:40:00Z',
+      },
+      { now: '2026-10-14T05:40:00Z', makeId: () => 'c-9' },
+    );
+    const detail = await hook('prompt-submit', {
+      session_id: 's4',
+      prompt: '작업 1',
+    });
+    // 상세를 띄우는 차례에는 안내 한 줄을 띄우지 않아요 (방금 답할 변경은 아직 반영 전이라서)
+    expect(detail.screen).toContain('작업 전에 확인할 변경이 1건 있어요');
+    expect(detail.screen).not.toContain('"이슈 반영"을 입력해 주세요.');
+    const skipped = await hook('prompt-submit', {
+      session_id: 's4',
+      prompt: '작업 2',
+    });
+    // 닫고 넘어간 한 줄은 작업을 마친 뒤 띄우니, 입력 때는 이슈 반영 안내 한 줄만 나와요
+    expect(skipped.screen).not.toContain('"결정 사항 확인"');
+    expect(skipped.screen).toContain('"이슈 반영"을 입력해 주세요.');
+    expect(skipped.context).toContain('사용자의 요청을 그대로 처리한다');
+  });
+
+  it('mark_reflected 뒤에는 "✓ 이슈에 반영했어요" 한 줄을 띄우고, 표시를 풀면 아무것도 띄우지 않아요', async () => {
+    await answerAffected();
+    const marked = await hook('after-reflect', {
+      session_id: 's1',
+      tool_name: 'mcp__haribo__mark_reflected',
+      tool_input: { pendingCheckId: 'c-1', reflected: true },
+      tool_response: [
+        { type: 'text', text: JSON.stringify({ ok: true, reflected: true }) },
+      ],
+    });
+    expect(marked.screen).toBe(
+      '\n✓ 이슈에 반영했어요  #5 · 앱 알림 제목은 32자 이하로 쓴다',
+    );
+    const unmarked = await hook('after-reflect', {
+      session_id: 's1',
+      tool_input: { pendingCheckId: 'c-1', reflected: false },
+      tool_response: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+    });
+    expect(unmarked.json).toEqual({});
+    const refused = await hook('after-reflect', {
+      session_id: 's1',
+      tool_input: { pendingCheckId: 'c-1', reflected: true },
+      tool_response: [
+        {
+          type: 'text',
+          text: JSON.stringify({ ok: false, code: 'not_affected' }),
+        },
+      ],
+    });
+    expect(refused.json).toEqual({});
   });
 });

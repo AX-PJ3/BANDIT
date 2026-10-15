@@ -73,9 +73,9 @@ const result = await respond(store, {
 - 이미 닫힌 변경이면 `closedStatus`로 지금 상태(답함·대체됨·자동 닫힘)를 알려 줘요. 자동 닫힘이면 화면이 "원래대로 돌아와서 답하지 않아도 돼요"를 띄워요 (SIL-77).
 - 저장 전 검사만 하는 `checkAnswer`도 있어요. MCP 도구 `respond`는 이 함수로 검사한 뒤 DB 함수 `save_answer`로 저장해요.
 
-### `checkReflect` — 작업 반영 표시 검사 (MCP 도구 `mark_reflected`)
+### `checkReflect` — 이슈 반영 표시 검사 (MCP 도구 `mark_reflected`)
 
-"작업 반영"은 담당자가 바뀐 결정 사항을 자기 작업에 적용했다는 뜻이에요. 저장 전에 검사만 해요 (SIL-93).
+"이슈 반영"은 담당자가 바뀐 결정 사항을 자기 이슈 결과물에 적용했다는 뜻이에요. 저장 전에 검사만 해요 (SIL-93).
 
 ```ts
 checkReflect(check, answer, {
@@ -96,13 +96,14 @@ checkReflect(check, answer, {
 
 list_pending 결과로 터미널 알림 글을 만들어요. 모양과 문구는 부건님 시안(SIL-68, `docs/sil-68-add-cli-design-notes` 브랜치의 `cli-design-notes/`)을 그대로 옮겼어요. 팀 MCP 서버의 `/hooks/<이벤트>`가 이 함수로 글을 만들고, 팀원 PC의 hooks가 그대로 띄워요 (`apps/mcp-server` README "터미널 알림 hooks").
 
-| 함수                                                                                            | 화면                                                                                                               |
-| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `sessionNotice(items)`                                                                          | ① 켤 때: 노란 막대 + `[app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 null                                 |
-| `detailScreen(item, index, total)`                                                              | ② 작업 입력 때: 위아래 선으로 묶은 변경 상세 (머리표, 제목·종류 태그, 바꾼 사람·시각, 변경·상세, 이유, 이슈, 출처) |
-| `questionsFor(item)`                                                                            | 선택 화면 질문 3개 (관계, 알았나, 관계없는 이유 보기 3개)                                                          |
-| `recordedLines(item, answer)`                                                                   | 답한 뒤: `✓ 기록했어요  #5 · 관계있다 · 몰랐다`                                                                    |
-| `allAnsweredLine`, `skippedReminder`, `nothingLeft`, `autoClosedLine`, `connectionFailedNotice` | 마무리, 닫고 넘어간 뒤, 0건, 자동 닫힘, 연결 실패 한 줄                                                            |
+| 함수                                                                                            | 화면                                                                                                                   |
+| ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `sessionNotice(items)`                                                                          | ① 켤 때: 노란 막대 + `[app] 결정 사항이 1건 변경되었어요.` 답할 변경이 없으면 null                                     |
+| `detailScreen(item, index, total)`                                                              | ② 작업 입력 때: 위아래 선으로 묶은 변경 상세 (머리표, 제목·종류 태그, 바꾼 사람·시각, 변경·상세, 이유, 이슈, 출처)     |
+| `questionsFor(item)`                                                                            | 선택 화면 질문 3개 (관계, 알았나, 관계없는 이유 보기 3개)                                                              |
+| `recordedLines(item, answer)`                                                                   | 답한 뒤: `✓ 기록했어요  #5 · 관계있다 · 몰랐다`                                                                        |
+| `allAnsweredLine`, `skippedReminder`, `nothingLeft`, `autoClosedLine`, `connectionFailedNotice` | 마무리, 닫고 넘어간 뒤, 0건, 자동 닫힘, 연결 실패 한 줄                                                                |
+| `reflectScreen`, `reflectQuestionsFor`, `reflectedLine`, `nothingToReflect`, `reflectReminder`  | 이슈 반영(SIL-93): 관계있다로 답한 변경 목록, 고를 질문(1건은 예/아니오, 5건부터 탭), 표시한 뒤 한 줄, 0건, 안내 한 줄 |
 
 - 너비는 76칸이에요. Claude Code가 hooks 글 앞에 2칸을 들여 써요.
 - 모양은 v2 시안(10/13)이에요: 상태 줄 앞 노란 막대, 상세 위아래 선과 머리표(`-- [1/3] 작업 전에 확인할 변경이 3건 있어요 ---`), 청록 굵은 제목, 종류 태그 `(변경)` `(신규)` `(되돌림)`, 지금 값 전체를 두 줄까지 보여 주는 `상세` 줄, 초록 `✓ 기록했어요`.

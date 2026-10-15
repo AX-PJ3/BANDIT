@@ -10,6 +10,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { connectionFailedNotice } from '@sil/notify';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   hookCommand,
@@ -56,12 +57,25 @@ describe('hooks 주소와 명령', () => {
 describe('mergeHooks', () => {
   const script = '/home/me/.claude/haribo/hook.mjs';
 
-  it('빈 설정에 hooks 세 개를 넣어요', () => {
+  it('빈 설정에 hooks를 넣어요 (PostToolUse는 respond, mark_reflected 두 개, 작업을 마친 뒤 Stop)', () => {
     const merged = mergeHooks({}, script);
     expect(Object.keys(merged.hooks ?? {})).toEqual([
       'SessionStart',
       'UserPromptSubmit',
       'PostToolUse',
+      'Stop',
+    ]);
+    // 작업을 마친 뒤 한 줄 (notify.terminal.new-after-answered v2)
+    expect(merged.hooks?.Stop).toEqual([
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: `node "${script}" after-work`,
+            timeout: 20,
+          },
+        ],
+      },
     ]);
     expect(merged.hooks?.PostToolUse?.[0]).toEqual({
       matcher: 'mcp__haribo__respond',
@@ -69,6 +83,16 @@ describe('mergeHooks', () => {
         {
           type: 'command',
           command: `node "${script}" after-respond`,
+          timeout: 20,
+        },
+      ],
+    });
+    expect(merged.hooks?.PostToolUse?.[1]).toEqual({
+      matcher: 'mcp__haribo__mark_reflected',
+      hooks: [
+        {
+          type: 'command',
+          command: `node "${script}" after-reflect`,
           timeout: 20,
         },
       ],
@@ -84,7 +108,8 @@ describe('mergeHooks', () => {
     const once = mergeHooks(settings, script);
     const twice = mergeHooks(once, script);
     expect(twice.model).toBe('opus');
-    expect(twice.hooks?.PostToolUse).toHaveLength(2);
+    // 다른 hooks 하나 + respond 뒤 + mark_reflected 뒤
+    expect(twice.hooks?.PostToolUse).toHaveLength(3);
     expect(twice.hooks?.PostToolUse?.[0]).toEqual(other);
     expect(twice.hooks?.SessionStart).toHaveLength(1);
     // 원래 설정은 바꾸지 않아요
@@ -225,11 +250,16 @@ describe('팀원 PC 스크립트 (haribo-hook.mjs)', () => {
     });
     expect(prompt.code).toBe(0);
     const output = JSON.parse(prompt.stdout);
-    expect(output.systemMessage).toContain('서버에 연결하지 못해서');
+    // 서버가 만드는 연결 실패 줄(@sil/notify)과 글자·색이 같아야 해요 (노란 막대, v2)
+    expect(output.systemMessage).toBe(connectionFailedNotice());
     expect(output.hookSpecificOutput.additionalContext).toContain(
       '사용자의 요청을 그대로 처리한다',
     );
     const after = await runHook(scriptPath, 'after-respond', {});
     expect(after).toEqual({ code: 0, stdout: '' });
+    const afterReflect = await runHook(scriptPath, 'after-reflect', {});
+    expect(afterReflect).toEqual({ code: 0, stdout: '' });
+    const afterWork = await runHook(scriptPath, 'after-work', {});
+    expect(afterWork).toEqual({ code: 0, stdout: '' });
   });
 });
