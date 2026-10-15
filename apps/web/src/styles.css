@@ -1,77 +1,275 @@
-/* 자리 표시용 최소 스타일이에요. 디자인이 정해지면 통째로 바꿔도 돼요. */
+/*
+ * 화면 스타일은 신지님 프로토타입(https://suju0.github.io/haribo-web/, SIL-69)과 같은 값이에요.
+ * 색은 프로토타입이 쓰는 TDS(토스 디자인 시스템) 색 변수를 그대로 옮겼고, 크기·여백은 ui/tds.tsx와 각 화면에 있어요.
+ */
 :root {
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
-  color: #191f28;
-  background: #ffffff;
+  --adaptiveBackground: #ffffff;
+  --adaptiveBackgroundDimmed: rgba(0, 0, 0, 0.2);
+  --adaptiveBackgroundLevel01: #ffffff;
+  --adaptiveBackgroundLevel02: #ffffff;
+  --adaptiveBackgroundLevelB01: #f2f4f6;
+  --adaptiveBlue100: #c9e2ff;
+  --adaptiveBlue200: #90c2ff;
+  --adaptiveBlue300: #64a8ff;
+  --adaptiveBlue400: #4593fc;
+  --adaptiveBlue50: #e8f3ff;
+  --adaptiveBlue500: #3182f6;
+  --adaptiveBlue600: #2272eb;
+  --adaptiveBlue700: #1b64da;
+  --adaptiveBlue800: #1957c2;
+  --adaptiveBlue900: #194aa6;
+  --adaptiveDimmedBackground: rgba(0, 0, 0, 0.2);
+  --adaptiveDisabledBlue500: #c9e2ff;
+  --adaptiveFloatBackground: #ffffff;
+  --adaptiveGreen100: #aeefd5;
+  --adaptiveGreen200: #76e4b8;
+  --adaptiveGreen300: #3fd599;
+  --adaptiveGreen400: #15c47e;
+  --adaptiveGreen50: #f0faf6;
+  --adaptiveGreen500: #03b26c;
+  --adaptiveGreen600: #02a262;
+  --adaptiveGreen700: #029359;
+  --adaptiveGreen800: #028450;
+  --adaptiveGreen900: #027648;
+  --adaptiveGrey100: #f2f4f6;
+  --adaptiveGrey200: #e5e8eb;
+  --adaptiveGrey300: #d1d6db;
+  --adaptiveGrey400: #b0b8c1;
+  --adaptiveGrey50: #f9fafb;
+  --adaptiveGrey500: #8b95a1;
+  --adaptiveGrey600: #6b7684;
+  --adaptiveGrey700: #4e5968;
+  --adaptiveGrey800: #333d4b;
+  --adaptiveGrey900: #191f28;
+  --adaptiveGreyBackground: #f2f4f6;
+  --adaptiveGreyOpacity100: rgba(2, 32, 71, 0.05);
+  --adaptiveGreyOpacity200: rgba(0, 27, 55, 0.1);
+  --adaptiveGreyOpacity300: rgba(0, 29, 58, 0.18);
+  --adaptiveGreyOpacity400: rgba(0, 25, 54, 0.31);
+  --adaptiveGreyOpacity50: rgba(0, 23, 51, 0.02);
+  --adaptiveGreyOpacity500: rgba(3, 24, 50, 0.46);
+  --adaptiveGreyOpacity600: rgba(0, 19, 43, 0.58);
+  --adaptiveGreyOpacity700: rgba(3, 18, 40, 0.7);
+  --adaptiveGreyOpacity800: rgba(0, 12, 30, 0.8);
+  --adaptiveGreyOpacity900: rgba(2, 9, 19, 0.91);
+  --adaptiveHairlineBorder: #e5e8eb;
+  --adaptiveLayeredBackground: #ffffff;
+  --adaptiveOpacity100: rgba(2, 32, 71, 0.05);
+  --adaptiveOpacity200: rgba(0, 27, 55, 0.1);
+  --adaptiveOpacity300: rgba(0, 29, 58, 0.18);
+  --adaptiveOpacity400: rgba(0, 25, 54, 0.31);
+  --adaptiveOpacity50: rgba(0, 23, 51, 0.02);
+  --adaptiveOpacity500: rgba(3, 24, 50, 0.46);
+  --adaptiveOpacity600: rgba(0, 19, 43, 0.58);
+  --adaptiveOpacity700: rgba(3, 18, 40, 0.7);
+  --adaptiveOpacity800: rgba(0, 12, 30, 0.8);
+  --adaptiveOpacity900: rgba(2, 9, 19, 0.91);
+  --adaptiveOrange100: #ffe0b0;
+  --adaptiveOrange200: #ffcd80;
+  --adaptiveOrange300: #ffbd51;
+  --adaptiveOrange400: #ffa927;
+  --adaptiveOrange50: #fff3e0;
+  --adaptiveOrange500: #fe9800;
+  --adaptiveOrange600: #fb8800;
+  --adaptiveOrange700: #f57800;
+  --adaptiveOrange800: #ed6700;
+  --adaptiveOrange900: #e45600;
+  --adaptivePcScreenBg: #f6f7f9;
+  --adaptivePurple100: #edccf8;
+  --adaptivePurple200: #da9bef;
+  --adaptivePurple300: #c770e4;
+  --adaptivePurple400: #b44bd7;
+  --adaptivePurple50: #f9f0fc;
+  --adaptivePurple500: #a234c7;
+  --adaptivePurple600: #9128b4;
+  --adaptivePurple700: #8222a2;
+  --adaptivePurple800: #73228e;
+  --adaptivePurple900: #65237b;
+  --adaptiveRed100: #ffd4d6;
+  --adaptiveRed200: #feafb4;
+  --adaptiveRed300: #fb8890;
+  --adaptiveRed400: #f66570;
+  --adaptiveRed50: #ffeeee;
+  --adaptiveRed500: #f04452;
+  --adaptiveRed600: #e42939;
+  --adaptiveRed700: #d22030;
+  --adaptiveRed800: #bc1b2a;
+  --adaptiveRed900: #a51926;
+  --adaptiveTeal100: #bce9e9;
+  --adaptiveTeal200: #89d8d8;
+  --adaptiveTeal300: #58c7c7;
+  --adaptiveTeal400: #30b6b6;
+  --adaptiveTeal50: #edf8f8;
+  --adaptiveTeal500: #18a5a5;
+  --adaptiveTeal600: #109595;
+  --adaptiveTeal700: #0c8585;
+  --adaptiveTeal800: #097575;
+  --adaptiveTeal900: #076565;
+  --adaptiveYellow100: #ffefbf;
+  --adaptiveYellow200: #ffe69b;
+  --adaptiveYellow300: #ffdd78;
+  --adaptiveYellow400: #ffd158;
+  --adaptiveYellow50: #fff9e7;
+  --adaptiveYellow500: #ffc342;
+  --adaptiveYellow600: #ffb331;
+  --adaptiveYellow700: #faa131;
+  --adaptiveYellow800: #ee8f11;
+  --adaptiveYellow900: #dd7d02;
 }
 
-body {
+html,
+body,
+#root {
+  height: 100%;
   margin: 0;
 }
 
-.layout {
-  display: flex;
-  min-height: 100vh;
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 200px;
-  padding: 16px 12px;
-  background: #f2f4f6;
-}
-
-.nav-item {
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  text-align: left;
-  font: inherit;
-  cursor: pointer;
-}
-
-.nav-item.active {
+html,
+body {
   background: #ffffff;
-  font-weight: 600;
+  font-family:
+    'Toss Product Sans',
+    Tossface,
+    'SF Pro KR',
+    'SF Pro Display',
+    'SF Pro Icons',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Basier Square',
+    'Apple SD Gothic Neo',
+    Roboto,
+    'Noto Sans KR',
+    'Noto Sans',
+    'Helvetica Neue',
+    Helvetica,
+    Arial,
+    sans-serif;
+  color: #212529;
+  line-height: 24px;
+  -webkit-font-smoothing: antialiased;
 }
 
-.nav-footer {
+button {
+  font-family: inherit;
+}
+
+/* 스크롤바가 생겼다 사라져도 내용 폭이 변하지 않게 자리를 미리 잡아 둬요 */
+.app-scroll {
+  scrollbar-gutter: stable;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background: transparent;
+}
+
+*::-webkit-scrollbar-track,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* 목록 줄을 누르는 동안 살짝 어두워져요 */
+.tds-touch {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 32, 71, 0.05);
+  opacity: 0;
+  transition: opacity 0.12s ease-out;
+  pointer-events: none;
+}
+
+.tds-row:active > .tds-touch {
+  opacity: 1;
+}
+
+.tds-textarea::placeholder {
+  color: #8b95a1;
+}
+
+.soft-press [data-tds='button'] {
+  transition: transform 0.12s ease-out;
+}
+
+.soft-press [data-tds='button']:active {
+  transform: scale(0.99);
+}
+
+.soft-press button:focus:not(:focus-visible),
+.soft-press [role='button']:focus:not(:focus-visible),
+.soft-press [role='radio']:focus:not(:focus-visible),
+.soft-press [role='tab']:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 알림 꺼짐 안내의 "설정 변경 방법 보기" 펼침 */
+.notify-panel {
+  height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    height 0.42s cubic-bezier(0.22, 1.1, 0.36, 1),
+    opacity 0.26s ease-out;
+}
+
+.notify-panel[data-open='true'] {
+  opacity: 1;
+}
+
+.notify-guide {
+  container-type: inline-size;
+}
+
+.notify-guide-cols {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: auto;
-  font-size: 12px;
-  color: #6b7684;
+  gap: 40px;
+  padding: 0 30px 48px;
+  max-width: 985px;
+  box-sizing: border-box;
 }
 
-.install-button {
-  padding: 8px 12px;
+.notify-guide-box {
+  flex: 1 1 0;
+  min-width: 260px;
+  display: flex;
+  justify-content: center;
+  background: #fafafa;
+  border-radius: 15px;
+}
+
+@container (max-width: 919px) {
+  .notify-guide-cols {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .notify-guide-box {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notify-panel {
+    transition: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
   border: 0;
-  border-radius: 8px;
-  background: #3182f6;
-  color: #ffffff;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* DB에 못 붙으면 눈에 띄게 보여 줘요. 실패를 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty) */
-.db-error {
-  color: #e42939;
-}
-
-.content {
-  flex: 1;
-  padding: 32px;
-}
-
-.muted {
-  color: #6b7684;
 }

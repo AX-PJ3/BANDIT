@@ -1,108 +1,71 @@
 /**
- * 앱 뼈대예요. 왼쪽 메뉴와 화면 세 칸만 있어요.
- * 화면 내용은 screens/ 폴더의 파일을 채워요 (신지님, SIL-42·44·45).
- * 새 화면을 추가하려면 screens/에 파일을 만들고 아래 screens 배열에 한 줄 넣어요.
+ * 앱 뼈대예요. "나에게 온 변경" 화면 하나예요 (위키·지표 화면은 만들지 않아요, app.screen.inbox-first, 10/15 호윤).
+ * 위쪽 줄에는 데이터 연결 상태와 "앱으로 설치"를 보여 줘요. 틀(메뉴, 위쪽 줄)은 ui/AppShell.tsx예요.
  */
 import { useEffect, useState } from 'react';
-import { api, isMock } from './api/index.ts';
+import { api, me } from './api/index.ts';
 import type { AppInfo } from './api/types.ts';
-import {
-  useInstallPrompt,
-  useNotificationPermission,
-  useOpenCheckRequests,
-} from './pwa.ts';
-import { MetricsScreen } from './screens/MetricsScreen.tsx';
+import { useInstallPrompt, useOpenCheckRequests } from './pwa.ts';
 import { MyChangesScreen } from './screens/MyChangesScreen.tsx';
-import { WikiScreen } from './screens/WikiScreen.tsx';
+import { Badge, Button } from './ui/tds.tsx';
 
-const screens = [
-  { id: 'my-changes', label: '나에게 온 변경', Component: MyChangesScreen },
-  { id: 'wiki', label: '위키', Component: WikiScreen },
-  { id: 'metrics', label: '지표', Component: MetricsScreen },
-] as const;
-
-type ScreenId = (typeof screens)[number]['id'];
-
-const platformLabel: Record<AppInfo['platform'], string> = {
-  browser: '브라우저',
-  installed: '설치한 앱',
-};
-
-function dataLabel(info: AppInfo): string {
-  if (!info.db) return '데이터: 예시';
-  return info.db.ok
-    ? `데이터: DB (결정 사항 ${info.db.standardCount}개)`
-    : 'DB에 연결하지 못했어요';
+function ConnectionBadge(props: { info: AppInfo | null }) {
+  const { info } = props;
+  if (!info) return null;
+  if (!info.db) {
+    return (
+      <Badge size="medium" tone="elephant" variant="weak">
+        ● 예시 데이터로 열었어요 (Supabase 주소·키 없음)
+      </Badge>
+    );
+  }
+  return info.db.ok ? (
+    <Badge size="medium" tone="green" variant="weak">
+      ● DB 연결됨 · 결정 사항 {info.db.standardCount}개
+    </Badge>
+  ) : (
+    <Badge size="medium" tone="red" variant="weak">
+      ● DB에 연결하지 못했어요
+    </Badge>
+  );
 }
 
 export function App() {
-  const [current, setCurrent] = useState<ScreenId>('my-changes');
   const [info, setInfo] = useState<AppInfo | null>(null);
   /** 알림을 눌러 연 확인할 변경 ID예요. 나에게 온 변경 화면이 이 변경을 골라 보여 줘요 (app.notify.click-to-inbox) */
   const [openedCheckId, setOpenedCheckId] = useState<string | null>(null);
   const install = useInstallPrompt();
-  const notifications = useNotificationPermission();
 
-  useOpenCheckRequests((checkId) => {
-    setCurrent('my-changes');
-    setOpenedCheckId(checkId);
-  });
+  useOpenCheckRequests(setOpenedCheckId);
 
   useEffect(() => {
     void api.getAppInfo().then(setInfo);
   }, []);
 
-  const screen = screens.find((item) => item.id === current) ?? screens[0];
+  const topBar = (
+    <>
+      {install && (
+        <Button size="small" onClick={() => void install()}>
+          앱으로 설치
+        </Button>
+      )}
+      <div style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+        <ConnectionBadge info={info} />
+      </div>
+    </>
+  );
+  // DB에 못 붙으면 이유를 그대로 보여 줘요. 실패를 "변경 없음"처럼 숨기지 않아요 (notify.error.not-empty)
+  const notices =
+    info?.db && !info.db.ok
+      ? [`DB에 연결하지 못했어요. ${info.db.message}`]
+      : [];
 
   return (
-    <div className="layout">
-      <nav className="nav">
-        {screens.map((item) => (
-          <button
-            key={item.id}
-            className={item.id === current ? 'nav-item active' : 'nav-item'}
-            onClick={() => setCurrent(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-        <footer className="nav-footer">
-          {install && (
-            <button className="install-button" onClick={() => void install()}>
-              앱으로 설치
-            </button>
-          )}
-          {notifications.permission === 'default' && (
-            <button
-              className="install-button"
-              onClick={() => void notifications.request()}
-            >
-              알림 켜기
-            </button>
-          )}
-          {notifications.permission === 'denied' && (
-            <div>
-              알림이 꺼져 있어요. 주소창의 사이트 설정에서 알림을 허용해 주세요
-            </div>
-          )}
-          {info
-            ? `${platformLabel[info.platform]} · ${dataLabel(info)}`
-            : '불러오는 중'}
-          {info?.db && !info.db.ok && (
-            <div className="db-error">{info.db.message}</div>
-          )}
-          {isMock && (
-            <div>Supabase 주소·키가 없어서 예시 데이터로 열었어요</div>
-          )}
-        </footer>
-      </nav>
-      <main className="content">
-        {screen.id === 'my-changes' ? (
-          <MyChangesScreen openedCheckId={openedCheckId} />
-        ) : (
-          <screen.Component />
-        )}
-      </main>
-    </div>
+    <MyChangesScreen
+      me={me}
+      openedCheckId={openedCheckId}
+      topBar={topBar}
+      notices={notices}
+    />
   );
 }

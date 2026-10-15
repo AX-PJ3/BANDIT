@@ -77,6 +77,22 @@ export const PENDING_CHECK_STATUS_LABELS: Record<PendingCheckStatus, string> = {
   auto_closed: '자동 닫힘',
 };
 
+/** 관계없는 이유는 100자 이하 (notify.answer.unrelated-reason, DB answers_unaffected_reason_length) */
+export const MAX_UNAFFECTED_REASON_LENGTH = 100;
+
+/**
+ * 나에게 온 변경 카드의 출처 칩에 쓰는 말 (app.card.source-chip-only).
+ * CHANGELOG의 SOURCE_LABELS와 달리 wiki는 "위키"예요.
+ */
+export const SOURCE_CHIP_LABELS: Record<StandardSource, string> = {
+  ai_chat: 'AI 대화',
+  code: '코드',
+  meeting: '회의',
+  figma: 'Figma',
+  slack: 'Slack',
+  wiki: '위키',
+};
+
 /** 출처를 CHANGELOG에 쓰는 말 (data.changelog.format). wiki는 예전 위키에서 옮겨 온 것이라 "문서"예요 */
 export const SOURCE_LABELS: Record<StandardSource, string> = {
   code: '코드',

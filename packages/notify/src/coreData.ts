@@ -13,8 +13,12 @@ import type {
   StandardVersion,
 } from '@sil/core';
 import type { PendingCheckQuery } from '@sil/core/data';
-import type { NotifyData } from './store.ts';
-import type { Answer, PendingCheck, StandardVersionRecord } from './types.ts';
+import type {
+  Answer,
+  NotifyData,
+  PendingCheck,
+  StandardVersionRecord,
+} from './types.ts';
 
 /** loadNotifyData가 부르는 DB 함수 네 개. @sil/core/data(웹)나 @sil/core/node(서버)의 같은 이름 함수를 넘겨요 */
 export interface NotifyDataSource {

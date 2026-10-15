@@ -128,3 +128,23 @@ export interface Answer {
   channel: AnswerChannel;
   answeredAt: IsoDateTime;
 }
+
+/**
+ * 알리기 기능이 읽고 쓰는 데이터 전체예요.
+ * 정민님 DB(SIL-73)의 기준 버전, 이슈, 확인할 변경, 답 표와 같은 네 묶음이에요.
+ */
+export interface NotifyData {
+  issues: Issue[];
+  standardVersions: StandardVersionRecord[];
+  pendingChecks: PendingCheck[];
+  answers: Answer[];
+}
+
+/**
+ * 임시 저장소. 지금은 JSON 파일과 메모리 두 가지가 있고, DB에 붙일 때 이 모양만 DB로 바꿔요.
+ * 한 번에 전체를 읽고 전체를 써요. 데모와 시험용이라 동시에 여러 곳에서 쓰는 경우는 다루지 않아요.
+ */
+export interface NotifyStore {
+  read(): Promise<NotifyData>;
+  write(data: NotifyData): Promise<void>;
+}
