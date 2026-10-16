@@ -20,6 +20,7 @@ import {
   reflectScreen,
   sessionNotice,
   skippedReminder,
+  unsureLine,
 } from './screens.ts';
 import {
   questionsFor,
@@ -369,6 +370,18 @@ describe('답한 뒤 (T4·T5)', () => {
     ]);
   });
 
+  it('잘 모르겠다로 남긴 변경이 있으면 "모두" 없이 답한 건수만 말한다 (notify.answer.unsure-later)', () => {
+    assert.equal(
+      stripAnsi(allAnsweredLine(4, false, 3)),
+      '확인할 변경 3건을 답했어요. 이제 작업을 시작할게요.',
+    );
+    assert.equal(
+      stripAnsi(unsureLine()),
+      '  나중에 답할 수 있게 남겨 두었어요. "결정 사항 확인"으로 다시 볼 수 있어요.',
+    );
+    assertFits(unsureLine());
+  });
+
   it('"결정 사항 확인"만 입력했을 때만 다시 부른 것으로 본다', () => {
     assert.equal(isRecall('결정 사항 확인'), true);
     assert.equal(isRecall(' 결정 사항 확인. '), true);
@@ -382,7 +395,7 @@ describe('질문', () => {
     assert.equal(q.relation.header, '#5');
     assert.deepEqual(
       q.relation.options.map((o) => o.label),
-      ['관계있다', '관계없다'],
+      ['관계있다', '관계없다', '잘 모르겠다'],
     );
     assert.deepEqual(
       q.known.options.map((o) => o.label),

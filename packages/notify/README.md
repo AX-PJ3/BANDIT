@@ -71,6 +71,7 @@ const result = await respond(store, {
 - 거절하는 경우: 없는 변경, 받는 사람이 아님, 이미 답했거나 닫힘, 답한 곳이 터미널·앱이 아님, 빠진 칸, 이유가 100자 넘음.
 - 한 곳에서 답하면 그 변경은 대기가 아니라서 다른 곳 목록에서 빠져요 (notify.answer.one-place).
 - 이미 닫힌 변경이면 `closedStatus`로 지금 상태(답함·대체됨·자동 닫힘)를 알려 줘요. 자동 닫힘이면 화면이 "원래대로 돌아와서 답하지 않아도 돼요"를 띄워요 (SIL-77).
+- "잘 모르겠다"(notify.answer.unsure-later)는 답으로 기록하지 않아요. `checkUnsure`로 이 사람에게 온 대기 중인 변경인지만 보고, MCP 도구 `respond`는 `unsure: true`면 DB에 아무것도 쓰지 않아요. 이번 세션에 다시 묻지 않는 것은 서버 hooks가 기억하고, "결정 사항 확인"·다음 세션·앱에서는 다시 나와요.
 - 저장 전 검사만 하는 `checkAnswer`도 있어요. MCP 도구 `respond`는 이 함수로 검사한 뒤 DB 함수 `save_answer`로 저장해요.
 
 ### `checkReflect` — 이슈 반영 표시 검사 (MCP 도구 `mark_reflected`)

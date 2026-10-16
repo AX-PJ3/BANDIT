@@ -299,7 +299,7 @@ describe('list_pending', () => {
       question: '이 변경이 내 이슈와 관계가 있나요?',
       header: '#5',
     });
-    expect(labels('relation')).toEqual(['관계있다', '관계없다']);
+    expect(labels('relation')).toEqual(['관계있다', '관계없다', '잘 모르겠다']);
     expect(labels('known')).toEqual(['알았다', '몰랐다']);
     expect(labels('reason')).toHaveLength(3);
   });
@@ -453,6 +453,40 @@ describe('respond', () => {
       ok: false,
       code: 'missing_fields',
       missingFields: ['known'],
+    });
+    expect(fake.rpcCalls).toEqual([]);
+  });
+
+  it('잘 모르겠다는 DB에 아무것도 쓰지 않고 대기로 남겨요 (notify.answer.unsure-later)', async () => {
+    const result = await call(await connectAs('민수'), 'respond', {
+      pendingCheckId: 'c-5',
+      unsure: true,
+    });
+    expect(result.json()).toEqual({
+      ok: true,
+      unsure: true,
+      pendingCheckId: 'c-5',
+      issueKey: '#5',
+    });
+    expect(fake.rpcCalls).toEqual([]);
+  });
+
+  it('잘 모르겠다도 다른 사람의 변경에는 쓸 수 없어요', async () => {
+    const result = await call(await connectAs('부건'), 'respond', {
+      pendingCheckId: 'c-5',
+      unsure: true,
+    });
+    expect(result.json()).toMatchObject({ ok: false, code: 'not_recipient' });
+  });
+
+  it('관계도 잘 모르겠다도 없으면 빠진 칸을 알려 줘요', async () => {
+    const result = await call(await connectAs('민수'), 'respond', {
+      pendingCheckId: 'c-5',
+    });
+    expect(result.json()).toMatchObject({
+      ok: false,
+      code: 'missing_fields',
+      missingFields: ['affected'],
     });
     expect(fake.rpcCalls).toEqual([]);
   });

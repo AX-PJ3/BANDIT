@@ -372,11 +372,31 @@ export function recordedLines(
   return lines;
 }
 
-/** 모든 변경에 답했을 때 마무리 한 줄. 1건이면 "1건을 모두"가 어색해서 숫자를 빼요 */
-export function allAnsweredLine(totalAtStart: number, recall: boolean): string {
-  const count = totalAtStart > 1 ? ` ${totalAtStart}건` : '';
+/**
+ * 모든 변경에 답했을 때 마무리 한 줄. 1건이면 "1건을 모두"가 어색해서 숫자를 빼요.
+ * "잘 모르겠다"로 남긴 변경이 있으면 "모두"라고 하지 않고 답한 건수만 말해요 (notify.answer.unsure-later).
+ */
+export function allAnsweredLine(
+  totalAtStart: number,
+  recall: boolean,
+  answered: number = totalAtStart,
+): string {
   const start = recall ? '' : ' 이제 작업을 시작할게요.';
+  if (answered < totalAtStart) {
+    return bold(`확인할 변경 ${answered}건을 답했어요.${start}`);
+  }
+  const count = totalAtStart > 1 ? ` ${totalAtStart}건` : '';
   return bold(`확인할 변경${count}을 모두 답했어요.${start}`);
+}
+
+/**
+ * "잘 모르겠다"를 고른 직후 한 줄 (notify.answer.unsure-later, 10/13 부건).
+ * 이번 세션에는 다시 알리지 않으니 다시 부르는 방법을 한 번은 알려 줘요.
+ */
+export function unsureLine(): string {
+  return statusLine(
+    `나중에 답할 수 있게 남겨 두었어요. ${recallWord()}으로 다시 볼 수 있어요.`,
+  );
 }
 
 /**

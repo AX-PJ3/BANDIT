@@ -1,6 +1,11 @@
 import { isSilError } from '@sil/core';
 import { listPendingChecks, saveAnswer } from '@sil/core/node';
-import { checkAnswer, closedFailure, type RespondInput } from '@sil/notify';
+import {
+  checkAnswer,
+  checkUnsure,
+  closedFailure,
+  type RespondInput,
+} from '@sil/notify';
 import { z } from 'zod';
 import { defineTool } from '../../lib/define-tool.ts';
 import { requireUser, toNotifyCheck } from './shared.ts';
@@ -18,6 +23,7 @@ export const respondTool = defineTool({
   description:
     'list_pending으로 본 확인할 변경 하나에 담당자의 답을 저장해요. ' +
     '먼저 list_pending 항목의 questions를 AskUserQuestion으로 글자 그대로 물어요: questions.relation을 묻고, 관계있다면 questions.known을, 관계없다면 questions.reason을 물어요. ' +
+    '잘 모르겠다를 고르면 더 묻지 않고 unsure: true로만 불러요(affected 없이). 답으로 기록하지 않고 대기로 남겨요. ' +
     '답을 지어내지 말고 사람이 고른 그대로 넣어요. 관계없다의 이유는 고른 보기의 label을, 직접 쓴 글이면 그 글을 unaffectedReason에 넣어요. ' +
     'ok가 true이고 rereadStandardId가 있으면 그 결정 사항을 get_standard로 다시 읽고 이후 작업에 따라요. ' +
     'ok가 false면 message를 그대로 보여 줘요. closedStatus가 auto_closed면 "원래대로 돌아와서 답하지 않아도 돼요"라고 알리고 다음 변경으로 넘어가요.',
@@ -29,7 +35,16 @@ export const respondTool = defineTool({
       .describe('list_pending 항목의 pendingCheckId'),
     affected: z
       .boolean()
-      .describe('관계있다면 true, 관계없다면 false. 사람이 고른 그대로'),
+      .optional()
+      .describe(
+        '관계있다면 true, 관계없다면 false. 사람이 고른 그대로. 잘 모르겠다면 넣지 않아요',
+      ),
+    unsure: z
+      .boolean()
+      .optional()
+      .describe(
+        '잘 모르겠다를 골랐으면 true. 답으로 기록하지 않고 대기로 남겨요 (notify.answer.unsure-later)',
+      ),
     known: z
       .boolean()
       .optional()
@@ -51,10 +66,23 @@ export const respondTool = defineTool({
   }),
   handler: async (input, context) => {
     const answeredBy = requireUser(context);
+    if (input.unsure) {
+      // 잘 모르겠다: DB에 아무것도 쓰지 않아요. 이번 세션에 다시 묻지 않는 것은 hooks가 기억해요
+      const check = await findCheck(input.pendingCheckId);
+      const checked = checkUnsure(check, answeredBy);
+      if (!checked.ok) return checked;
+      return {
+        ok: true,
+        unsure: true,
+        pendingCheckId: input.pendingCheckId,
+        issueKey: check?.issueKey ?? null,
+      };
+    }
     const answer: RespondInput = {
       pendingCheckId: input.pendingCheckId,
       answeredBy,
-      affected: input.affected,
+      // 비어 있으면 checkAnswer가 빠진 칸으로 알려 줘요
+      affected: input.affected as boolean,
       known: input.known ?? null,
       unaffectedReason: input.unaffectedReason ?? null,
       // MCP 도구는 Claude Code 터미널에서만 불러요. 앱은 core의 saveAnswer를 바로 써요
