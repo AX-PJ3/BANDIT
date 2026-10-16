@@ -14,9 +14,9 @@
 python3 team-wiki/scripts/check_wiki.py team-wiki
 ```
 
-## 각자 CLAUDE.md에 붙여 넣을 규칙
+## AI가 따르는 규칙
 
-규칙은 레포 최상단 CLAUDE.md에 있어요.
+규칙은 레포 최상단 CLAUDE.md에 있어요. 개인 CLAUDE.md에 따로 붙여 넣지 않아요.
 
 ## 파일
 
