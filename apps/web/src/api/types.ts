@@ -63,6 +63,11 @@ export type MyAnswerInput = Omit<
 export interface SilApi {
   getAppInfo(): Promise<AppInfo>;
   /**
+   * 화면을 볼 사람으로 고를 수 있는 이름. 이슈 담당자 이름을 겹치지 않게 가나다순으로 돌려줘요.
+   * 확인할 변경은 이슈 담당자에게 가서, 담당자가 아닌 이름으로는 받을 변경이 없어요. 로그인이 없어서 메뉴 아래 프로필에서 골라요.
+   */
+  listPeople(): Promise<string[]>;
+  /**
    * 나에게 온 변경. 대기·답함·대체됨을 한 번에 돌려주고 화면이 상태로 나눠요 (notify.list.one-call). 최신 것이 먼저 와요.
    * 불러오지 못하면 빈 목록 대신 에러를 던져요 (notify.error.not-empty).
    */

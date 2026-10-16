@@ -23,6 +23,7 @@ import {
   type PendingCheck as NotifyPendingCheck,
 } from '@sil/notify/browser';
 import { currentPlatform } from '../pwa.ts';
+import { toPeople } from './people.ts';
 import type { SilApi } from './types.ts';
 
 /** 예시로 열면 이 사람으로 열어요 (주소에 ?me=가 없을 때) */
@@ -74,6 +75,8 @@ export const mockApi: SilApi = {
     dataMode: 'mock',
     db: null,
   }),
+
+  listPeople: async () => toPeople(inboxIssues),
 
   listMyChanges: async (me) =>
     buildPendingList(
