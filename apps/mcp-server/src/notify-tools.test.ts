@@ -418,6 +418,8 @@ describe('respond', () => {
       scopeCheck: {
         standardId: STANDARD,
         version: 2,
+        title: '앱 알림 제목은 공백 포함 32자 이하로 쓴다',
+        value: '공백 포함 32자 이하',
         scope: null,
         guide: expect.stringContaining('적용 범위가 적혀 있지 않아요'),
       },
@@ -455,6 +457,14 @@ describe('respond', () => {
       known: false,
     });
     expect(result.json().scopeCheck).toMatchObject({ version: 2, scope });
+    // 다른 곳을 알려 주는 표 모양과 없을 때 고정 문장 (부건님 SIL-98 의견 2, 3)
+    const guide = (result.json().scopeCheck as { guide: string }).guide;
+    expect(guide).toContain('"위치 | 코드 | 지금 값"');
+    expect(guide).toContain('"고치려면 말씀해 주세요."');
+    expect(guide).toContain('"외 N곳"');
+    expect(guide).toContain(
+      '"적용 범위 안에서 바뀐 변경사항과 다른 곳은 없어요."',
+    );
     // list_pending에도 같은 적용 범위가 들어 있어요 (화면에는 그리지 않고 AI에게만). 방금 답해서 닫힌 것까지 봐요
     const list = await call(await connectAs('민수'), 'list_pending', {
       includeClosed: true,

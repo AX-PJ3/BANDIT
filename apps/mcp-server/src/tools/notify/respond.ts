@@ -1,5 +1,5 @@
 import { isSilError } from '@sil/core';
-import type { StandardScope } from '@sil/core';
+import type { StandardScope, StandardVersion } from '@sil/core';
 import {
   getStandardHistory,
   listPendingChecks,
@@ -27,17 +27,23 @@ async function findCheck(pendingCheckId: string) {
  * 서비스는 단서(적용 범위)까지만 줘요. 코드를 찾고 고치는 건 에이전트, 고칠지 정하는 건 사람이에요 (10/14 호윤님).
  */
 export const SCOPE_GUIDE =
-  '모든 질문이 끝난 뒤 원래 요청을 처리하기 전에, scope.code 경로부터 훑어서 지금 결과물이 value와 다른 곳을 파일과 줄로 짧게 알려 준다. 고치지는 않는다. 사람이 고치라고 할 때만 고친다. ' +
-  'scope가 null이거나 비어 있으면 "이 결정 사항에는 적용 범위가 적혀 있지 않아요."라고, 적힌 경로를 찾지 못하면 "적힌 경로 <경로>를 찾지 못했어요."라고 먼저 말한 뒤 결정 사항 제목과 value로 코드를 찾아본다. 조용히 넘어가지 않는다 (notify.answer.scope-missing).';
+  '모든 질문이 끝난 뒤 원래 요청을 처리하기 전에, scope.code 경로부터 훑어서 지금 결과물이 value와 다른 곳을 찾는다. 고치지는 않는다. 사람이 고치라고 할 때만 고친다. ' +
+  // 다른 곳을 알려 주는 모양 (부건님 SIL-98 의견 3, 10/16)
+  '다른 곳이 있으면 결정 사항마다 표 하나로 알려 준다. 표 위에 결정 사항 title을 한 줄 쓰고(ID는 쓰지 않는다), 칸은 "위치 | 코드 | 지금 값"이다. ' +
+  '위치는 파일:줄로 한 곳에 한 줄씩 쓰고 같은 파일이라도 줄이 다르면 나눈다. 코드 칸은 코드 원문 대신 쉬운 말로 짧게 쓴다(예: 제목을 40자로 자름). 지금 값 칸은 value를 짧게 쓴다. ' +
+  '최대 5줄까지 쓰고, 넘으면 표 아래에 "외 N곳"을 붙인다. 표 아래에는 "고치려면 말씀해 주세요."를 그대로 붙이고, "고칠까요?"처럼 묻지 않는다. ' +
+  // 다른 곳이 없을 때 고정 문장 (부건님 SIL-98 의견 2)
+  '다른 곳이 없으면 "적용 범위 안에서 바뀐 변경사항과 다른 곳은 없어요."라고만 말한다. ' +
+  'scope가 null이거나 비어 있으면 "이 결정 사항에는 적용 범위가 적혀 있지 않아요."라고, 적힌 경로를 찾지 못하면 "적힌 경로 <경로>를 찾지 못했어요."라고 먼저 말한 뒤 결정 사항 title과 value로 코드를 찾아본다. 조용히 넘어가지 않는다 (notify.answer.scope-missing).';
 
-/** 그 결정 사항 버전의 적용 범위. 읽지 못하면 null로 두고 안내대로 찾게 해요 */
-async function scopeOf(
+/** 그 결정 사항 버전(제목·값·적용 범위). 읽지 못하면 null로 두고 안내대로 찾게 해요 */
+async function versionOf(
   standardId: string,
   version: number,
-): Promise<StandardScope | null> {
+): Promise<StandardVersion | null> {
   try {
     const history = await getStandardHistory(standardId);
-    return history?.versions.find((v) => v.version === version)?.scope ?? null;
+    return history?.versions.find((v) => v.version === version) ?? null;
   } catch {
     return null;
   }
@@ -150,12 +156,16 @@ export const respondTool = defineTool({
       };
       if (!checked.affected || !check) return result;
       // 관계있다면 어디부터 볼지 단서(적용 범위)를 함께 줘요 (SIL-98)
-      const scope = await scopeOf(check.standardId, check.version);
+      const version = await versionOf(check.standardId, check.version);
+      const scope = version?.scope ?? null;
       return {
         ...result,
         scopeCheck: {
           standardId: check.standardId,
           version: check.version,
+          // 표 위에 쓸 제목과 "지금 값" 칸에 쓸 값이에요
+          title: version?.title ?? null,
+          value: version?.value ?? null,
           scope: hasScope(scope) ? scope : null,
           guide: SCOPE_GUIDE,
         },
