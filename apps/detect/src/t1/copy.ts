@@ -42,6 +42,22 @@ export const T1_COPY = {
     },
     requestLabel: { agent: '작업', direct: '요청' },
     kinds: { change: '변경', mismatch: '어긋남' },
+    /**
+     * 되돌림(바꿀 값이 예전 버전과 같음)이면 보라 막대 머리표와 기존·작업, 되돌아갈 버전·바꾼 사람·이유를 보여 줘요.
+     * 묻기와 ③ 질문은 되돌림이 아닐 때와 같아요 (부건님 시안 10/16, detect.change.revert-mark)
+     */
+    revert: {
+      head: {
+        agent: '부탁하신 작업이 이전 결정 사항과 동일해요',
+        direct: '요청하신 변경이 이전 결정 사항과 동일해요',
+      },
+      current: '기존',
+      label: '되돌림',
+      changed: '{name}님이 {when}에 변경했어요.',
+      /** 바꾼 사람을 모를 때 */
+      changedAt: '{when}에 변경했어요.',
+      reason: '이유',
+    },
     /** 다른 결정 사항이 없을 때(새 결정 사항) 요청 줄 없이 초록 막대 한 줄만 (프로토타입 10/13) */
     none: '요청하신 변경과 다른 결정 사항이 없어요',
   },
@@ -104,6 +120,11 @@ export const T1_COPY = {
     /** 다른 결정 사항 화면과 ③을 띄운 뒤 묻는 선택 창 (`preview.confirm` 대신). 선택지는 ③과 같아요 */
     confirm:
       '달라지게 되는 기존 결정 사항 내역을 확인했나요? 이대로 등록할까요?',
+    /**
+     * 되돌림이면 직접 요청이어도 다른 결정 사항 화면 뒤에 먼저 묻는 질문 (`ask.question` 대신, 선택지는 `ask`와 같아요).
+     * 예면 ③ 뒤 질문은 `preview.confirm`이에요 (부건님 시안 10/16, detect.ask.direct-request-skip-warn v2)
+     */
+    revertAsk: '기존 결정 사항을 되돌리는 작업이에요. 그대로 진행할까요?',
   },
   /**
    * 예외 안내(10/14 확정, 결정기록 4-2). hook(`hook-notice.ts`)이 `screens.ts`의 모양으로 띄워요.
@@ -144,20 +165,6 @@ export const T1_COPY = {
     question: '그래도 새 결정 사항으로 등록할까요?',
     yes: { label: '예', description: '등록해요' },
     no: { label: '아니요', description: '등록하지 않아요' },
-  },
-  /**
-   * 되돌림일 때 선택 창 질문 (detect.change.revert-mark). 부건님과 정할 초안 문구(SIL-104).
-   * 바꿀 값이 지금이 아닌 예전 버전과 같거나 뜻이 같으면 아래 질문으로 바꿔 물어요. 선택지는 그대로예요.
-   * {version}은 되돌아갈 버전 번호예요
-   */
-  revert: {
-    /** ①② 묻기 (`ask.question` 대신) */
-    ask: 'v{version}의 값으로 되돌리는 작업이에요. 그래도 진행할까요?',
-    /** ③ 뒤 선택 창 (`preview.confirm` 대신) */
-    confirm: 'v{version}의 값으로 되돌려 등록할까요?',
-    /** 직접 요청일 때 ③ 뒤 선택 창 (`direct.confirm` 대신) */
-    directConfirm:
-      '달라지게 되는 기존 결정 사항 내역을 확인했나요? v{version}의 값으로 되돌려 등록할까요?',
   },
   /**
    * ④ 등록 완료. 저장 직후 hook(`hook-saved.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 10/14).
