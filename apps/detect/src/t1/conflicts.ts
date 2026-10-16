@@ -7,6 +7,9 @@
  *     {"id":"app.notify.title-length","title":"…","kind":"change","why":"…"},
  *     {"id":"notify.app-title.from-standard","title":"…","kind":"mismatch","why":"…"}]}
  *   EOF
+ * 되돌림이면 변경에 지금 버전(version)을 넣고, get_standard의 되돌아갈 버전을 revert로 더해요:
+ *   {"id":"app.notify.title-length","title":"…","kind":"change","why":"…","version":3}
+ *   "revert":{"version":2,"title":"…","reason":"…","changedBy":"부건","createdAt":"2026-10-08T05:13:00Z"}
  */
 import { readFileSync } from 'node:fs';
 import { STANDARD_ID_PATTERN } from '@sil/core';
@@ -24,6 +27,14 @@ const isConflict = (conflict: T1Conflict) =>
   isFilled(conflict.title) &&
   isFilled(conflict.why) &&
   Object.hasOwn(T1_COPY.conflicts.kinds, conflict.kind);
+// 되돌림은 빠져도 되지만, 넣었으면 버전·제목·이유·시각이 다 있어야 해요
+const isRevert = (revert: T1ConflictsInput['revert']) =>
+  revert === undefined ||
+  (Number.isInteger(revert.version) &&
+    revert.version > 0 &&
+    isFilled(revert.title) &&
+    isFilled(revert.reason) &&
+    !Number.isNaN(Date.parse(String(revert.createdAt))));
 
 if (
   !Object.hasOwn(T1_COPY.conflicts.head, input.trigger) ||
@@ -31,10 +42,11 @@ if (
   !Array.isArray(input.conflicts) ||
   // 다른 결정 사항이 없는 건 새 결정 사항(직접 요청)뿐이에요. 경우 1은 다른 점을 알아채서 시작해요
   (input.conflicts.length === 0 && input.trigger !== 'direct') ||
-  !input.conflicts.every(isConflict)
+  !input.conflicts.every(isConflict) ||
+  !isRevert(input.revert)
 ) {
   console.error(
-    'trigger(agent|direct), request, conflicts(각각 id·title·kind(change|mismatch)·why, 빈 목록은 direct일 때만)가 있어야 해요',
+    'trigger(agent|direct), request, conflicts(각각 id·title·kind(change|mismatch)·why, 빈 목록은 direct일 때만)가 있어야 해요. revert를 넣으면 version·title·reason·createdAt이 있어야 해요',
   );
   process.exit(1);
 }

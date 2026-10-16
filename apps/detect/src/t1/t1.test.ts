@@ -325,6 +325,78 @@ describe('conflictsScreen (다른 결정 사항)', () => {
     ]);
   });
 
+  const REVERT_CONFLICTS: T1ConflictsInput = {
+    trigger: 'agent',
+    request: '알림 제목을 32자에서 자르기',
+    conflicts: [{ ...TITLE_CONFLICTS.conflicts[0]!, version: 3 }],
+    revert: {
+      version: 2,
+      title: '앱 알림 제목은 32자 이하로 쓴다',
+      reason: 'Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
+      changedBy: '부건',
+      createdAt: '2026-10-08T05:13:00Z',
+    },
+  };
+
+  it('되돌림이면 부건님 시안(10/16)처럼 보라 막대, 기존·작업, 되돌림 버전·바꾼 사람·이유예요', () => {
+    expect(stripAnsi(conflictsScreen(REVERT_CONFLICTS)).split('\n')).toEqual([
+      '  부탁하신 작업이 이전 결정 사항과 동일해요',
+      '  기존  [app] 앱 알림 제목은 40자 이하로 쓴다  v3',
+      '  작업  알림 제목을 32자에서 자르기',
+      '',
+      '  되돌림  [app] 앱 알림 제목은 32자 이하로 쓴다  v2',
+      '          부건님이 10월 8일 오후 2:13에 변경했어요.',
+      '          이유  Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
+    ]);
+  });
+
+  it('되돌림 화면은 막대와 이름표가 보라 35이고, 제목은 굵게·이유는 기본 글자색이에요', () => {
+    const screen = conflictsScreen(REVERT_CONFLICTS);
+    expect(
+      screen.startsWith('\u001b[0;7;35m \u001b[0;2m \u001b[0;35m부탁하신'),
+    ).toBe(true);
+    expect(screen).toContain('\u001b[0;35m되돌림\u001b[0;2m');
+    expect(screen).toContain('\u001b[0;1;39m[app] 앱 알림 제목은 32자');
+    expect(screen).toContain('\u001b[0;39mWindows 알림 창에서');
+  });
+
+  it('되돌림 + 어긋남이면 부건님 시안(10/16)처럼 노란 "…기존 결정 사항과 달라요" 막대이고 어긋남이 되돌림 위예요', () => {
+    const screen = conflictsScreen({
+      ...REVERT_CONFLICTS,
+      conflicts: [...REVERT_CONFLICTS.conflicts, TITLE_CONFLICTS.conflicts[1]!],
+    });
+    expect(stripAnsi(screen).split('\n')).toEqual([
+      '  부탁하신 작업이 기존 결정 사항과 달라요',
+      '  기존  [app] 앱 알림 제목은 40자 이하로 쓴다  v3',
+      '  작업  알림 제목을 32자에서 자르기',
+      '',
+      '  어긋남  [notify] 앱 알림 제목에는 결정 사항 제목을 그대로 쓴다',
+      '          결정 사항 제목(최대 40자)을 그대로 쓰면 32자에서 잘려요',
+      '',
+      '  되돌림  [app] 앱 알림 제목은 32자 이하로 쓴다  v2',
+      '          부건님이 10월 8일 오후 2:13에 변경했어요.',
+      '          이유  Windows 알림 창에서 32자를 넘으면 제목 끝이 잘림',
+    ]);
+    expect(
+      screen.startsWith('\u001b[0;7;33m \u001b[0;2m \u001b[0;33m부탁하신'),
+    ).toBe(true);
+    // 되돌림 이름표는 그대로 보라예요
+    expect(screen).toContain('\u001b[0;35m되돌림\u001b[0;2m');
+  });
+
+  it('되돌림에서 바꾼 사람을 모르면 시각만 보여 줘요 (직접 요청)', () => {
+    const lines = stripAnsi(
+      conflictsScreen({
+        ...REVERT_CONFLICTS,
+        trigger: 'direct',
+        revert: { ...REVERT_CONFLICTS.revert!, changedBy: null },
+      }),
+    ).split('\n');
+    expect(lines[0]).toBe('  요청하신 변경이 이전 결정 사항과 동일해요');
+    expect(lines[2]).toBe('  요청  알림 제목을 32자에서 자르기');
+    expect(lines).toContain('          10월 8일 오후 2:13에 변경했어요.');
+  });
+
   it('머리표는 노란 막대이고 결정 사항 제목은 굵게예요', () => {
     const screen = conflictsScreen(TITLE_CONFLICTS);
     // 막대는 노랑 33에 반전 7을 더해 바탕색으로 (10/15 ANSI 토큰)
@@ -963,17 +1035,15 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
     );
   });
 
-  it('되돌림이면 묻기와 ③ 선택 창 질문만 되돌림 문구로 바뀌어요 (SIL-104 초안, detect.change.revert-mark)', () => {
-    expect(T1_COPY.revert).toEqual({
-      ask: 'v{version}의 값으로 되돌리는 작업이에요. 그래도 진행할까요?',
-      confirm: 'v{version}의 값으로 되돌려 등록할까요?',
-      directConfirm:
-        '달라지게 되는 기존 결정 사항 내역을 확인했나요? v{version}의 값으로 되돌려 등록할까요?',
+  it('되돌림은 화면 머리표가 바뀌고, 질문은 직접 요청일 때만 따로 있어요 (부건님 시안 10/16)', () => {
+    expect(T1_COPY.conflicts.revert.head).toEqual({
+      agent: '부탁하신 작업이 이전 결정 사항과 동일해요',
+      direct: '요청하신 변경이 이전 결정 사항과 동일해요',
     });
-    // 질문만 바뀌고 같은 선택 창이라 끝은 기존 질문과 같은 모양이에요
-    for (const question of Object.values(T1_COPY.revert)) {
-      expect(question).toMatch(/v\{version\}.*\?$/);
-    }
+    expect(T1_COPY.direct.revertAsk).toBe(
+      '기존 결정 사항을 되돌리는 작업이에요. 그대로 진행할까요?',
+    );
+    expect(T1_COPY).not.toHaveProperty('revert');
   });
 });
 
