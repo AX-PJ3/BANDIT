@@ -18,7 +18,7 @@ export type T1Conflict = Pick<Standard, 'id' | 'title'> & {
   kind: keyof typeof T1_COPY.conflicts.kinds;
   /** 왜 그렇게 판단했는지 한 문장 */
   why: string;
-};
+} & Partial<Pick<StandardVersion, 'version'>>; // 지금 버전. 되돌림 화면의 "기존 … v3"에 써요
 
 /** 다른 결정 사항 화면에 넣을 값. 빈 목록은 새 결정 사항(직접 요청)일 때만 써요 */
 export type T1ConflictsInput = {
@@ -28,6 +28,11 @@ export type T1ConflictsInput = {
   request: string;
   /** 변경이 맨 앞이에요. 비어 있으면 초록 막대 한 줄만 보여 줘요 */
   conflicts: T1Conflict[];
+  /** 되돌림이면(CLAUDE.md T1 1-1) 되돌아갈 버전. get_standard의 그 버전 그대로예요 */
+  revert?: Pick<
+    StandardVersion,
+    'version' | 'title' | 'reason' | 'changedBy' | 'createdAt'
+  >;
 };
 
 const ESC = '\u001b[';
@@ -42,13 +47,14 @@ const strong = (text: string, isBold = false) =>
   paint(isBold ? '1;39' : '39', text);
 /**
  * T1 화면 색 (부건님 ANSI 토큰, 10/15): 청록 36 + 굵게 1, 노랑 33, 초록 32, 빨강 31.
- * 초록·빨강은 새 결정 사항·예외 화면에서 써요
+ * 초록·빨강은 새 결정 사항·예외 화면에서, 보라 35는 되돌림 화면에서 써요 (10/16)
  */
 export const T1_COLORS = {
   cyan: '1;36',
   yellow: '33',
   green: '32',
   red: '31',
+  purple: '35',
 } as const;
 /** plain은 터미널 기본 글자색 막대예요 (뜻이 같음 → 아니요, 10/14) */
 type BarColor = Exclude<keyof typeof T1_COLORS, 'cyan'> | 'plain';
@@ -218,22 +224,77 @@ export function conflictsScreen(input: T1ConflictsInput): string {
   if (input.conflicts.length === 0) return colorBar('green', none);
   const KIND = 8;
   const BODY = COLS - 2 - KIND;
+  const conflictLines = (conflict: T1Conflict) => [
+    ...wrap(areaTitle(conflict.id, conflict.title), BODY).map(
+      (title, i) =>
+        `  ${padEnd(i === 0 ? kinds[conflict.kind] : '', KIND)}${strong(title, true)}`,
+    ),
+    ...wrap(conflict.why, BODY).map((why) => `${' '.repeat(2 + KIND)}${why}`),
+  ];
+  if (input.revert) return revertScreen(input, input.revert, conflictLines);
   // 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13)
-  const lines = [
+  // ID는 보여 주지 않아요 (프로토타입)
+  return [
     colorBar('yellow', head[input.trigger]),
     `  ${requestLabel[input.trigger]}  ${cutEnd(input.request, COLS - 8)}`,
     '',
+    ...input.conflicts.flatMap(conflictLines),
+  ].join('\n');
+}
+
+/** 한국 시각 "10월 8일 오후 2:13". 팀이 한국에 있어서 notify 화면과 같게 보여 줘요 */
+const formatAt = (iso: string) =>
+  new Intl.DateTimeFormat('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(iso));
+
+/**
+ * 되돌림 화면 (부건님 시안 10/16): 보라 막대 머리표, 기존(지금 버전)·작업 줄, 함께 어긋나는 결정 사항,
+ * 보라 "되돌림" 이름표에 되돌아갈 버전 제목, 바꾼 사람과 시각, 그 버전의 이유. 제목은 굵게, 버전 번호는 회색.
+ * 어긋나는 결정 사항이 있으면 막대는 되돌림이 아닐 때와 같은 노란 "…기존 결정 사항과 달라요"예요
+ */
+function revertScreen(
+  input: T1ConflictsInput,
+  revert: NonNullable<T1ConflictsInput['revert']>,
+  conflictLines: (conflict: T1Conflict) => string[],
+): string {
+  const { head, requestLabel } = T1_COPY.conflicts;
+  const copy = T1_COPY.conflicts.revert;
+  const [change, ...mismatches] = input.conflicts;
+  const versionTag = (version: number | undefined) =>
+    version === undefined ? '' : `  v${version}`;
+  const LABEL = 4;
+  const lines = [
+    mismatches.length > 0
+      ? colorBar('yellow', head[input.trigger])
+      : colorBar('purple', copy.head[input.trigger]),
+    `  ${padEnd(copy.current, LABEL)}  ${strong(areaTitle(change?.id ?? '', change?.title ?? ''), true)}${versionTag(change?.version)}`,
+    `  ${padEnd(requestLabel[input.trigger], LABEL)}  ${cutEnd(input.request, COLS - 4 - LABEL)}`,
   ];
-  // ID는 보여 주지 않아요 (프로토타입)
-  for (const conflict of input.conflicts) {
-    wrap(areaTitle(conflict.id, conflict.title), BODY).forEach((title, i) => {
-      lines.push(
-        `  ${padEnd(i === 0 ? kinds[conflict.kind] : '', KIND)}${strong(title, true)}`,
-      );
-    });
-    for (const why of wrap(conflict.why, BODY)) {
-      lines.push(`${' '.repeat(2 + KIND)}${why}`);
-    }
-  }
+  if (mismatches.length > 0)
+    lines.push('', ...mismatches.flatMap(conflictLines));
+  const REVERT = textWidth(copy.label) + 2;
+  const indent = ' '.repeat(2 + REVERT);
+  const body = COLS - 2 - REVERT;
+  const changed = (revert.changedBy ? copy.changed : copy.changedAt)
+    .replace('{name}', revert.changedBy ?? '')
+    .replace('{when}', formatAt(revert.createdAt));
+  const reasonLabel = `${copy.reason}  `;
+  lines.push(
+    '',
+    ...wrap(areaTitle(change?.id ?? '', revert.title), body).map(
+      (title, i, all) =>
+        `  ${i === 0 ? `${paint(T1_COLORS.purple, copy.label)}  ` : indent.slice(2)}${strong(title, true)}${i === all.length - 1 ? versionTag(revert.version) : ''}`,
+    ),
+    ...wrap(changed, body).map((line) => `${indent}${line}`),
+    ...wrap(revert.reason, body - textWidth(reasonLabel)).map(
+      (line, i) =>
+        `${indent}${i === 0 ? reasonLabel : ' '.repeat(textWidth(reasonLabel))}${strong(line)}`,
+    ),
+  );
   return lines.join('\n');
 }
