@@ -105,6 +105,7 @@ def rule_bottom():
 KIND_COL = 8
 YELLOW = '33'  # 다른 결정 사항이 있을 때 머리표: 기본 16색 노랑 (10/13 부건, 처음엔 빨강)
 GREEN = '32'   # 다른 결정 사항이 없을 때 한 줄: 기본 16색 초록 (10/13)
+PURPLE = '35'  # 되돌림: 기본 16색 자주. 직접 요청이 되돌림이면 머리표, 그리고 되돌림 줄의 구분 (시안 10/16 부건)
 
 
 def color_bar(color, text):
@@ -112,24 +113,54 @@ def color_bar(color, text):
     return f'{esc(color)}{esc("7")} {esc("27")} {text}{esc("39")}'
 
 
-def conflicts_screen(kind, request, conflicts):
+def conflicts_screen(kind, request, conflicts, revert=None):
     """kind: '작업'(경우 1, Claude가 알아챔) / '요청'(경우 2, 사람이 바꿔 달라고 함).
-    다른 결정 사항마다 구분 · [영역] 제목, 그 아래에 왜 그렇게 판단했는지 (ID는 보여 주지 않아요, 10/13)."""
+    다른 결정 사항마다 구분 · [영역] 제목, 그 아래에 왜 그렇게 판단했는지 (ID는 보여 주지 않아요, 10/13).
+    revert: 서버가 알려 준 되돌림(show_conflicts 결과의 revert). 있으면 되돌아가는 예전 결정 사항을 맨 아래에 보여 줘요 (시안 10/16)."""
     if not conflicts:
         # 없을 때는 요청 줄 없이 녹색 막대 한 줄만 (10/13 부건)
         return '\n'.join(['', color_bar(GREEN, '요청하신 변경과 다른 결정 사항이 없어요')])
     ask = f'  {kind}  {cut_end(request, COLS - 8)}'
-    head = '부탁하신 작업이 기존 결정 사항과 달라요' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 달라요'
-    # 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13 부건)
-    lines = ['', color_bar(YELLOW, head), ask, '']
+    if revert and kind == '요청':
+        # 직접 요청이 되돌림이면 보라 머리표 (시안 10/16 부건)
+        head_line = color_bar(PURPLE, '요청하신 변경이 이전 결정 사항과 동일해요')
+    else:
+        head = '부탁하신 작업이 기존 결정 사항과 달라요' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 달라요'
+        # 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13 부건)
+        head_line = color_bar(YELLOW, head)
+    lines = ['', head_line]
+    if revert:
+        # 되돌림이 들어가면 머리표 아래에 기존 결정 사항 한 줄. 제목은 굵게 하지 않고, 버전은 제목 오른쪽 (시안 10/16)
+        now_title = f'[{area_of(revert["id"])}] {revert["now_title"]}'
+        lines.append(f'  기존  {strong(cut_end(now_title, COLS - 8 - 5))}  v{revert["now_version"]}')
+    lines += [ask, '']
     now = wiki.current_standards()
     body_col = COLS - 2 - KIND_COL
-    for c in conflicts:
+    others = [c for c in conflicts if not (revert and c['id'] == revert['id'] and c['kind'] == '변경')]
+    for c in others:
         title = f'[{area_of(c["id"])}] {now[c["id"]]["title"]}' if c['id'] in now else c['id']
         for i, t in enumerate(wrap(title, body_col)):
             lines.append('  ' + pad(c['kind'] if i == 0 else '', KIND_COL) + strong(t, True))
         lines += [' ' * (2 + KIND_COL) + w for w in wrap(c['why'], body_col)]
+    if revert:
+        lines += revert_lines(revert, body_col, gap=bool(others))
     return '\n'.join(lines)
+
+
+def revert_lines(r, body_col, gap):
+    """되돌림 줄 (시안 10/16): 다른 결정 사항 맨 아래, 위와 한 줄 띄움. T2 상세처럼 제목 오른쪽에 버전,
+    아래에 누가·언제 변경했는지, 이유 한 줄. 이유는 너비보다 길면 끝을 줄여요(터미널 너비에 따라 보이는 길이가 달라져요)."""
+    ver = f'  v{r["version"]}'
+    title = f'[{area_of(r["id"])}] {r["title"]}'
+    kind = f'{esc(PURPLE)}되돌림{esc("39")}' + ' ' * (KIND_COL - width('되돌림'))
+    who = f'{r["changed_by"]}님이 {r["changed_at"]}에 변경했어요.' if r.get('changed_by') else ''
+    pad_col = ' ' * (2 + KIND_COL)
+    rows = [''] if gap else []
+    rows.append('  ' + kind + strong(cut_end(title, body_col - width(ver)), True) + ver)
+    if who:
+        rows.append(pad_col + who)
+    rows.append(pad_col + pad('이유', 6) + strong(cut_end(r['reason'], body_col - 6)))
+    return rows
 
 
 # ---------- ③ 등록될 모습 ----------
