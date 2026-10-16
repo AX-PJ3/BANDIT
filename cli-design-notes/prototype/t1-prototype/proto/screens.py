@@ -105,7 +105,7 @@ def rule_bottom():
 KIND_COL = 8
 YELLOW = '33'  # 다른 결정 사항이 있을 때 머리표: 기본 16색 노랑 (10/13 부건, 처음엔 빨강)
 GREEN = '32'   # 다른 결정 사항이 없을 때 한 줄: 기본 16색 초록 (10/13)
-PURPLE = '35'  # 되돌림: 기본 16색 자주. 직접 요청이 되돌림이면 머리표, 그리고 되돌림 줄의 구분 (시안 10/16 부건)
+PURPLE = '35'  # 되돌림: 기본 16색 자주. 되돌림만 있고 어긋나는 결정 사항이 없을 때 머리표, 그리고 되돌림 줄의 구분 (시안 10/16 부건)
 
 
 def color_bar(color, text):
@@ -121,9 +121,11 @@ def conflicts_screen(kind, request, conflicts, revert=None):
         # 없을 때는 요청 줄 없이 녹색 막대 한 줄만 (10/13 부건)
         return '\n'.join(['', color_bar(GREEN, '요청하신 변경과 다른 결정 사항이 없어요')])
     ask = f'  {kind}  {cut_end(request, COLS - 8)}'
-    if revert and kind == '요청':
-        # 직접 요청이 되돌림이면 보라 머리표 (시안 10/16 부건)
-        head_line = color_bar(PURPLE, '요청하신 변경이 이전 결정 사항과 동일해요')
+    others = [c for c in conflicts if not (revert and c['id'] == revert['id'] and c['kind'] == '변경')]
+    if revert and not others:
+        # 되돌림만 있고 어긋나는 다른 결정 사항이 없으면 보라 머리표. 경우 1·2 모두 (시안 10/16 부건)
+        head = '부탁하신 작업이 이전 결정 사항과 동일해요' if kind == '작업' else '요청하신 변경이 이전 결정 사항과 동일해요'
+        head_line = color_bar(PURPLE, head)
     else:
         head = '부탁하신 작업이 기존 결정 사항과 달라요' if kind == '작업' else '요청하신 변경이 기존 결정 사항과 달라요'
         # 이 화면은 위아래 선 없이 노란 막대 머리표로 시작해요 (10/13 부건)
@@ -136,7 +138,6 @@ def conflicts_screen(kind, request, conflicts, revert=None):
     lines += [ask, '']
     now = wiki.current_standards()
     body_col = COLS - 2 - KIND_COL
-    others = [c for c in conflicts if not (revert and c['id'] == revert['id'] and c['kind'] == '변경')]
     for c in others:
         title = f'[{area_of(c["id"])}] {now[c["id"]]["title"]}' if c['id'] in now else c['id']
         for i, t in enumerate(wrap(title, body_col)):
