@@ -690,7 +690,7 @@ function AnswerForm(props: {
     return (
       <div style={{ marginTop: 16 }}>
         <Text typography="t7" color={C.red600}>
-          이 변경을 받은 사람만 답할 수 있어요. 주소의 ?me= 이름을 확인해
+          이 변경을 받은 사람만 답할 수 있어요. 왼쪽 아래 프로필의 이름을 확인해
           주세요.
         </Text>
       </div>

@@ -8,6 +8,7 @@
 import * as data from '@sil/core/data';
 import { buildPendingList, loadNotifyData } from '@sil/notify/browser';
 import { currentPlatform } from '../pwa.ts';
+import { toPeople } from './people.ts';
 import type { SilApi } from './types.ts';
 
 export function createDatabaseApi(url: string, publishableKey: string): SilApi {
@@ -19,6 +20,8 @@ export function createDatabaseApi(url: string, publishableKey: string): SilApi {
       dataMode: 'database',
       db: await data.checkDbConnection(),
     }),
+
+    listPeople: async () => toPeople(await data.listIssues()),
 
     // 터미널(MCP list_pending)과 같은 데이터 모으기와 목록 규칙이에요 (SIL-100, notify.list.one-call)
     listMyChanges: async (me) =>

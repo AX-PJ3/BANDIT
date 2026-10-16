@@ -6,7 +6,12 @@
  */
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useNotificationPermission } from '../pwa.ts';
-import { AppShell, Centered, type ShellNavItem } from '../ui/AppShell.tsx';
+import {
+  AppShell,
+  Centered,
+  type ShellNavItem,
+  type ShellProfile,
+} from '../ui/AppShell.tsx';
 import { DetailIcon, InboxIcon } from '../ui/icons.tsx';
 import {
   Button,
@@ -30,12 +35,23 @@ interface ScreenProps {
   notices: string[];
 }
 
-export function MyChangesScreen(props: ScreenProps & { me: string | null }) {
+export function MyChangesScreen(
+  props: ScreenProps & {
+    me: string | null;
+    people: string[] | null;
+    onChangeMe: (name: string) => void;
+  },
+) {
+  const profile: ShellProfile = {
+    me: props.me,
+    people: props.people,
+    onChangeMe: props.onChangeMe,
+  };
   if (!props.me) {
     return (
       <AppShell
         navItems={[]}
-        me={null}
+        profile={profile}
         topBar={props.topBar}
         notices={props.notices}
       >
@@ -43,17 +59,20 @@ export function MyChangesScreen(props: ScreenProps & { me: string | null }) {
           <Result
             title="누구에게 온 변경인지 알 수 없어요"
             description={
-              '주소 끝에 ?me=내이름 을 붙여 다시 열어 주세요.\n이름은 이슈 담당자 이름과 같아야 해요. 한 번 열면 이 브라우저가 기억해요.'
+              '왼쪽 아래 프로필을 눌러 내 이름을 골라 주세요.\n한 번 고르면 이 브라우저가 기억해요.'
             }
           />
         </Centered>
       </AppShell>
     );
   }
-  return <MyChanges {...props} me={props.me} />;
+  // 사람을 바꾸면 고른 변경·보기 범위를 처음부터 다시 시작해요
+  return (
+    <MyChanges key={props.me} {...props} me={props.me} profile={profile} />
+  );
 }
 
-function MyChanges(props: ScreenProps & { me: string }) {
+function MyChanges(props: ScreenProps & { me: string; profile: ShellProfile }) {
   const { changes, loadError, watchError, reload } = useMyChanges(props.me);
   const notifications = useNotificationPermission();
   const [screen, setScreen] = useState<Screen>(
@@ -202,7 +221,7 @@ function MyChanges(props: ScreenProps & { me: string }) {
   return (
     <AppShell
       navItems={navItems}
-      me={props.me}
+      profile={props.profile}
       topBar={props.topBar}
       notices={notices}
     >
