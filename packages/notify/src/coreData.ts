@@ -61,6 +61,7 @@ export function toVersionRecord(
     source: version.source,
     aiDetected: version.aiDetected,
     isRevert: version.isRevert,
+    scope: version.scope,
   };
 }
 

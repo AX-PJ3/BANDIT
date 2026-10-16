@@ -30,7 +30,7 @@ function versionRow(version: number, value: string, changedBy: string) {
     reason: version === 1 ? '알림 창에서 잘린다' : 'Windows 알림 창에서 잘림',
     always_on: false,
     evidence: null,
-    scope: null,
+    scope: null as Record<string, string[]> | null,
     changed_by: changedBy,
     changed_by_actor: 'ai',
     ai_detected: false,
@@ -414,6 +414,13 @@ describe('respond', () => {
       pendingCheckId: 'c-5',
       issueKey: '#5',
       rereadStandardId: STANDARD,
+      // 데모 예시에는 적용 범위가 없어서, 없다고 말한 뒤 제목과 값으로 찾게 해요 (SIL-98)
+      scopeCheck: {
+        standardId: STANDARD,
+        version: 2,
+        scope: null,
+        guide: expect.stringContaining('적용 범위가 적혀 있지 않아요'),
+      },
     });
     expect(fake.rpcCalls).toEqual([
       {
@@ -428,6 +435,40 @@ describe('respond', () => {
         }),
       },
     ]);
+  });
+
+  it('관계있다면 그 버전의 적용 범위를 단서로 함께 줘요 (SIL-98)', async () => {
+    const tables = demoTables();
+    const scope = {
+      code: ['apps/web/src/notify/**'],
+      api: [],
+      screen: ['앱 알림'],
+      doc: [],
+    };
+    tables.standard_versions = tables.standard_versions.map((row) =>
+      row.version === 2 ? { ...row, scope } : row,
+    );
+    installFakeDb(tables);
+    const result = await call(await connectAs('민수'), 'respond', {
+      pendingCheckId: 'c-5',
+      affected: true,
+      known: false,
+    });
+    expect(result.json().scopeCheck).toMatchObject({ version: 2, scope });
+    // list_pending에도 같은 적용 범위가 들어 있어요 (화면에는 그리지 않고 AI에게만). 방금 답해서 닫힌 것까지 봐요
+    const list = await call(await connectAs('민수'), 'list_pending', {
+      includeClosed: true,
+    });
+    expect(list.json().items).toMatchObject([{ standard: { scope } }]);
+  });
+
+  it('관계없다면 적용 범위 단서를 주지 않아요', async () => {
+    const result = await call(await connectAs('신지'), 'respond', {
+      pendingCheckId: 'c-7',
+      affected: false,
+      unaffectedReason: '내 작업 범위가 아니에요',
+    });
+    expect(result.json().scopeCheck).toBeUndefined();
   });
 
   it('관계없다는 이유를 저장하고, 알았나는 비워요', async () => {

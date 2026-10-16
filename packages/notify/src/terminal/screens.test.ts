@@ -50,6 +50,7 @@ function demoItem(overrides: Partial<PendingItem> = {}): PendingItem {
       source: 'ai_chat',
       aiDetected: false,
       isRevert: false,
+      scope: null,
     },
     issue: {
       key: '#5',

@@ -1,3 +1,4 @@
+import type { StandardScope } from '@sil/core';
 import type {
   AnswerChannel,
   NotifyData,
@@ -82,6 +83,11 @@ export interface PendingItemStandard {
   source: StandardSource;
   aiDetected: boolean;
   isRevert: boolean;
+  /**
+   * 적용 범위. 터미널 화면에는 보여 주지 않고 AI에게만 줘요 (SIL-98, 10/16 민수님 결정).
+   * 관계있다로 답한 뒤 AI가 이 경로부터 훑어서 지금 결과물이 새 값과 다른 곳을 알려 줘요. 없으면 null
+   */
+  scope: StandardScope | null;
 }
 
 export interface PendingItemIssue {
@@ -185,6 +191,7 @@ export function buildPendingList(
         source: current.source,
         aiDetected: current.aiDetected,
         isRevert: current.isRevert,
+        scope: current.scope ?? null,
       },
       issue: { key: issue.key, title: issue.title, status: issue.status },
       answer: answer
