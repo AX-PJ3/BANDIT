@@ -29,6 +29,7 @@ TOOLS = [
             'properties': {
                 'kind': {'type': 'string', 'enum': ['작업', '요청'], 'description': '작업: Claude가 작업 중에 알아챔(경우 1) / 요청: 사람이 결정 사항을 바꿔 달라고 함(경우 2)'},
                 'request': {'type': 'string', 'description': '부탁하신 작업이나 요청을 한 줄로 (예: 알림 제목을 32자에서 자르기)'},
+                'value': {'type': 'string', 'description': '바꾸려는 결정 사항에 등록할 새 값 (예: 공백 포함 32자 이하). 예전 버전 값과 같으면 서버가 되돌림(revert)으로 알려 줘요'},
                 'conflicts': {
                     'type': 'array',
                     'description': '부탁·요청과 다른 결정 사항. 없으면 빈 배열(경우 2만)',

@@ -7,7 +7,8 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-DATA_PATH = os.path.join(HERE, 'standards.json')
+# T1_DATA=revert면 버전 기록이 있는 되돌림 시안 데이터를 쓴다 (10/16)
+DATA_PATH = os.path.join(HERE, 'standards-revert.json' if os.environ.get('T1_DATA') == 'revert' else 'standards.json')
 SAVED_PATH = os.path.join(HERE, '..', 'saved.json')
 AUTHOR = os.environ.get('T1_USER', '부건')      # 지금 대화하는 사람 = 바꾼 사람
 ALWAYS_ON_MAX = 10                               # wiki.always-on.max-ten
@@ -70,11 +71,29 @@ def search(query):
     return {'count': len(found), 'standards': found, 'always_on_count': always_on_count(), 'always_on_max': ALWAYS_ON_MAX}
 
 
+def versions(standard_id):
+    """버전 기록 (처음 데이터의 history + 등록한 새 버전). 처음 데이터에 기록이 없으면 지금 버전 하나만."""
+    base = next((s for s in load_data()['standards'] if s['id'] == standard_id), None)
+    rows = list((base or {}).get('history') or ([] if not base else [{k: base[k] for k in ('version', 'title', 'value', 'reason')}]))
+    rows += [{'version': s['version'], 'title': s['title'], 'value': s['value'], 'reason': s['reason'],
+              'changed_by': s.get('changed_by'), 'changed_at': '방금'} for s in load_saved() if s['id'] == standard_id]
+    return rows
+
+
+def find_revert(standard_id, new_value):
+    """새 값이 지금 버전이 아닌 예전 버전 값과 같으면 그 버전(같은 값이 여러 번이면 가장 최근)을 돌려준다 (detect.change.revert-mark)."""
+    now = current_standards().get(standard_id)
+    if not now or not new_value:
+        return None
+    same = [v for v in versions(standard_id) if v['version'] != now['version'] and v['value'] == new_value]
+    return max(same, key=lambda v: v['version']) if same else None
+
+
 def get(standard_id):
     s = current_standards().get(standard_id)
     if not s:
         raise ValueError(f'없는 결정 사항이에요: {standard_id}')
-    return {**with_issues(s), 'always_on_count': always_on_count(), 'always_on_max': ALWAYS_ON_MAX}
+    return {**with_issues(s), 'versions': versions(standard_id), 'always_on_count': always_on_count(), 'always_on_max': ALWAYS_ON_MAX}
 
 
 def save(args):
@@ -118,7 +137,17 @@ def check_conflicts(args):
             raise ValueError('다른 결정 사항마다 kind(변경/어긋남)와 why(왜 그렇게 판단했는지 한 문장)가 있어야 해요.')
     if args['kind'] == '작업' and not args.get('conflicts'):
         raise ValueError('Claude가 알아챈 경우(작업)는 다른 결정 사항이 1개 이상 있어야 해요.')
-    return {'shown': True, 'count': len(args.get('conflicts') or [])}
+    result = {'shown': True, 'count': len(args.get('conflicts') or [])}
+    # 되돌림 (시안 10/16): 바꾸는 결정 사항(변경)의 새 값이 예전 버전 값과 같으면 서버가 알려 준다. Claude가 판단하지 않는다
+    for c in args.get('conflicts') or []:
+        r = find_revert(c['id'], args.get('value')) if c.get('kind') == '변경' else None
+        if r:
+            now = known[c['id']]
+            result['revert'] = {'id': c['id'], 'version': r['version'], 'title': r['title'], 'value': r['value'],
+                                'reason': r['reason'], 'changed_by': r.get('changed_by'), 'changed_at': r.get('changed_at'),
+                                'now_version': now['version'], 'now_title': now['title']}
+            break
+    return result
 
 
 def check_preview(args):
