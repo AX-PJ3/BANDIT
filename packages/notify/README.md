@@ -49,6 +49,7 @@ const result = await listPending(store, { recipient: '민수' });
 - 답함과 대체됨은 닫힌 지 7일이 지나면 목록에서 빠져요 (notify.list.closed-7-days). 기록은 지우지 않아요 (data.answer.keep-records). 대기는 오래돼도 계속 보여요.
 - 최신 것이 먼저 와요.
 - 기준 버전이나 이슈를 찾지 못하면 빈 목록 대신 오류를 내요 (notify.error.not-empty).
+- `standard.scope`: 그 버전의 적용 범위(core `StandardScope`, 없으면 null). 터미널 화면에는 그리지 않고 AI에게만 줘요 (SIL-98).
 - `previousAnswer`: 같은 이슈에서 이 결정 사항의 이전 버전에 한 마지막 답이에요. `affected`가 true면 화면이 "지난번 변경을 반영하셨다면 다시 고쳐야 해요"를 붙여요 (SIL-77).
 - 저장소 없이 데이터만으로 만드는 `buildPendingList`도 있어요. MCP 도구 `list_pending`은 DB에서 모은 데이터로 이 함수를 불러요.
 

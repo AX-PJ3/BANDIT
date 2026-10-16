@@ -30,7 +30,7 @@ function versionRow(version: number, value: string, changedBy: string) {
     reason: version === 1 ? '알림 창에서 잘린다' : 'Windows 알림 창에서 잘림',
     always_on: false,
     evidence: null,
-    scope: null,
+    scope: null as Record<string, string[]> | null,
     changed_by: changedBy,
     changed_by_actor: 'ai',
     ai_detected: false,
@@ -414,6 +414,17 @@ describe('respond', () => {
       pendingCheckId: 'c-5',
       issueKey: '#5',
       rereadStandardId: STANDARD,
+      // 데모 예시에는 적용 범위가 없어서, 없다고 말한 뒤 제목과 값으로 찾게 해요 (SIL-98)
+      scopeCheck: {
+        standardId: STANDARD,
+        version: 2,
+        title: '앱 알림 제목은 공백 포함 32자 이하로 쓴다',
+        value: '공백 포함 32자 이하',
+        scope: null,
+        guide: expect.stringContaining(
+          '바뀐 결정 사항에 적용 범위가 적혀 있지 않아 다른 곳을 찾지 못했어요. 필요하신 경우 제목과 값으로 코드를 찾아볼게요.',
+        ),
+      },
     });
     expect(fake.rpcCalls).toEqual([
       {
@@ -428,6 +439,51 @@ describe('respond', () => {
         }),
       },
     ]);
+  });
+
+  it('관계있다면 그 버전의 적용 범위를 단서로 함께 줘요 (SIL-98)', async () => {
+    const tables = demoTables();
+    const scope = {
+      code: ['apps/web/src/notify/**'],
+      api: [],
+      screen: ['앱 알림'],
+      doc: [],
+    };
+    tables.standard_versions = tables.standard_versions.map((row) =>
+      row.version === 2 ? { ...row, scope } : row,
+    );
+    installFakeDb(tables);
+    const result = await call(await connectAs('민수'), 'respond', {
+      pendingCheckId: 'c-5',
+      affected: true,
+      known: false,
+    });
+    expect(result.json().scopeCheck).toMatchObject({ version: 2, scope });
+    // 다른 곳을 알려 주는 표 모양과 없을 때 고정 문장 (부건님 SIL-98 의견 2, 3)
+    const guide = (result.json().scopeCheck as { guide: string }).guide;
+    expect(guide).toContain('"위치 | 코드 | 지금 값"');
+    expect(guide).toContain('"고치려면 말씀해 주세요."');
+    expect(guide).toContain('"외 N곳"');
+    expect(guide).toContain(
+      '"적용 범위 안에서 바뀐 변경사항과 다른 곳은 없어요."',
+    );
+    // 경로를 못 찾으면 말하고, 사람이 원할 때만 찾아봐요 (notify.answer.scope-missing v2)
+    expect(guide).toContain('적힌 경로 <경로>를 찾지 못했어요. 필요하신 경우');
+    expect(guide).toContain('사람이 찾아 달라고 할 때만');
+    // list_pending에도 같은 적용 범위가 들어 있어요 (화면에는 그리지 않고 AI에게만). 방금 답해서 닫힌 것까지 봐요
+    const list = await call(await connectAs('민수'), 'list_pending', {
+      includeClosed: true,
+    });
+    expect(list.json().items).toMatchObject([{ standard: { scope } }]);
+  });
+
+  it('관계없다면 적용 범위 단서를 주지 않아요', async () => {
+    const result = await call(await connectAs('신지'), 'respond', {
+      pendingCheckId: 'c-7',
+      affected: false,
+      unaffectedReason: '내 작업 범위가 아니에요',
+    });
+    expect(result.json().scopeCheck).toBeUndefined();
   });
 
   it('관계없다는 이유를 저장하고, 알았나는 비워요', async () => {

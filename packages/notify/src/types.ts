@@ -4,6 +4,7 @@
  * 공통 타입 PR(#6, @sil/core)이 머지되면 여기 있는 Issue, PendingCheck는 그쪽 타입으로 바꿔요.
  * 지금은 이 패키지가 혼자 돌 수 있게 필요한 칸만 두었어요.
  */
+import type { StandardScope } from '@sil/core';
 
 /** 기준 ID. '영역.주제.규칙' 모양. 예: 'app.notify.title-length' */
 export type StandardId = string;
@@ -108,6 +109,11 @@ export interface StandardVersionRecord {
   aiDetected: boolean;
   /** 예전 버전 값으로 되돌린 버전이면 true */
   isRevert: boolean;
+  /**
+   * 적용 범위 (코드 / API / 화면 / 문서). 모양은 core의 StandardScope 그대로예요 (SIL-98).
+   * 관계있다로 답한 뒤 AI가 어디부터 볼지 알려 주는 단서예요. 임시 저장소 예시 데이터에는 없을 수 있어요
+   */
+  scope?: StandardScope | null;
 }
 
 /** 답한 곳: 터미널 / 앱 (착수 안내 v2. Slack은 만들지 않아요) */
