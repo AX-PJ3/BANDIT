@@ -421,7 +421,9 @@ describe('respond', () => {
         title: '앱 알림 제목은 공백 포함 32자 이하로 쓴다',
         value: '공백 포함 32자 이하',
         scope: null,
-        guide: expect.stringContaining('적용 범위가 적혀 있지 않아요'),
+        guide: expect.stringContaining(
+          '바뀐 결정 사항에 적용 범위가 적혀 있지 않아 다른 곳을 찾지 못했어요. 필요하신 경우 제목과 값으로 코드를 찾아볼게요.',
+        ),
       },
     });
     expect(fake.rpcCalls).toEqual([
@@ -465,6 +467,9 @@ describe('respond', () => {
     expect(guide).toContain(
       '"적용 범위 안에서 바뀐 변경사항과 다른 곳은 없어요."',
     );
+    // 경로를 못 찾으면 말하고, 사람이 원할 때만 찾아봐요 (notify.answer.scope-missing v2)
+    expect(guide).toContain('적힌 경로 <경로>를 찾지 못했어요. 필요하신 경우');
+    expect(guide).toContain('사람이 찾아 달라고 할 때만');
     // list_pending에도 같은 적용 범위가 들어 있어요 (화면에는 그리지 않고 AI에게만). 방금 답해서 닫힌 것까지 봐요
     const list = await call(await connectAs('민수'), 'list_pending', {
       includeClosed: true,

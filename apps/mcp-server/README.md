@@ -50,7 +50,7 @@ mcp-server/
 | `mark_reflected`   | 관계있다로 답한 변경을 내 작업에 반영했다고 표시하거나 풀기. 사람이 직접 말했을 때만                                       |        |
 
 알리기 도구는 `X-Sil-User`의 이름으로만 움직여요. 다른 사람의 목록을 보거나 대신 답할 수 없고, 이름이 없으면 거절해요.
-`respond`는 DB까지 가기 전에 `@sil/notify`의 `checkAnswer`로 먼저 검사해서 빠진 칸을 한국어로 알려 줘요. 이미 닫힌 변경이면 `closedStatus`(답함·대체됨·자동 닫힘)를 돌려줘요. "관계있다"로 저장되면 `scopeCheck`(그 버전의 적용 범위와 안내)도 돌려줘요. AI는 적용 범위부터 훑어 새 값과 다른 곳을 알려 주기만 하고 고치지 않아요. 적용 범위가 없거나 경로를 못 찾으면 그렇다고 말한 뒤 제목과 값으로 찾아요 (SIL-98). "잘 모르겠다"는 `unsure: true`로 불러서 DB에 쓰지 않고 대기로 남겨요 (notify.answer.unsure-later). "관계있다"로 저장되면 `rereadStandardId`를 돌려줘서 AI가 그 결정 사항을 `get_standard`로 다시 읽어요.
+`respond`는 DB까지 가기 전에 `@sil/notify`의 `checkAnswer`로 먼저 검사해서 빠진 칸을 한국어로 알려 줘요. 이미 닫힌 변경이면 `closedStatus`(답함·대체됨·자동 닫힘)를 돌려줘요. "관계있다"로 저장되면 `scopeCheck`(그 버전의 적용 범위와 안내)도 돌려줘요. AI는 적용 범위부터 훑어 새 값과 다른 곳을 표(위치 | 코드 | 지금 값)로 알려 주기만 하고 고치지 않아요. 다른 곳이 없으면 없다고 말하고, 적용 범위가 없거나 경로를 하나도 못 찾으면 그렇다고 말한 뒤 사람이 원할 때만 제목과 값으로 찾아요 (SIL-98). "잘 모르겠다"는 `unsure: true`로 불러서 DB에 쓰지 않고 대기로 남겨요 (notify.answer.unsure-later). "관계있다"로 저장되면 `rereadStandardId`를 돌려줘서 AI가 그 결정 사항을 `get_standard`로 다시 읽어요.
 `mark_reflected`는 사람이 "작업에 반영했어요"라고 말했을 때만 불러요 (SIL-93). 관계있다로 답한 변경에만 표시할 수 있고(notify.check.reflected v2), 이 규칙은 `@sil/notify`의 `checkReflect`가 DB까지 가기 전에 봐요. 표시를 풀어도 이슈는 다시 열리지 않아요. DB가 거절하면 거절 문장을 그대로 돌려줘요.
 
 팀 위키 `wiki.mcp.five-tools`에 따라 위키 도구는 다섯 개예요. 폐기는 사람이 `pnpm sil deprecate`로 해요.
