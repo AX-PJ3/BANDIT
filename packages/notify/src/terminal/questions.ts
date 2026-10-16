@@ -23,8 +23,12 @@ export interface ChangeQuestions {
   reason: Question;
 }
 
-/** 관계있다 / 관계없다 보기 (위키 copy.term.related) */
-export const RELATION_LABELS = { affected: '관계있다', unaffected: '관계없다' };
+/** 관계있다 / 관계없다 / 잘 모르겠다 보기 (위키 copy.term.related, notify.answer.two-questions v2) */
+export const RELATION_LABELS = {
+  affected: '관계있다',
+  unaffected: '관계없다',
+  unsure: '잘 모르겠다',
+};
 /** 알았다 / 몰랐다 보기 */
 export const KNOWN_LABELS = { known: '알았다', unknown: '몰랐다' };
 
@@ -60,6 +64,11 @@ export function questionsFor(item: PendingItem): ChangeQuestions {
         {
           label: RELATION_LABELS.unaffected,
           description: '내 이슈와는 상관없는 변경이에요',
+        },
+        // 바로 판단하기 어려울 때 Esc나 Chat about this 대신 고르는 보기. 답으로 기록하지 않아요 (notify.answer.unsure-later)
+        {
+          label: RELATION_LABELS.unsure,
+          description: '지금은 판단하기 어려워요. 나중에 답할게요',
         },
       ],
     },

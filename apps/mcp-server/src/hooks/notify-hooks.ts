@@ -38,6 +38,7 @@ import {
   reflectScreen,
   sessionNotice,
   skippedReminder,
+  unsureLine,
   type NotifyData,
   type PendingItem,
 } from '@sil/notify';
@@ -74,7 +75,11 @@ export interface HookInput {
   session_id?: string;
   prompt?: string;
   tool_name?: string;
-  tool_input?: { pendingCheckId?: unknown; reflected?: unknown };
+  tool_input?: {
+    pendingCheckId?: unknown;
+    reflected?: unknown;
+    unsure?: unknown;
+  };
   tool_response?: unknown;
 }
 
@@ -86,6 +91,11 @@ interface FlowState {
   totalAtStart: number;
   /** "결정 사항 확인"으로 다시 부른 것인지. 끝나도 작업을 시작하지 않아요 */
   recall: boolean;
+  /**
+   * 이번 세션에서 "잘 모르겠다"로 남긴 확인할 변경 (notify.answer.unsure-later).
+   * 이번 세션에는 다시 묻지 않고, 작업을 마친 뒤 한 줄의 건수에서도 빼요. "결정 사항 확인"을 입력하면 비워서 다시 물어요
+   */
+  deferred: Set<string>;
   updatedAt: number;
 }
 
@@ -100,14 +110,14 @@ const toolName = (name: string) => `mcp__${SERVER_INFO.name}__${name}`;
  */
 function buildGuide(recall: boolean): string {
   const after = recall
-    ? '모든 변경을 기록했거나 사용자가 질문을 닫았으면 글을 쓰지 않고 끝낸다. 사용자의 입력은 답하기를 다시 부른 것이라 따로 처리할 요청이 없다.'
-    : '모든 변경을 기록했거나 사용자가 질문을 닫았으면 사용자의 원래 요청을 처리한다. 이때도 확인한 변경에 대해서는 따로 말하지 않는다.';
+    ? '모든 변경에 답했거나(잘 모르겠다로 남긴 것 포함) 사용자가 질문을 닫았으면 글을 쓰지 않고 끝낸다. 사용자의 입력은 답하기를 다시 부른 것이라 따로 처리할 요청이 없다.'
+    : '모든 변경에 답했거나(잘 모르겠다로 남긴 것 포함) 사용자가 질문을 닫았으면 사용자의 원래 요청을 처리한다. 이때도 확인한 변경에 대해서는 따로 말하지 않는다.';
   return `[확인할 변경 규칙] 사용자의 요청을 처리하기 전에 아래 순서를 먼저 끝낸다.
 변경 상세와 기록 결과는 hooks가 사용자 화면에 이미 직접 보여 준다. 그러니 상세 내용, 요약, 표, 인사말, 진행 설명을 직접 쓰지 않는다. 서버 안내문 8번의 "표로 보여 주기"도 하지 않는다. 글은 한 글자도 출력하지 말고 도구만 부른다.
 1. ${toolName('list_pending')} 을 부른다.
 2. items 의 변경마다 순서대로, 그 변경의 questions 를 쓴다:
    a. AskUserQuestion 으로 questions.relation 을 묻는다. question, header, 선택지 label 과 description 을 주어진 그대로 쓰고, multiSelect 는 false, 추천 표시는 붙이지 않는다.
-   b. 관계있다를 고르면 questions.known 을, 관계없다를 고르면 questions.reason 을 같은 규칙으로 묻는다.
+   b. 관계있다를 고르면 questions.known 을, 관계없다를 고르면 questions.reason 을 같은 규칙으로 묻는다. 잘 모르겠다를 고르면 더 묻지 않고 ${toolName('respond')} 를 pendingCheckId 와 unsure: true 로만 부른다(affected 없이). 기록되지 않고 나중에 답하도록 남으며, 아무 말 없이 다음 변경으로 간다.
    c. relation 이나 known 질문에서 사용자가 보기를 고르지 않고 직접 글을 쓰거나 대화를 원하면, 그 글을 답으로 기록하지 않는다. 글이 질문이면 위에 보여 준 변경 상세에 있는 내용만으로 한두 문장으로 답하고, 같은 질문을 다시 묻는다.
    d. reason 질문에서 고른 보기의 label 이나 직접 쓴 글은 그대로 unaffectedReason 으로 기록한다.
    e. ${toolName('respond')} 로 답을 기록한다. pendingCheckId 는 그 변경의 것, affected 는 관계있다면 true, known 은 알았다면 true·몰랐다면 false 다.
@@ -293,6 +303,13 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
     }
 
     const previous = flows.get(flowKey);
+    // 이번 세션에 잘 모르겠다로 남긴 변경은 다시 묻지 않아요. "결정 사항 확인"이면 함께 다시 물어요 (notify.answer.unsure-later)
+    const deferred = recall
+      ? new Set<string>()
+      : new Set(previous?.deferred ?? []);
+    const flowItems = items.filter((i) => !deferred.has(i.pendingCheckId));
+    if (flowItems.length === 0) return withReminder(data, user, flowKey, null);
+
     // 이번 세션에서 이미 물었는데 대기가 남았으면 닫고 넘어간 거예요. 다 답한 뒤 새 변경이 와도 같아요 (SIL-80 B5).
     // 한 줄은 작업을 마친 뒤(afterWork) 띄워요. 입력할 때 띄우면 작업 결과에 밀려 올라가서 못 봤어요 (notify.terminal.new-after-answered v2)
     if (previous?.asked && !recall) {
@@ -304,12 +321,13 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
 
     const flow: FlowState = {
       asked: true,
-      totalAtStart: items.length,
+      totalAtStart: flowItems.length,
       recall,
+      deferred,
       updatedAt: now().getTime(),
     };
     flows.set(flowKey, flow);
-    const first = items[0] as PendingItem;
+    const first = flowItems[0] as PendingItem;
     return promptOutput(detail(first, 1, flow), buildGuide(recall));
   }
 
@@ -334,9 +352,29 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
 
     const result = readRespondResult(input.tool_response);
     const check = data.pendingChecks.find((c) => c.id === pendingCheckId);
+    const flowKey = key(user, input);
+    const flow =
+      flows.get(flowKey) ??
+      ({
+        asked: true,
+        totalAtStart: items.length + 1,
+        recall: false,
+        deferred: new Set<string>(),
+        updatedAt: now().getTime(),
+      } satisfies FlowState);
+    flow.updatedAt = now().getTime();
+    flows.set(flowKey, flow);
     const lines: string[] = [''];
 
-    if (check?.status === 'answered') {
+    if (
+      input.tool_input?.unsure === true &&
+      result?.ok === true &&
+      check?.status === 'pending'
+    ) {
+      // 잘 모르겠다: 기록하지 않고 이번 세션 흐름에서만 빼요 (notify.answer.unsure-later)
+      flow.deferred.add(pendingCheckId);
+      lines.push(unsureLine());
+    } else if (check?.status === 'answered') {
       const answered = buildPendingList(
         data,
         { recipient: user, includeClosed: true },
@@ -355,24 +393,15 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
       return {};
     }
 
-    const flowKey = key(user, input);
-    const flow =
-      flows.get(flowKey) ??
-      ({
-        asked: true,
-        totalAtStart: items.length + 1,
-        recall: false,
-        updatedAt: now().getTime(),
-      } satisfies FlowState);
-    flow.updatedAt = now().getTime();
-    flows.set(flowKey, flow);
-
-    const next = items[0];
-    if (!next) {
-      lines.push('', allAnsweredLine(flow.totalAtStart, flow.recall));
-    } else {
-      const index = Math.max(1, flow.totalAtStart - items.length + 1);
+    const remaining = items.filter((i) => !flow.deferred.has(i.pendingCheckId));
+    const next = remaining[0];
+    if (next) {
+      const index = Math.max(1, flow.totalAtStart - remaining.length + 1);
       lines.push(detail(next, index, flow));
+    } else if (input.tool_input?.unsure !== true) {
+      // 잘 모르겠다로 끝났으면 한 줄만 띄우고 마무리 줄은 빼요 (부건님 시안 after_unsure)
+      const answered = flow.totalAtStart - flow.deferred.size;
+      lines.push('', allAnsweredLine(flow.totalAtStart, flow.recall, answered));
     }
     return { systemMessage: lines.join('\n') };
   }
@@ -412,11 +441,15 @@ export function createNotifyHooks(options: NotifyHooksOptions = {}) {
     user: string,
     input: HookInput,
   ): Promise<HookOutput> {
-    if (!flows.get(key(user, input))?.asked) return {};
+    const flow = flows.get(key(user, input));
+    if (!flow?.asked) return {};
     try {
-      const { items } = await pending(user);
-      return items.length > 0
-        ? { systemMessage: skippedReminder(items.length) }
+      // 잘 모르겠다로 남긴 변경은 건수에서 빼고, 그것만 남았으면 띄우지 않아요
+      const left = (await pending(user)).items.filter(
+        (i) => !flow.deferred.has(i.pendingCheckId),
+      );
+      return left.length > 0
+        ? { systemMessage: skippedReminder(left.length) }
         : {};
     } catch (error) {
       logFailure('after-work', user, error);

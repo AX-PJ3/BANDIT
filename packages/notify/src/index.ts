@@ -33,6 +33,7 @@ export type {
 export {
   MAX_UNAFFECTED_REASON_LENGTH,
   checkAnswer,
+  checkUnsure,
   closedFailure,
   respond,
 } from './respond.ts';
@@ -85,6 +86,7 @@ export {
   sessionNotice,
   skippedReminder,
   sourceText,
+  unsureLine,
 } from './terminal/screens.ts';
 export type { DetailOptions, RecordedAnswer } from './terminal/screens.ts';
 export {

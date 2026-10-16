@@ -578,3 +578,121 @@ describe('이슈 반영 (SIL-93, 부건님 10/15 시안)', () => {
     expect(refused.json).toEqual({});
   });
 });
+
+describe('잘 모르겠다 (notify.answer.unsure-later)', () => {
+  /** 민수님에게 #5(c-1)와 #8(c-8) 두 건이 온 상태 */
+  async function twoPending() {
+    const data = await store.read();
+    await store.write({
+      ...data,
+      issues: [
+        ...data.issues,
+        {
+          key: '#8',
+          title: '설치 안내 쓰기',
+          assignee: '민수',
+          status: 'in_progress',
+          standardIds: [STANDARD],
+        },
+      ],
+      pendingChecks: [
+        ...data.pendingChecks,
+        {
+          ...data.pendingChecks.find((c) => c.id === 'c-1')!,
+          id: 'c-8',
+          issueKey: '#8',
+          createdAt: '2026-10-14T05:12:00Z',
+        },
+      ],
+    });
+  }
+
+  const unsure = (pendingCheckId: string) =>
+    hook('after-respond', {
+      session_id: 's1',
+      tool_name: 'mcp__haribo__respond',
+      tool_input: { pendingCheckId, unsure: true },
+      tool_response: [
+        { type: 'text', text: JSON.stringify({ ok: true, unsure: true }) },
+      ],
+    });
+
+  it('안내에 잘 모르겠다를 고르면 unsure: true로 부르라고 적어요', async () => {
+    const first = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '작업',
+    });
+    expect(first.context).toContain('unsure: true');
+  });
+
+  it('고르면 한 줄을 띄우고 다음 변경 상세로 넘어가요', async () => {
+    await twoPending();
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    const after = await unsure('c-1');
+    expect(after.screen).toContain(
+      '나중에 답할 수 있게 남겨 두었어요. "결정 사항 확인"으로 다시 볼 수 있어요.',
+    );
+    expect(after.screen).toContain('확인할 변경이 1건 남았어요');
+    expect(after.screen).toContain('#8 설치 안내 쓰기');
+  });
+
+  it('남은 게 없으면 한 줄만 띄우고, 이번 세션에는 다시 묻지 않아요', async () => {
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    const after = await unsure('c-1');
+    expect(after.screen).toBe(
+      '\n  나중에 답할 수 있게 남겨 두었어요. "결정 사항 확인"으로 다시 볼 수 있어요.',
+    );
+    // 다음 입력, 작업을 마친 뒤 모두 조용해요
+    const next = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '작업 2',
+    });
+    expect(next.json).toEqual({});
+    expect((await hook('after-work', { session_id: 's1' })).json).toEqual({});
+  });
+
+  it('"결정 사항 확인"을 입력하면 잘 모르겠다로 남긴 변경도 다시 물어요', async () => {
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    await unsure('c-1');
+    const recall = await hook('prompt-submit', {
+      session_id: 's1',
+      prompt: '결정 사항 확인',
+    });
+    expect(recall.screen).toContain('확인할 변경이 1건 있어요');
+  });
+
+  it('새 세션에서는 다시 물어요', async () => {
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    await unsure('c-1');
+    const other = await hook('prompt-submit', {
+      session_id: 's2',
+      prompt: '작업',
+    });
+    expect(other.screen).toContain('작업 전에 확인할 변경이 1건 있어요');
+  });
+
+  it('앞은 잘 모르겠다, 끝은 답하면 "모두" 없이 답한 건수만 말해요', async () => {
+    await twoPending();
+    await hook('prompt-submit', { session_id: 's1', prompt: '작업' });
+    await unsure('c-1');
+    await respond(
+      store,
+      {
+        pendingCheckId: 'c-8',
+        answeredBy: '민수',
+        affected: true,
+        known: true,
+        channel: 'terminal',
+      },
+      { now: '2026-10-14T05:20:00Z' },
+    );
+    const done = await hook('after-respond', {
+      session_id: 's1',
+      tool_input: { pendingCheckId: 'c-8', affected: true, known: true },
+      tool_response: [{ type: 'text', text: JSON.stringify({ ok: true }) }],
+    });
+    expect(done.screen).toContain(
+      '확인할 변경 1건을 답했어요. 이제 작업을 시작할게요.',
+    );
+  });
+});

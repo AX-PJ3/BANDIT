@@ -195,6 +195,25 @@ export function checkAnswer(
   };
 }
 
+/**
+ * "잘 모르겠다"를 골랐을 때 검사해요 (notify.answer.unsure-later).
+ * 답으로 기록하지 않고 대기로 남기니, 그 변경이 이 사람에게 온 대기 중인 변경인지만 봐요.
+ */
+export function checkUnsure(
+  check: PendingCheck | undefined,
+  answeredBy: string,
+): { ok: true } | RespondFailure {
+  if (!check) return fail('not_found', '확인할 변경을 찾지 못했어요.');
+  if (check.recipient !== answeredBy) {
+    return fail(
+      'not_recipient',
+      `${check.recipient}님에게 온 확인할 변경이라 ${answeredBy}님은 답할 수 없어요.`,
+    );
+  }
+  if (check.status !== 'pending') return closedFailure(check.status);
+  return { ok: true };
+}
+
 /** 이미 닫힌 변경에 답했을 때의 결과. 지금 상태를 함께 돌려줘요 */
 export function closedFailure(
   status: Exclude<PendingCheckStatus, 'pending'>,
