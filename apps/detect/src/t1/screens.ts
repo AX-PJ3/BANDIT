@@ -152,6 +152,18 @@ export type T1NoticeInput =
   | { kind: 'similarDeclined' }
   | { kind: 'saveRace' };
 
+/**
+ * 굵은 이름 뒤에 내용을 이어 COLS칸에서 줄을 나눠요. 넘어간 줄은 들여쓰고 기본 글자색으로 다시 칠해요.
+ * 터미널이 알아서 넘긴 줄은 꾸밈이 풀려 회색이 되어 다른 문장처럼 보여요 (10/16)
+ */
+function labeledLines(label: string, text: string): string[] {
+  return wrap(`${label}${text}`, COLS - 2).map((line, i) =>
+    i === 0 && line.startsWith(label)
+      ? `  ${strong(label, true)}${strong(line.slice(label.length))}`
+      : `  ${strong(line, i === 0)}`,
+  );
+}
+
 /** 예외 안내: 색 막대 한 줄과 설명 한 줄 (프로토타입 failFlow·sameFlow·race) */
 export function noticeScreen(input: T1NoticeInput): string {
   const { notices } = T1_COPY;
@@ -169,7 +181,10 @@ export function noticeScreen(input: T1NoticeInput): string {
           ? colorBar('red', notices.same)
           : colorBar('yellow', notices.similar),
         // 이미 있는 결정 사항: 굵은 [영역] 제목 · 값 (프로토타입 existingLine)
-        `  ${strong(areaTitle(existing.id, existing.title), true)}${strong(` · ${existing.value}`)}`,
+        ...labeledLines(
+          areaTitle(existing.id, existing.title),
+          ` · ${existing.value}`,
+        ),
       ].join('\n');
     }
     case 'revertSame': {
@@ -177,8 +192,14 @@ export function noticeScreen(input: T1NoticeInput): string {
       return [
         colorBar('red', notices.revertSame.head),
         // 되돌려 달라고 한 버전: 굵은 [영역] vN: 값
-        `  ${strong(`[${area}] v${input.version}`, true)}${strong(`: ${input.versionValue}`)}`,
-        `  ${strong(notices.revertSame.current, true)}${strong(`: ${input.existing.value}`)}`,
+        ...labeledLines(
+          `[${area}] v${input.version}`,
+          `: ${input.versionValue}`,
+        ),
+        ...labeledLines(
+          notices.revertSame.current,
+          `: ${input.existing.value}`,
+        ),
       ].join('\n');
     }
     case 'similarDeclined':
