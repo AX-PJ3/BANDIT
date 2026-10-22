@@ -998,6 +998,24 @@ describe('noticeScreen (예외 안내, 10/14 확정)', () => {
     ).toBe(true);
   });
 
+  it('기존 결정 사항 줄이 길면 76칸에서 나누고 넘어간 줄도 기본 글자색으로 칠해요', () => {
+    const long = {
+      id: 'copy.explain.plain-words',
+      title: '변경 설명에는 개발 용어 대신 쉬운 말을 쓴다',
+      value:
+        'AI가 쓰는 변경 설명은 개발 용어를 꼭 필요할 때만 쓰고, 처음 나오면 괄호로 풀어 쓴다',
+    };
+    const screen = noticeScreen({ kind: 'same', existing: long });
+    const [, ...rest] = lines({ kind: 'same', existing: long });
+    expect(rest.length).toBeGreaterThan(1);
+    expect(rest.every((line) => textWidth(line) <= COLS)).toBe(true);
+    expect(rest.join(' ').replace(/\s+/g, ' ').trim()).toBe(
+      `[copy] ${long.title} · ${long.value}`,
+    );
+    // 넘어간 줄도 기본 글자색(39)으로 시작해요
+    expect(screen.split('\n')[2]?.startsWith('  \u001b[0;39m')).toBe(true);
+  });
+
   it('되돌릴 버전이 지금 값과 같으면 빨간 막대와 그 버전 값·지금 값을 보여 줘요 (SIL-104)', () => {
     const input: T1NoticeInput = {
       kind: 'revertSame',
