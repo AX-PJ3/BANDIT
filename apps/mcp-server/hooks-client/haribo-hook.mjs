@@ -73,9 +73,11 @@ function withPreview(input) {
 }
 
 /** ③을 사람에게 보여 준 뒤(서버가 화면을 돌려줬을 때) 그 값을 남겨요 */
-function keepPreview(input) {
+function keepPreview(input, body) {
   if (event !== 'after-t1') return;
   try {
+    // 서버가 화면을 못 만들었으면(systemMessage 없음) 사람이 ③을 못 봤으니 남기지 않아요
+    if (!JSON.parse(body).systemMessage) return;
     const parsed = JSON.parse(input);
     const file = previewFile(parsed.session_id, parsed.tool_input?.preview?.id);
     if (parsed.tool_input?.screen === 'preview' && file)
@@ -175,7 +177,7 @@ async function main() {
       }
       return failed(detail);
     }
-    keepPreview(input);
+    keepPreview(input, body);
     return body === '{}' ? '' : body;
   } catch {
     return failed();

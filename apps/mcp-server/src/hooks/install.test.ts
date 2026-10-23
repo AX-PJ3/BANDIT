@@ -392,7 +392,7 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
   });
 
   it('세션 번호나 결정 사항 ID 모양이 틀리면 파일을 만들지 않아요 (경로 문자 막기)', async () => {
-    const server = await fakeServer();
+    const server = await fakeServer({ systemMessage: '화면' });
     try {
       const home = tempHome();
       const { scriptPath } = installHooks({
@@ -414,6 +414,33 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
           name.startsWith('t1-'),
         ),
       ).toEqual([]);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('서버가 화면을 못 만들었으면(systemMessage 없음) ③ 값을 남기지 않아요', async () => {
+    const server = await fakeServer({
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: '화면을 만들지 못했어요',
+      },
+    });
+    try {
+      const home = tempHome();
+      const { scriptPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      await runHook(scriptPath, 'after-t1', {
+        session_id: 's1',
+        tool_input: { screen: 'preview', preview },
+      });
+      expect(
+        existsSync(join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`)),
+      ).toBe(false);
     } finally {
       await server.close();
     }
