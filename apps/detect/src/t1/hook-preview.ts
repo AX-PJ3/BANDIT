@@ -19,7 +19,7 @@ if (!isPreviewCommand(String(event.tool_input?.command ?? ''))) {
 
 // ③ 명령일 때만 패키지(@sil/core)를 불러와요 (preview-command.ts 설명)
 const { readPending } = await import('./pending.ts');
-const { previewScreen } = await import('./screens.ts');
+const { previewScreen } = await import('@sil/t1');
 // preview.ts가 남긴 마지막 줄 "…들고 있어요: <결정 사항 ID>"에서 이번 ③의 결정 사항을 찾아요
 const pending = readPending(
   findPreviewId(String(event.tool_response?.stdout ?? '')),

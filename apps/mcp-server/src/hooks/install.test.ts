@@ -3,6 +3,7 @@ import { createServer, type IncomingMessage } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import {
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -64,6 +65,8 @@ describe('mergeHooks', () => {
       'UserPromptSubmit',
       'PostToolUse',
       'Stop',
+      'PreToolUse',
+      'PostToolUseFailure',
     ]);
     // 작업을 마친 뒤 한 줄 (notify.terminal.new-after-answered v2)
     expect(merged.hooks?.Stop).toEqual([
@@ -108,12 +111,54 @@ describe('mergeHooks', () => {
     const once = mergeHooks(settings, script);
     const twice = mergeHooks(once, script);
     expect(twice.model).toBe('opus');
-    // 다른 hooks 하나 + respond 뒤 + mark_reflected 뒤
-    expect(twice.hooks?.PostToolUse).toHaveLength(3);
+    // 다른 hooks 하나 + respond 뒤 + mark_reflected 뒤 + T1 화면 뒤 + T1 저장 뒤
+    expect(twice.hooks?.PostToolUse).toHaveLength(5);
     expect(twice.hooks?.PostToolUse?.[0]).toEqual(other);
     expect(twice.hooks?.SessionStart).toHaveLength(1);
     // 원래 설정은 바꾸지 않아요
     expect(settings.hooks.PostToolUse).toHaveLength(1);
+  });
+});
+
+describe('mergeHooks: T1 결정 사항 확인 (BDT-108)', () => {
+  const script = '/home/me/.claude/haribo/hook.mjs';
+  const hook = (event: string) => ({
+    type: 'command',
+    command: `node "${script}" ${event}`,
+    timeout: 20,
+  });
+
+  it('화면 도구 직후, 저장 직전·직후·실패에 hooks를 넣어요', () => {
+    const merged = mergeHooks({}, script);
+    expect(merged.hooks?.PostToolUse?.slice(2)).toEqual([
+      {
+        matcher: 'mcp__haribo__show_standard_check',
+        hooks: [hook('after-t1')],
+      },
+      { matcher: 'mcp__haribo__save_standard', hooks: [hook('after-save')] },
+    ]);
+    expect(merged.hooks?.PreToolUse).toEqual([
+      { matcher: 'mcp__haribo__save_standard', hooks: [hook('before-save')] },
+    ]);
+    expect(merged.hooks?.PostToolUseFailure).toEqual([
+      { matcher: 'mcp__haribo__save_standard', hooks: [hook('after-save')] },
+    ]);
+  });
+
+  it('이 저장소 .claude/settings.json의 지금 T1 hooks(Bash)는 지우지 않아요', () => {
+    const bash = {
+      matcher: 'mcp__haribo__save_standard',
+      hooks: [
+        {
+          type: 'command' as const,
+          command:
+            'node "$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-guard.ts"',
+        },
+      ],
+    };
+    const merged = mergeHooks({ hooks: { PreToolUse: [bash] } }, script);
+    expect(merged.hooks?.PreToolUse?.[0]).toEqual(bash);
+    expect(merged.hooks?.PreToolUse).toHaveLength(2);
   });
 });
 
@@ -261,5 +306,182 @@ describe('팀원 PC 스크립트 (haribo-hook.mjs)', () => {
     expect(afterReflect).toEqual({ code: 0, stdout: '' });
     const afterWork = await runHook(scriptPath, 'after-work', {});
     expect(afterWork).toEqual({ code: 0, stdout: '' });
+  });
+});
+
+describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
+  const preview = {
+    id: 'app.notify.title-length',
+    title: '앱 알림 제목은 32자 이하로 쓴다',
+    value: '공백 포함 32자 이하',
+    reason: 'Windows 알림 창에서 잘림',
+    alwaysOn: false,
+  };
+  const save = (sessionId = 's1') => ({
+    session_id: sessionId,
+    tool_input: { ...preview, baseVersion: 2 },
+  });
+
+  /** 받은 본문을 남기고 정해 둔 JSON을 돌려주는 가짜 서버 */
+  async function fakeServer(reply: object = {}) {
+    const bodies: { url?: string; body: Record<string, unknown> }[] = [];
+    const server = createServer((req: IncomingMessage, res) => {
+      let body = '';
+      req.on('data', (chunk) => (body += chunk));
+      req.on('end', () => {
+        bodies.push({ url: req.url, body: JSON.parse(body) });
+        res.setHeader('content-type', 'application/json');
+        res.end(JSON.stringify(reply));
+      });
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, '127.0.0.1', resolve),
+    );
+    const { port } = server.address() as AddressInfo;
+    return {
+      hooksUrl: `http://127.0.0.1:${port}/hooks`,
+      bodies,
+      close: () =>
+        new Promise<void>((resolve) => server.close(() => resolve())),
+    };
+  }
+
+  it('③ 직후 값을 남기고, 저장 직전·직후에 t1_preview로 붙여 보낸 뒤 지워요', async () => {
+    const server = await fakeServer({ systemMessage: '화면' });
+    try {
+      const home = tempHome();
+      const { scriptPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      const file = join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`);
+
+      // ③이 아닌 화면은 남기지 않아요
+      await runHook(scriptPath, 'after-t1', {
+        session_id: 's1',
+        tool_input: { screen: 'notice', notice: { kind: 'similarDeclined' } },
+      });
+      expect(existsSync(file)).toBe(false);
+
+      const shown = await runHook(scriptPath, 'after-t1', {
+        session_id: 's1',
+        tool_input: { screen: 'preview', preview },
+      });
+      expect(JSON.parse(shown.stdout)).toEqual({ systemMessage: '화면' });
+      expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual(preview);
+
+      await runHook(scriptPath, 'before-save', save());
+      expect(server.bodies.at(-1)).toEqual({
+        url: '/hooks/before-save',
+        body: { ...save(), t1_preview: preview },
+      });
+      expect(existsSync(file)).toBe(true);
+
+      // 다른 세션의 저장에는 붙이지 않아요
+      await runHook(scriptPath, 'before-save', save('s2'));
+      expect(server.bodies.at(-1)?.body).toEqual(save('s2'));
+
+      await runHook(scriptPath, 'after-save', save());
+      expect(server.bodies.at(-1)?.body.t1_preview).toEqual(preview);
+      expect(existsSync(file)).toBe(false);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('세션 번호나 결정 사항 ID 모양이 틀리면 파일을 만들지 않아요 (경로 문자 막기)', async () => {
+    const server = await fakeServer({ systemMessage: '화면' });
+    try {
+      const home = tempHome();
+      const { scriptPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      await runHook(scriptPath, 'after-t1', {
+        session_id: '../../evil',
+        tool_input: { screen: 'preview', preview },
+      });
+      await runHook(scriptPath, 'after-t1', {
+        session_id: 's1',
+        tool_input: { screen: 'preview', preview: { ...preview, id: '../x' } },
+      });
+      expect(
+        readdirSync(join(home, '.claude', 'haribo')).filter((name) =>
+          name.startsWith('t1-'),
+        ),
+      ).toEqual([]);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('서버가 화면을 못 만들었으면(systemMessage 없음) ③ 값을 남기지 않아요', async () => {
+    const server = await fakeServer({
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext: '화면을 만들지 못했어요',
+      },
+    });
+    try {
+      const home = tempHome();
+      const { scriptPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      await runHook(scriptPath, 'after-t1', {
+        session_id: 's1',
+        tool_input: { screen: 'preview', preview },
+      });
+      expect(
+        existsSync(join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`)),
+      ).toBe(false);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('서버에 못 붙으면: 화면 뒤에는 멈추라고 알리고, ③을 거친 저장 직전에는 사람에게 물어요. 나머지는 조용히 끝나요', async () => {
+    const home = tempHome();
+    const { scriptPath } = installHooks({
+      home,
+      hooksUrl: 'http://127.0.0.1:9/hooks',
+      user: '경하',
+      scriptSource: SCRIPT,
+    });
+    const shown = await runHook(scriptPath, 'after-t1', {
+      session_id: 's1',
+      tool_input: { screen: 'preview', preview },
+    });
+    expect(shown.code).toBe(0);
+    expect(
+      JSON.parse(shown.stdout).hookSpecificOutput.additionalContext,
+    ).toContain('다음 단계로 가지 말고');
+    // 화면을 못 띄웠으니 ③ 값도 남기지 않아요
+    const file = join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`);
+    expect(existsSync(file)).toBe(false);
+
+    // ③ 파일이 없는 저장(지금 T1, 안내문 2·3번)은 그대로 둬요 (PR A)
+    expect(await runHook(scriptPath, 'before-save', save())).toEqual({
+      code: 0,
+      stdout: '',
+    });
+
+    writeFileSync(file, JSON.stringify(preview));
+    const before = await runHook(scriptPath, 'before-save', save());
+    expect(JSON.parse(before.stdout).hookSpecificOutput).toMatchObject({
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'ask',
+    });
+    expect(await runHook(scriptPath, 'after-save', save())).toEqual({
+      code: 0,
+      stdout: '',
+    });
+    expect(existsSync(file)).toBe(false);
   });
 });

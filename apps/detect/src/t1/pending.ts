@@ -10,8 +10,7 @@ import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { STANDARD_ID_PATTERN, type SaveStandardInput } from '@sil/core';
-import type { T1Target } from './issues.ts';
-import type { T1ConflictsInput, T1NoticeInput } from './screens.ts';
+import type { T1ConflictsInput, T1NoticeInput, T1Target } from '@sil/t1';
 
 /**
  * 사람에게 ③으로 보여 준 값. 모양은 save_standard 입력에서 골라 써요 (타입은 core에만).

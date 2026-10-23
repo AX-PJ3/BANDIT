@@ -113,7 +113,8 @@ haribo/
 │   ├── web/         웹 앱 (PWA). 브라우저로 열고 앱으로 설치            신지님(화면) · 정민님(데이터·배포)
 ├── packages/            가져다 쓰는 코드
 │   ├── core/        공통 타입, 에러, 쿠폰 예시 데이터, DB 읽기·쓰기      정민님 (모두 사용)
-│   └── notify/      알리기: 확인할 변경 만들기, 목록, 답 (임시 저장소)    민수님
+│   ├── notify/      알리기: 확인할 변경 만들기, 목록, 답 (임시 저장소)    민수님
+│   └── t1/          T1 결정 사항 확인 화면·문구·저장 값                  경하님
 ├── supabase/
 │   ├── migrations/            데이터베이스 표·함수·권한 (SQL)
 │   └── tests/                 데이터베이스 규칙 검사 (SQL, Docker 없이 실행)
@@ -138,6 +139,7 @@ haribo/
 | 화면에 데이터 연결      | `apps/web/src/api/types.ts`에 함수 약속 → database·mock                       | [web/README](apps/web/README.md)               |
 | 공통 타입, DB 읽기·쓰기 | `packages/core/` (정민님에게 PR로 요청)                                       | [core/README](packages/core/README.md)         |
 | 바뀐 기준 찾기          | `apps/detect/` (경하님, SIL-66)                                               | -                                              |
+| T1 화면·문구            | `packages/t1/` (경하님, BDT-108)                                              | [t1/README](packages/t1/README.md)             |
 
 규칙 네 가지만 기억해요.
 

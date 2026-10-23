@@ -1,7 +1,7 @@
 /**
  * T1 hooks 화면의 칸 수 계산과 줄 나누기예요.
  * 칸 규칙은 부건님 프로토타입(t1-prototype, screens.py)과 `@sil/notify`의 `terminal/text.ts`와 같아요.
- * detect는 notify를 불러오지 않아서 T1 화면에 필요한 것만 둬요.
+ * t1은 notify를 불러오지 않아서 T1 화면에 필요한 것만 둬요.
  */
 
 /** 한글·한자·전각 문자처럼 터미널에서 2칸을 차지하는 글자인지 (유니코드 동아시아 폭 W·F) */

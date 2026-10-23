@@ -12,14 +12,14 @@
 - 작업을 시작하기 전에 팀 위키의 INDEX.md를 읽는다. "항상 적용되는 기준"은 모든 작업에서 지킨다.
 - 이번 작업과 관련된 영역 파일만 열어 본다. 위키 전체를 읽지 않는다.
 - 팀 위키에 있는 기준과 다르게 만들게 되면, 만들기 전에 사용자에게 "팀 기준을 바꾸는 건지" 먼저 묻는다 (T1, SIL-66). auto mode에서도 같다.
-  문구는 `apps/detect/src/t1/copy.ts`의 `T1_COPY`를 글자 그대로 쓴다(바꿔 말하지 않는다). 선택지는 거기 있는 것만 쓰고 새로 만들지 않는다.
+  문구는 `packages/t1/src/copy.ts`의 `T1_COPY`를 글자 그대로 쓴다(바꿔 말하지 않는다). 선택지는 거기 있는 것만 쓰고 새로 만들지 않는다.
   1. haribo `get_standard`로 지금 영역·제목·값·`alwaysOn`·`currentVersion`과 적용 범위(`versions[0].scope`)를 읽는다.
      - 1-1. 되돌림 확인 (SIL-104, `detect.change.revert-mark`): `get_standard`는 `historyLimit: 50`으로 읽고, 바꿀 값을 지금 버전이 아닌 예전 버전과 비교한다. 띄어쓰기·끝 마침표·전각 글자만 다르거나, 글자는 달라도 뜻이 같으면(숫자·범위·조건·대상이 모두 같을 때만) 되돌림이다. 되돌림이면 바꿀 값을 그 버전의 값으로 글자 그대로 바꾸고(저장은 그대로 `save_standard`, DB가 되돌림으로 표시한다), 2의 화면에 그 버전을 `revert`로 더한다(되돌림 화면이 된다. 어긋나는 결정 사항이 없으면 보라 막대, 있으면 노란 막대). 2·5의 선택 창 질문은 되돌림이 아닐 때와 같다.
   2. 다른 결정 사항 화면: `trigger`(작업 중에 알아챘으면 `"agent"`, 8의 직접 요청이면 `"direct"`), 부탁받은 작업이나 요청을 한 줄로 정리한 `request`, 바꾸려는 결정 사항(`kind: "change"`, 맨 앞)·바꾸면 함께 어긋나는 다른 결정 사항(`kind: "mismatch"`)을 JSON으로 `node apps/detect/src/t1/conflicts.ts <<'EOF' … EOF`에 넘겨 실행한다(화면은 hook이 띄운다). 항목마다 `id`·`title`·`kind`·`why`를 넣고(`why`는 어떻게 바뀌는지만 짧게 쓴 한 문장. `change`는 지금 값과 바꿀 값만 써서 "40자 이하로 정한 길이를 32자 이하로 다시 정해요"처럼, `mismatch`는 무엇이 어긋나는지만 써서 "결정 사항 제목(최대 40자)을 그대로 쓰면 32자에서 잘려요"처럼 쓴다. "지금 결정 사항은 …인데, 부탁하신 작업은 …"처럼 작업을 다시 설명하지 않는다. SIL-107), 낱말만 겹치는 결정 사항은 넣지 않는다. 1-1에서 되돌림이면 `kind: "change"` 항목에 지금 버전 `version`(`currentVersion`)을 넣고, `get_standard`로 읽은 되돌아갈 버전의 `version`·`title`·`reason`·`changedBy`·`createdAt`을 `revert`로 글자 그대로 더한다. 화면을 요약하거나 "화면을 띄웠어요"처럼 설명하는 글을 쓰지 않고 바로 다음으로 간다(③도 같다). 그다음 `ask`를 AskUserQuestion으로 묻는다(질문은 `ask.question`, header는 `ask.header`, 선택지는 `yes`·`no`의 label·description 그대로, 질문에 화면 내용을 다시 적지 않는다). 선택지 대신 글로 답하면 `ask.typedReply`를 쓰고 같은 질문을 다시 묻는다.
   3. 아니요면 저장하지 않고 `notChanged`를 보여 준 뒤 작업을 멈추고 기다린다. 지금 값대로도 코드를 쓰지 않는다. 사람이 "40자로 작업해 줘"처럼 어떻게 할지 다시 말할 때만 그대로 진행한다. 아니요는 그 프롬프트로 시작한 작업 하나에만 적용된다. 새 프롬프트로 다시 결정 사항과 다른 값을 쓰게 되면 새 작업이라 T1을 1부터 다시 한다(예외 11).
   4. 예면 이유를 정한다. 사람이 대화에서 한 말로 이유를 알 수 있으면 그 말을 한 문장으로 정리한다. 알 수 없으면 `reasonPrompt`를 글로 묻고(AskUserQuestion이 아님) 답을 한 문장으로 정리한다. 근거 없이 지어내지 않는다.
   5. ③ 등록될 모습: 등록할 값(`id`·`title`·`value`·`reason`·`alwaysOn`, 그리고 바꾸는 사람 이름 `changedBy` = 이 세션 `list_pending`의 `recipient`, 모르면 뺀다)을 JSON으로 `node apps/detect/src/t1/preview.ts <<'EOF' … EOF`에 넘겨 실행한다(화면은 hook이 띄운다). 그다음 `preview.confirm`을 AskUserQuestion으로 묻는다(header는 `preview.header`, 선택지는 `register`·`edit`·`cancel`의 label·description 그대로, 질문과 설명에 ③ 내용을 다시 적지 않는다. 명령 출력의 "알림 받는 이슈"가 1개 이상이면 `register` 대신 `registerWithIssues`를 쓴다). 수정하기면 `editPrompt`를 글로 묻고 고친 뒤 5를 다시 한다. 취소하기면 저장하지 않고 `cancelled`를 보여 준 뒤 하던 작업을 멈추고 사람의 말을 기다린다. `cancelled`는 다른 작업 중에 T1이 떴으면 `withTask`, 결정 사항을 바꿔 달라는 것 자체가 요청이었으면 `noTask`를 쓴다.
-  6. 등록하기면 haribo `save_standard`로 저장한다. 저장되면 hook이 ④ 등록 완료를 띄우니 ④를 다시 쓰거나 설명하지 않는다. 하던 작업이 있으면 `saved.next.withTask`를 쓰고 바꾼 값으로 그 작업을 이어가고, 결정 사항을 바꿔 달라는 것 자체가 요청이었으면 `saved.next.noTask`를 쓴다. `baseVersion`은 1에서 읽은 `currentVersion`, `alwaysOn`과 `scope`는 지금 값 그대로(scope를 비우면 적용 범위가 지워진다. 지금 값이 null이면 칸을 뺀다), `source`는 `ai_chat`, `aiDetected`는 `true`(직접 요청이면 `false`) (`apps/detect/src/t1/save-input.ts`와 같은 값, D61). 저장 결과의 `changelogLine`을 team-wiki/CHANGELOG.md 맨 아래에 그대로 붙인다(work.wiki.changelog). 위키 파일의 값·버전은 고치지 않는다 (위키 문서 버전과 DB 버전은 별개).
+  6. 등록하기면 haribo `save_standard`로 저장한다. 저장되면 hook이 ④ 등록 완료를 띄우니 ④를 다시 쓰거나 설명하지 않는다. 하던 작업이 있으면 `saved.next.withTask`를 쓰고 바꾼 값으로 그 작업을 이어가고, 결정 사항을 바꿔 달라는 것 자체가 요청이었으면 `saved.next.noTask`를 쓴다. `baseVersion`은 1에서 읽은 `currentVersion`, `alwaysOn`과 `scope`는 지금 값 그대로(scope를 비우면 적용 범위가 지워진다. 지금 값이 null이면 칸을 뺀다), `source`는 `ai_chat`, `aiDetected`는 `true`(직접 요청이면 `false`) (`packages/t1/src/save-input.ts`와 같은 값, D61). 저장 결과의 `changelogLine`을 team-wiki/CHANGELOG.md 맨 아래에 그대로 붙인다(work.wiki.changelog). 위키 파일의 값·버전은 고치지 않는다 (위키 문서 버전과 DB 버전은 별개).
   7. T1 선택 창을 Esc로 닫으면 취소하기와 같다. 다음 말이 오면 먼저 `cancelled`(5와 같은 기준으로 `withTask`·`noTask`)를 보여 주고 저장하지 않는다. "계속해 줘"처럼 어떻게 할지 분명하지 않으면 작업하지 않고 기다린다. 결정 사항을 바꾸라는 말이면 T1을 1부터 다시 한다.
   8. 직접 요청 (SIL-94, `detect.ask.direct-request-skip-warn`): 사람이 "결정 사항"이나 "위키"를 바꿔 달라고 분명히 말했을 때만 직접 요청으로 본다(10/15 임시 기준, PM과 확인 중). "32자로 자르는 함수를 만들어 줘"처럼 코드만 말하면 직접 요청이 아니라 1부터 한다.
      - 결정 사항을 vN(또는 "이전 버전" = `currentVersion - 1`)으로 되돌려 달라는 요청도 직접 요청이다. 1로 읽고, 바꿀 제목·값을 vN의 제목·값으로 글자 그대로 정한 뒤 아래 "기존 결정 사항이 있으면"과 같이 T1 화면을 거친다(1-1에서 되돌림이 되어 2에서 `ask`를 먼저 묻는다). 저장은 `save_standard`로 한다(③·④ hook이 `save_standard`에만 붙어 있어서 `revert`는 쓰지 않는다). 지금 값이 이미 vN의 값과 같으면(N이 지금 버전일 때도) 화면을 띄우지 않고 9의 "되돌릴 값이 지금과 같음"을 띄운다.
@@ -76,7 +76,8 @@
 - `supabase/migrations` DB 표·함수·권한, `supabase/tests` DB 규칙 검사 (SQL)
 - `apps/cli` `sil` 명령어. `src/commands/`에 파일 하나씩, `index.ts` 배열에 등록
 - `apps/web` 웹 앱(PWA, Vite, D50). 화면은 `src/screens/`, 화면↔데이터 약속은 `src/api/types.ts`, 설치 정보와 서비스 워커는 `public/`
-- `apps/detect` 바뀐 기준 찾기 (`@sil/detect`, 경하님 SIL-66). 에이전트 경로 T1 문구와 저장 값은 `src/t1/`. PR 경로는 아직 없음
+- `apps/detect` 바뀐 기준 찾기 (`@sil/detect`, 경하님 SIL-66). 에이전트 경로 T1의 Bash 명령과 hooks는 `src/t1/`. PR 경로는 아직 없음
+- `packages/t1` T1 화면 모양·문구·저장 값(`@sil/t1`, 경하님 BDT-108). `apps/detect`와 MCP 서버가 가져다 써요
 
 ## 코드 규칙
 
@@ -85,7 +86,7 @@
 - DB 쓰기는 데이터베이스 함수(`save_standard`, `revert_standard`, `deprecate_standard`, `save_issue`, `hold_conflict`, `resolve_conflict`, `save_answer`, `save_reflected`)로만 한다. 확인할 변경은 기준을 저장할 때 `on_standard_version_saved`가 만든다. 규칙은 `@sil/notify`의 `createPendingChecks`와 같게 두고, 한쪽을 고치면 다른 쪽과 `supabase/tests/notify_rules.test.sql`도 고친다 (D53). 표에 직접 insert/update/delete 하지 않는다 (공용 키는 막혀 있다).
 - 화면·도구·안내 문구에서는 위키의 항목을 "결정 사항"이라고 쓰고 "기준"이라고 쓰지 않는다(copy.term.standard v2, D57). 코드 이름(`standard`)과 위키 파일 이름·응답 기록 열 이름은 그대로다.
 - 표·칸 이름은 `용어.md`의 코드 이름을 따른다(`pending_checks`, `affected`, `known`). 위키 기준을 코드로 옮긴 곳에는 기준 ID를 주석에 남긴다.
-- 위키 MCP 도구는 다섯 개다(`wiki.mcp.five-tools`). 새 위키 도구를 더하지 않는다. 폐기는 사람이 `sil deprecate`로 한다.
+- 위키 MCP 도구는 여섯 개다(`wiki.mcp.five-tools`). 여섯 번째 `show_standard_check`는 결정 사항 확인 화면만 띄우고 저장하지 않는다. 이 밖의 새 위키 도구를 더하지 않는다. 폐기는 사람이 `sil deprecate`로 한다.
 - 표 칸은 착수 안내 "데이터 항목 목록 v2"를 따른다. 기준 저장 필수 칸은 ID, 제목, 값, 이유, 항상 적용 5개다 (SIL-65).
 - 사람은 이름으로만 구분한다. `X-Sil-User` 헤더는 이름을 퍼센트 인코딩해서 보낸다.
 - 표를 바꿀 때는 이미 올린 마이그레이션을 고치지 않고 `supabase/migrations/`에 새 파일을 더하고, `supabase/tests/`에 검사를 붙인다.

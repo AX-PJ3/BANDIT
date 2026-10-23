@@ -21,6 +21,7 @@
     "@modelcontextprotocol/server": "^2.3.1",
     "@sil/core": "workspace:*",
     "@sil/notify": "workspace:*",
+    "@sil/t1": "workspace:*",
     "zod": "^4.2.0"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@
  * haribo 터미널 알림 hooks (SIL-67). `pnpm mcp:register`가 ~/.claude/haribo/에 복사해 두는 파일이에요.
  *
  *   node ~/.claude/haribo/hook.mjs session-start | prompt-submit | after-respond | after-reflect | after-work
+ *   node ~/.claude/haribo/hook.mjs after-t1 | before-save | after-save   (T1 결정 사항 확인, BDT-108)
  *
  * Claude Code가 hooks 이벤트(JSON)를 표준 입력으로 주면, 그대로 팀 MCP 서버의 /hooks/<이벤트>로 보내고
  * 서버가 돌려준 JSON(systemMessage 등)을 그대로 출력해요. 화면 글은 서버가 만들어요.
@@ -11,8 +12,11 @@
  * - 서버 주소·토큰·이름은 같은 폴더의 config.json에서 읽어요.
  * - 서버에 못 붙어도 작업은 막지 않아요. 실패를 한 줄로 알리고 끝나요 (notify.error.no-block-retry).
  *   이 문구는 @sil/notify의 connectionFailedNotice와 같게 둬요.
+ * - T1: ③ 등록될 모습 직후(after-t1) 보여 준 값을 같은 폴더에 "세션 번호 + 결정 사항 ID" 파일로 남기고,
+ *   저장 직전·직후(before-save, after-save)에 그 값을 t1_preview로 붙여 보내요. 저장이 끝나면 지워요.
+ *   서버는 쉬었다 깨어나면 메모리가 비어서 ③ 값을 내 PC에 둬요 (BDT-108 10/23).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, rmSync, writeFileSync } from 'node:fs';
 
 const EVENTS = [
   'session-start',
@@ -20,6 +24,9 @@ const EVENTS = [
   'after-respond',
   'after-reflect',
   'after-work',
+  'after-t1',
+  'before-save',
+  'after-save',
 ];
 /** 무료 호스팅은 쉬다가 깨어나느라 느릴 수 있어서 넉넉히 기다려요. Claude Code hooks 시간 제한(설정 20초)보다 짧게 둬요 */
 const TIMEOUT_MS = 15_000;
@@ -36,11 +43,85 @@ const FAILED_CONTEXT =
 
 const event = process.argv[2];
 
+/** T1 ③ 값 파일. 세션 번호와 결정 사항 ID 모양이 맞을 때만 만들어요 (경로 문자 막기) */
+function previewFile(sessionId, id) {
+  if (typeof sessionId !== 'string' || !/^[A-Za-z0-9_-]+$/.test(sessionId))
+    return null;
+  if (typeof id !== 'string' || !/^[a-z]+\.[a-z0-9-]+\.[a-z0-9-]+$/.test(id))
+    return null;
+  return new URL(`./t1-${sessionId}-${id}.json`, import.meta.url);
+}
+
+/** 이번 저장에 붙인 ③ 값. 없으면 ③을 거치지 않은 저장이에요 */
+let t1Preview;
+
+/** 저장 직전·직후에만 ③ 값을 붙여요. 그 밖에는 받은 그대로 보내요 */
+function withPreview(input) {
+  if (!['before-save', 'after-save'].includes(event)) return input || '{}';
+  try {
+    const parsed = JSON.parse(input);
+    const file = previewFile(parsed.session_id, parsed.tool_input?.id);
+    t1Preview = file ? JSON.parse(readFileSync(file, 'utf8')) : undefined;
+    // 저장이 끝나면 지워요. 다음 저장은 ③을 다시 거쳐요
+    if (file && event === 'after-save') rmSync(file, { force: true });
+    return t1Preview
+      ? JSON.stringify({ ...parsed, t1_preview: t1Preview })
+      : input;
+  } catch {
+    return input || '{}';
+  }
+}
+
+/** ③을 사람에게 보여 준 뒤(서버가 화면을 돌려줬을 때) 그 값을 남겨요 */
+function keepPreview(input, body) {
+  if (event !== 'after-t1') return;
+  try {
+    // 서버가 화면을 못 만들었으면(systemMessage 없음) 사람이 ③을 못 봤으니 남기지 않아요
+    if (!JSON.parse(body).systemMessage) return;
+    const parsed = JSON.parse(input);
+    const file = previewFile(parsed.session_id, parsed.tool_input?.preview?.id);
+    if (parsed.tool_input?.screen === 'preview' && file)
+      writeFileSync(file, JSON.stringify(parsed.tool_input.preview), 'utf8');
+  } catch {
+    // 남기지 못하면 저장 직전 확인을 건너뛰어요 (PR A에서는 막지 않음)
+  }
+}
+
+/**
+ * T1 실패 출력. 화면을 못 띄웠으면 Claude가 다음 단계로 가지 않게 알리고,
+ * ③을 거친 저장 직전이면 그래도 사람에게 물어요. 저장 직후는 조용히 끝내요
+ */
+function t1Failed() {
+  if (event === 'after-t1') {
+    return JSON.stringify({
+      systemMessage: `\n${esc('31')}${esc('7')} ${esc('27')}${esc('39')} 서버에 연결하지 못해서 결정 사항 확인 화면을 띄우지 못했어요.`,
+      hookSpecificOutput: {
+        hookEventName: 'PostToolUse',
+        additionalContext:
+          '결정 사항 확인 화면을 띄우지 못했어요(서버 연결 실패). 사람에게 화면이 보이지 않았으니 다음 단계로 가지 말고 멈춘 뒤 사람의 말을 기다려요.',
+      },
+    });
+  }
+  if (event === 'before-save' && t1Preview) {
+    return JSON.stringify({
+      hookSpecificOutput: {
+        hookEventName: 'PreToolUse',
+        permissionDecision: 'ask',
+        permissionDecisionReason:
+          '서버에 연결하지 못해 ③에서 보여 드린 값과 같은지 확인하지 못했어요. 저장할지 직접 확인해 주세요.',
+      },
+    });
+  }
+  return '';
+}
+
 /**
  * 실패를 알리는 출력. 도구를 부른 뒤(after-respond, after-reflect)에는 Claude가 결과를 이미 받아서,
  * 작업을 마친 뒤(after-work)에는 다음 입력 때 실패를 알리니 조용히 끝내요
  */
 function failed(detail) {
+  if (['after-t1', 'before-save', 'after-save'].includes(event))
+    return t1Failed();
   if (['after-respond', 'after-reflect', 'after-work'].includes(event))
     return '';
   const message = detail ? `${FAILED_NOTICE}\n  (${detail})` : FAILED_NOTICE;
@@ -83,7 +164,7 @@ async function main() {
     const response = await fetch(`${config.hooksUrl}/${event}`, {
       method: 'POST',
       headers,
-      body: input || '{}',
+      body: withPreview(input),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     const body = await response.text();
@@ -96,6 +177,7 @@ async function main() {
       }
       return failed(detail);
     }
+    keepPreview(input, body);
     return body === '{}' ? '' : body;
   } catch {
     return failed();

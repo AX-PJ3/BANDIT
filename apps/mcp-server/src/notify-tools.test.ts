@@ -12,7 +12,7 @@ import * as webData from '@sil/core/data';
 import { setDbForTesting } from '@sil/core/node';
 import { buildPendingList, loadNotifyData } from '@sil/notify/browser';
 import { createFakeDb, type FakeDb } from '@sil/core/testing';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { parseTokens } from './auth.ts';
 import { createHttpApp, type HttpApp } from './http.ts';
 import { clearInstructionsCache } from './instructions.ts';
@@ -20,6 +20,8 @@ import { clearInstructionsCache } from './instructions.ts';
 const TOKEN = 'test-token-0123456789abcdefghij';
 const BASE = 'http://localhost:3333';
 const STANDARD = 'app.notify.title-length';
+/** 예시 데이터는 10/13에 답한 변경이라, 7일 안에 들도록 지금 시각을 10/16으로 고정해요 (notify.list.closed-7-days) */
+const NOW = '2026-10-16T00:00:00+00:00';
 
 function versionRow(version: number, value: string, changedBy: string) {
   return {
@@ -214,6 +216,9 @@ function installFakeDb(tables = demoTables()) {
 }
 
 beforeEach(() => {
+  // 날짜만 고정하고 기다리기 타이머는 실제로 둬요
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(NOW));
   clearInstructionsCache();
   app = createHttpApp({ tokens: parseTokens(`team-a:${TOKEN}`) });
   installFakeDb();
@@ -224,6 +229,7 @@ afterEach(async () => {
   clients = [];
   await app.close();
   setDbForTesting(undefined);
+  vi.useRealTimers();
 });
 
 async function connectAs(user?: string) {
