@@ -168,7 +168,7 @@ describe('MCP 도구 (가짜 DB)', () => {
   });
   let rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
 
-  it('위키 도구 5개, 알리기 도구 3개, ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools)', async () => {
+  it('위키 도구 5개, 알리기 도구 3개, 결정 사항 확인 화면 도구, ping이 보이고, 안내문에 항상 적용되는 결정 사항이 들어가요 (wiki.mcp.five-tools v2)', async () => {
     const client = await connect();
     const { tools } = await client.listTools();
     expect(tools.map((tool) => tool.name).sort()).toEqual(
@@ -182,11 +182,51 @@ describe('MCP 도구 (가짜 DB)', () => {
         'list_pending',
         'respond',
         'mark_reflected',
+        'show_standard_check',
       ].sort(),
     );
     expect(client.getInstructions()).toContain(
       'wiki.save.required-fields (v1)',
     );
+  });
+
+  it('show_standard_check: 입력만 검사하고 { ok: true }만 돌려줘요. 저장하지 않아요 (BDT-108)', async () => {
+    const client = await connect();
+    const { tools } = await client.listTools();
+    expect(
+      tools.find((tool) => tool.name === 'show_standard_check')?.annotations,
+    ).toMatchObject({ readOnlyHint: true, openWorldHint: false });
+
+    const preview = {
+      id: 'order.coupon.nullable',
+      title: '쿠폰 칸은 비울 수 있다',
+      value: 'coupon 칸은 null일 수 있다',
+      reason: '쿠폰 없이 주문할 수 있어서',
+      alwaysOn: false,
+    };
+    const shown = await client.callTool({
+      name: 'show_standard_check',
+      arguments: { screen: 'preview', preview },
+    });
+    expect(shown.isError).toBeFalsy();
+    expect(JSON.parse(text(shown))).toEqual({ ok: true });
+    expect(rpcCalls).toEqual([]);
+
+    // 고른 화면과 다른 칸을 채우거나, 에이전트가 빈 목록을 넘기면 거절해요
+    for (const args of [
+      { screen: 'conflicts', preview },
+      {
+        screen: 'conflicts',
+        conflicts: { trigger: 'agent', request: '작업', conflicts: [] },
+      },
+      { screen: 'notice', notice: { kind: 'saveRace' } },
+    ]) {
+      const rejected = await client.callTool({
+        name: 'show_standard_check',
+        arguments: args,
+      });
+      expect(rejected.isError).toBe(true);
+    }
   });
 
   it('search_standards: 고치려는 파일 경로로 결정 사항을 찾아요', async () => {
