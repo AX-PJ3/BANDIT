@@ -9,6 +9,7 @@
  *   /health → 상태만 알려 줌 (토큰 필요 없음, 호스팅의 상태 확인용)
  *   /mcp    → Origin 확인 → 토큰 확인(auth.ts) → MCP 처리(SDK createMcpHandler, 요청마다 서버 새로 만듦)
  *   /hooks/<이벤트> → Origin 확인 → 토큰 확인 → 터미널 알림 hooks (hooks/notify-hooks.ts, SIL-67)
+ *                     T1 이벤트(after-t1, before-save, after-save)는 결정 사항 확인 hooks로 (hooks/t1-hooks.ts, BDT-108)
  */
 import {
   createMcpHandler,
@@ -29,6 +30,11 @@ import {
   type HookInput,
   type NotifyHooksOptions,
 } from './hooks/notify-hooks.ts';
+import {
+  createT1Hooks,
+  isT1HookEvent,
+  type T1HooksOptions,
+} from './hooks/t1-hooks.ts';
 import { assertUniqueToolNames, createServer } from './server.ts';
 import { SERVER_INFO } from './server-info.ts';
 
@@ -43,6 +49,8 @@ export interface HttpAppOptions {
   tokens?: TokenEntry[];
   /** 터미널 알림 hooks 설정. 테스트에서 데이터 읽기와 시각을 바꿔 끼워요 */
   hooks?: NotifyHooksOptions;
+  /** T1 결정 사항 확인 hooks 설정. 테스트에서 받는 이슈 읽기를 바꿔 끼워요 */
+  t1Hooks?: T1HooksOptions;
 }
 
 export interface HttpApp {
@@ -79,6 +87,8 @@ export function createHttpApp(options: HttpAppOptions = {}): HttpApp {
 
   // 세션 상태("질문을 닫고 넘어갔는지")를 들고 있어서 서버 하나에 하나만 만들어요
   const hooks = createNotifyHooks(options.hooks);
+  // 상태를 들고 있지 않아요. ③ 값은 팀원 PC 파일에서 와요 (BDT-108)
+  const t1Hooks = createT1Hooks(options.t1Hooks);
 
   return {
     tokenCount: tokens.length,
@@ -124,6 +134,7 @@ export function createHttpApp(options: HttpAppOptions = {}): HttpApp {
     request: Request,
     event: string,
   ): Promise<Response> {
+    if (isT1HookEvent(event)) return t1Hooks.respond(request, event);
     if (request.method !== 'POST' || !isHookEvent(event)) {
       return Response.json(
         {

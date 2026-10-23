@@ -50,8 +50,11 @@ const conflictsInput = z
     path: ['conflicts'],
   });
 
-/** ③ 등록될 모습. 바꾸는 사람은 서버가 X-Sil-User로 알아서 받지 않아요 */
-const previewInput = z.object({
+/**
+ * ③ 등록될 모습. 바꾸는 사람은 서버가 X-Sil-User로 알아서 받지 않아요.
+ * 저장 직전 hook도 내 PC에 남긴 ③ 값을 이 모양으로 읽어요
+ */
+export const previewInput = z.object({
   id: standardId,
   title: filled,
   value: filled,
@@ -97,6 +100,7 @@ export const showStandardCheckInput = z
   );
 
 export type ShowStandardCheckInput = z.output<typeof showStandardCheckInput>;
+export type T1PreviewInput = z.output<typeof previewInput>;
 
 export const showStandardCheck = defineTool({
   name: 'show_standard_check',

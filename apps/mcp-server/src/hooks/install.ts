@@ -19,6 +19,7 @@ import {
 import { join } from 'node:path';
 import { SERVER_INFO } from '../server-info.ts';
 import type { HookEvent } from './notify-hooks.ts';
+import type { T1HookEvent } from './t1-hooks.ts';
 
 /** 설정 파일에서 우리가 깐 hooks를 알아보는 표시. 명령 안의 스크립트 경로예요 */
 export const HOOK_SCRIPT_MARKER = 'haribo/hook.mjs';
@@ -28,7 +29,7 @@ const HOOK_TIMEOUT_SECONDS = 20;
 /** Claude Code hooks 이벤트 이름 → 서버 주소 이벤트 이름, 그리고 matcher */
 const HOOK_TABLE: {
   claudeEvent: string;
-  event: HookEvent;
+  event: HookEvent | T1HookEvent;
   matcher?: string;
 }[] = [
   { claudeEvent: 'SessionStart', event: 'session-start', matcher: 'startup' },
@@ -45,6 +46,27 @@ const HOOK_TABLE: {
   },
   // 작업을 마친 뒤 닫고 넘어간 변경 한 줄 (notify.terminal.new-after-answered v2)
   { claudeEvent: 'Stop', event: 'after-work' },
+  // T1 결정 사항 확인 (BDT-108): 화면 도구 직후, 저장 직전·직후·실패
+  {
+    claudeEvent: 'PostToolUse',
+    event: 'after-t1',
+    matcher: `mcp__${SERVER_INFO.name}__show_standard_check`,
+  },
+  {
+    claudeEvent: 'PreToolUse',
+    event: 'before-save',
+    matcher: `mcp__${SERVER_INFO.name}__save_standard`,
+  },
+  {
+    claudeEvent: 'PostToolUse',
+    event: 'after-save',
+    matcher: `mcp__${SERVER_INFO.name}__save_standard`,
+  },
+  {
+    claudeEvent: 'PostToolUseFailure',
+    event: 'after-save',
+    matcher: `mcp__${SERVER_INFO.name}__save_standard`,
+  },
 ];
 
 interface HookCommand {
@@ -74,7 +96,10 @@ export function hooksUrlFrom(mcpUrl: string): string {
  * hooks 명령. 경로는 슬래시(/)로 바꾸고 따옴표로 감싸서 Windows(cmd, PowerShell, Git Bash)와 Mac에서 같은 명령이 되게 해요.
  * 이름에 빈칸이 있는 폴더(C:/Users/Hong Gil Dong/…)도 따옴표 덕분에 돼요.
  */
-export function hookCommand(scriptPath: string, event: HookEvent): string {
+export function hookCommand(
+  scriptPath: string,
+  event: HookEvent | T1HookEvent,
+): string {
   return `node "${scriptPath.replaceAll('\\', '/')}" ${event}`;
 }
 
