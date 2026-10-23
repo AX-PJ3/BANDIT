@@ -9,7 +9,7 @@
  * "알림 받는 이슈" 줄을 보고 등록하기 설명을 골라요.
  */
 import { readFileSync } from 'node:fs';
-import { loadTargets } from './issues.ts';
+import { loadTargets } from '@sil/t1';
 import { pendingPath, type T1Pending, writePending } from './pending.ts';
 import { PREVIEW_DONE } from './preview-command.ts';
 

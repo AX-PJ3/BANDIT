@@ -1,0 +1,16 @@
+{
+  "name": "@sil/t1",
+  "version": "0.0.0",
+  "private": true,
+  "description": "T1 결정 사항 확인: 화면 모양, 문구, 저장 값. MCP 서버와 바뀐 결정 사항 찾기가 가져다 써요 (BDT-108)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@sil/core": "workspace:*"
+  }
+}

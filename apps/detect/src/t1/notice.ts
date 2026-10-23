@@ -9,10 +9,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { STANDARD_ID_PATTERN } from '@sil/core';
-import { T1_COPY } from './copy.ts';
+import { T1_COPY, type T1NoticeInput } from '@sil/t1';
 import { writeNotice } from './pending.ts';
 import { NOTICE_DONE } from './preview-command.ts';
-import type { T1NoticeInput } from './screens.ts';
 
 const input = JSON.parse(readFileSync(0, 'utf8')) as T1NoticeInput;
 

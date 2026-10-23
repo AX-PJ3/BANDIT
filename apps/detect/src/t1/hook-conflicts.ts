@@ -19,7 +19,7 @@ if (!isConflictsCommand(String(event.tool_input?.command ?? ''))) {
 
 // 이 명령일 때만 패키지(@sil/core)를 불러와요 (preview-command.ts 설명)
 const { takeConflicts } = await import('./pending.ts');
-const { conflictsScreen } = await import('./screens.ts');
+const { conflictsScreen } = await import('@sil/t1');
 const input = takeConflicts(
   findConflictsToken(String(event.tool_response?.stdout ?? '')),
 );

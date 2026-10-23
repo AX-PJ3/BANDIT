@@ -35,7 +35,7 @@ begin
 end;
 $$;
 
--- T1이 저장하는 모양: AI가 저장, 출처 AI 대화, AI가 찾았나 예, 근거 없음 (apps/detect/src/t1/save-input.ts)
+-- T1이 저장하는 모양: AI가 저장, 출처 AI 대화, AI가 찾았나 예, 근거 없음 (packages/t1/src/save-input.ts)
 create function pg_temp.save_t1(p_value text, p_base_version integer)
 returns text
 language sql

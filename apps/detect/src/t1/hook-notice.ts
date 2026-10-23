@@ -19,7 +19,7 @@ if (!isNoticeCommand(String(event.tool_input?.command ?? ''))) {
 
 // 이 명령일 때만 패키지(@sil/core)를 불러와요 (preview-command.ts 설명)
 const { takeNotice } = await import('./pending.ts');
-const { noticeScreen } = await import('./screens.ts');
+const { noticeScreen } = await import('@sil/t1');
 const input = takeNotice(
   findNoticeToken(String(event.tool_response?.stdout ?? '')),
 );

@@ -12,7 +12,7 @@ import {
   SAVE_RACE_CONTEXT,
   screenHookOutput,
 } from './preview-command.ts';
-import { noticeScreen, savedScreen } from './screens.ts';
+import { noticeScreen, savedScreen } from '@sil/t1';
 
 const event = JSON.parse(readFileSync(0, 'utf8')) as {
   hook_event_name?: string;
