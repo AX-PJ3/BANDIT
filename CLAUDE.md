@@ -85,7 +85,7 @@
 - DB 쓰기는 데이터베이스 함수(`save_standard`, `revert_standard`, `deprecate_standard`, `save_issue`, `hold_conflict`, `resolve_conflict`, `save_answer`, `save_reflected`)로만 한다. 확인할 변경은 기준을 저장할 때 `on_standard_version_saved`가 만든다. 규칙은 `@sil/notify`의 `createPendingChecks`와 같게 두고, 한쪽을 고치면 다른 쪽과 `supabase/tests/notify_rules.test.sql`도 고친다 (D53). 표에 직접 insert/update/delete 하지 않는다 (공용 키는 막혀 있다).
 - 화면·도구·안내 문구에서는 위키의 항목을 "결정 사항"이라고 쓰고 "기준"이라고 쓰지 않는다(copy.term.standard v2, D57). 코드 이름(`standard`)과 위키 파일 이름·응답 기록 열 이름은 그대로다.
 - 표·칸 이름은 `용어.md`의 코드 이름을 따른다(`pending_checks`, `affected`, `known`). 위키 기준을 코드로 옮긴 곳에는 기준 ID를 주석에 남긴다.
-- 위키 MCP 도구는 다섯 개다(`wiki.mcp.five-tools`). 새 위키 도구를 더하지 않는다. 폐기는 사람이 `sil deprecate`로 한다.
+- 위키 MCP 도구는 여섯 개다(`wiki.mcp.five-tools`). 여섯 번째 `show_standard_check`는 결정 사항 확인 화면만 띄우고 저장하지 않는다. 이 밖의 새 위키 도구를 더하지 않는다. 폐기는 사람이 `sil deprecate`로 한다.
 - 표 칸은 착수 안내 "데이터 항목 목록 v2"를 따른다. 기준 저장 필수 칸은 ID, 제목, 값, 이유, 항상 적용 5개다 (SIL-65).
 - 사람은 이름으로만 구분한다. `X-Sil-User` 헤더는 이름을 퍼센트 인코딩해서 보낸다.
 - 표를 바꿀 때는 이미 올린 마이그레이션을 고치지 않고 `supabase/migrations/`에 새 파일을 더하고, `supabase/tests/`에 검사를 붙인다.
