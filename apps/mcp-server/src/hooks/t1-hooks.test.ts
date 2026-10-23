@@ -225,9 +225,15 @@ describe('after-t1: 예외 안내', () => {
 describe('before-save: 저장 직전', () => {
   const save = { ...PREVIEW, baseVersion: 2, source: 'ai_chat' };
 
-  it('③ 값이 없으면(③을 거치지 않은 저장) 아무것도 하지 않아요 (PR A)', async () => {
+  it('③ 값이 없으면(③을 거치지 않은 저장) 막고 ③부터 하라고 알려요', async () => {
     const result = await hook('before-save', { tool_input: save });
-    expect(result.json).toEqual({});
+    expect(result.json.hookSpecificOutput).toMatchObject({
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'deny',
+    });
+    expect(result.json.hookSpecificOutput?.permissionDecisionReason).toContain(
+      'show_standard_check',
+    );
   });
 
   it('③과 같으면 사람에게 허락을 물어요', async () => {
@@ -266,7 +272,7 @@ describe('after-save: 저장 직후', () => {
     ],
   };
 
-  it('③ 값이 없으면 ④를 띄우지 않아요. 지금 T1 hook과 두 번 뜨지 않게요', async () => {
+  it('③ 값이 없으면 ④를 띄우지 않아요', async () => {
     const result = await hook('after-save', { tool_response: saved });
     expect(result.json).toEqual({});
   });

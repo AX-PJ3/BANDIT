@@ -466,7 +466,7 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
     const file = join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`);
     expect(existsSync(file)).toBe(false);
 
-    // ③ 파일이 없는 저장(지금 T1, 안내문 2·3번)은 그대로 둬요 (PR A)
+    // 서버에 못 붙으면 ③ 파일이 없는 저장도 막지 않아요 (notify.error.no-block-retry)
     expect(await runHook(scriptPath, 'before-save', save())).toEqual({
       code: 0,
       stdout: '',

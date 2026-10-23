@@ -83,7 +83,7 @@ function keepPreview(input, body) {
     if (parsed.tool_input?.screen === 'preview' && file)
       writeFileSync(file, JSON.stringify(parsed.tool_input.preview), 'utf8');
   } catch {
-    // 남기지 못하면 저장 직전 확인을 건너뛰어요 (PR A에서는 막지 않음)
+    // 남기지 못하면 저장 직전에 ③이 없다고 막혀서 ③을 다시 보여 줘요
   }
 }
 
