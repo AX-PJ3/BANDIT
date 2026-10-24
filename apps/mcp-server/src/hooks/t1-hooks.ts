@@ -10,8 +10,8 @@
  *
  * 서버는 ③ 값을 기억하지 않아요. 무료 호스팅은 쉬었다 깨어나면 메모리가 비어서, ③ 값은 팀원 PC 파일에 둬요.
  * hook.mjs가 ③ 직후 그 파일을 남기고, 저장 직전·직후에 읽어 `t1_preview`로 붙여 보내요(10/23 결정).
- * `t1_preview`가 없으면 ③을 거치지 않은 저장이라 아무것도 하지 않아요. 그래서 지금 T1(CLAUDE.md + Bash)과 화면이 두 번 뜨지 않아요.
- * ③ 없는 저장을 막는 것은 MCP 안내문 2·3번을 ③을 거치게 바꾸는 PR B에서 켜요.
+ * `t1_preview`가 없으면 ③을 거치지 않은 저장이라 저장 직전에 막고 ③부터 다시 하게 해요(안내문 2·3·10번).
+ * 서버에 못 붙어 hook이 실패하면 저장은 막지 않아요 (notify.error.no-block-retry, hook.mjs).
  */
 import type { SaveStandardInput } from '@sil/core';
 import { createLogger } from '@sil/core/node';
@@ -97,7 +97,7 @@ function askJson(
 
 const reasonStep = `예면 이유를 정해요. 사람이 대화에서 한 말로 알 수 있으면 한 문장으로 정리하고, 알 수 없으면 "${T1_COPY.reasonPrompt}"를 글로 물어요(지어내지 않아요). 그다음 ${toolName('show_standard_check')}(screen: "preview")로 ③을 보여 줘요.`;
 
-/** ② 다른 결정 사항 뒤 할 일 (CLAUDE.md T1 2~4, 8) */
+/** ② 다른 결정 사항 뒤 할 일 (예전 CLAUDE.md T1 2~4, 8) */
 function conflictsContext(input: T1ConflictsInput): string {
   const { ask, direct, notChanged } = T1_COPY;
   const isRevert = input.revert !== undefined;
@@ -115,7 +115,7 @@ function conflictsContext(input: T1ConflictsInput): string {
   ].join('\n');
 }
 
-/** ③ 등록될 모습 뒤 할 일 (CLAUDE.md T1 5~6) */
+/** ③ 등록될 모습 뒤 할 일 (예전 CLAUDE.md T1 5~6) */
 function previewContext(hasTargets: boolean): string {
   const { preview, direct, editPrompt, cancelled } = T1_COPY;
   const register = hasTargets ? preview.registerWithIssues : preview.register;
@@ -128,7 +128,7 @@ function previewContext(hasTargets: boolean): string {
   ].join('\n');
 }
 
-/** 예외 안내 뒤 할 일 (CLAUDE.md T1 9) */
+/** 예외 안내 뒤 할 일 (예전 CLAUDE.md T1 9) */
 function noticeContext(input: T1NoticeInput): string {
   const { notices, similarAsk } = T1_COPY;
   switch (input.kind) {
@@ -148,6 +148,9 @@ const SAVED_CONTEXT = `${SHOWN}\n하던 작업이 있으면 "${T1_COPY.saved.nex
 
 /** 예외 7 뒤 할 일 */
 const SAVE_RACE_CONTEXT = `${SHOWN}\n저장하는 사이 다른 사람이 먼저 바꿔 거절됐어요. ${toolName('get_standard')}로 새 currentVersion을 읽어 ② 다른 결정 사항을 다시 보여 주고, 사람이 이미 고른 예와 정한 이유는 그대로 두고 ③부터 다시 물어요.`;
+
+/** ③을 보여 주지 않고 저장하려 할 때 막는 이유. Claude와 사람 모두 봐요 */
+const NO_PREVIEW_REASON = `③ 등록될 모습을 사람에게 보여 주지 않은 저장이에요. ${toolName('show_standard_check')}(screen: "preview")로 ③을 먼저 보여 주고 등록하기를 받은 뒤 저장해 주세요.`;
 
 /** 화면을 띄우지 못했을 때 Claude에게만 전하는 말 */
 const NOT_SHOWN =
@@ -243,8 +246,16 @@ export function createT1Hooks(options: T1HooksOptions = {}) {
 
   function beforeSave(input: T1HookInput): T1HookOutput {
     const preview = previewInput.safeParse(input.t1_preview);
-    // ③을 거치지 않은 저장은 PR A에서는 그대로 둬요 (지금 T1과 안내문 2·3번 저장)
-    if (!preview.success) return {};
+    // ③을 거치지 않은 저장은 막아요. ③과 다른 ID로 저장할 때도 파일이 없어 여기서 막혀요
+    if (!preview.success) {
+      return {
+        hookSpecificOutput: {
+          hookEventName: 'PreToolUse',
+          permissionDecision: 'deny',
+          permissionDecisionReason: NO_PREVIEW_REASON,
+        },
+      };
+    }
     const changed = diffFromPreview(
       preview.data,
       (input.tool_input ?? {}) as Partial<SaveStandardInput>,
@@ -270,7 +281,7 @@ export function createT1Hooks(options: T1HooksOptions = {}) {
     input: T1HookInput,
   ): Promise<T1HookOutput> {
     const preview = previewInput.safeParse(input.t1_preview);
-    // ③ 파일이 있을 때만 띄워요. 그래야 지금 T1 hook과 ④가 두 번 뜨지 않아요
+    // ③ 파일이 있을 때만 띄워요. ③ 없는 저장은 저장 직전에 막혀서 여기까지 오지 않아요
     if (!preview.success) return {};
     const hookEventName =
       input.hook_event_name === 'PostToolUseFailure'

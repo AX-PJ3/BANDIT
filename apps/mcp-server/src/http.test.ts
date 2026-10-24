@@ -193,9 +193,14 @@ describe('MCP 도구 (가짜 DB)', () => {
   it('show_standard_check: 입력만 검사하고 { ok: true }만 돌려줘요. 저장하지 않아요 (BDT-108)', async () => {
     const client = await connect();
     const { tools } = await client.listTools();
-    expect(
-      tools.find((tool) => tool.name === 'show_standard_check')?.annotations,
-    ).toMatchObject({ readOnlyHint: true, openWorldHint: false });
+    const tool = tools.find(({ name }) => name === 'show_standard_check');
+    expect(tool?.annotations).toMatchObject({
+      readOnlyHint: true,
+      openWorldHint: false,
+    });
+    // 미뤄 불러오는 도구 설명은 16,384자에서 잘려요. 언제 쓰는지는 맨 앞에 둬요 (code.claude.com/docs/en/mcp)
+    expect(tool?.description?.length).toBeLessThanOrEqual(16_384);
+    expect(tool?.description?.slice(0, 200)).toContain('만들기 전에');
 
     const preview = {
       id: 'order.coupon.nullable',

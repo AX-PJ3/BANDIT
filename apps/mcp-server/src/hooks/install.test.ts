@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  utimesSync,
   writeFileSync,
   existsSync,
 } from 'node:fs';
@@ -145,14 +146,13 @@ describe('mergeHooks: T1 결정 사항 확인 (BDT-108)', () => {
     ]);
   });
 
-  it('이 저장소 .claude/settings.json의 지금 T1 hooks(Bash)는 지우지 않아요', () => {
+  it('같은 도구에 건 다른 hooks는 지우지 않아요', () => {
     const bash = {
       matcher: 'mcp__haribo__save_standard',
       hooks: [
         {
           type: 'command' as const,
-          command:
-            'node "$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-guard.ts"',
+          command: 'node "$CLAUDE_PROJECT_DIR/scripts/my-guard.ts"',
         },
       ],
     };
@@ -391,6 +391,40 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
     }
   });
 
+  it('새 세션을 켤 때 하루 넘은 ③ 파일만 지워요 (취소·Esc로 남은 파일)', async () => {
+    const server = await fakeServer();
+    try {
+      const home = tempHome();
+      const { scriptPath, configPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      const dir = join(home, '.claude', 'haribo');
+      const oldFile = join(dir, `t1-old-${preview.id}.json`);
+      const newFile = join(dir, `t1-new-${preview.id}.json`);
+      writeFileSync(oldFile, JSON.stringify(preview));
+      writeFileSync(newFile, JSON.stringify(preview));
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      utimesSync(oldFile, twoDaysAgo, twoDaysAgo);
+      utimesSync(configPath, twoDaysAgo, twoDaysAgo);
+
+      // 정리는 세션을 켤 때만 해요
+      await runHook(scriptPath, 'prompt-submit', { session_id: 's1' });
+      expect(existsSync(oldFile)).toBe(true);
+
+      await runHook(scriptPath, 'session-start', { session_id: 's1' });
+      expect(existsSync(oldFile)).toBe(false);
+      expect(existsSync(newFile)).toBe(true);
+      // ③ 파일이 아닌 것은 오래돼도 그대로 둬요
+      expect(existsSync(configPath)).toBe(true);
+      expect(existsSync(scriptPath)).toBe(true);
+    } finally {
+      await server.close();
+    }
+  });
+
   it('세션 번호나 결정 사항 ID 모양이 틀리면 파일을 만들지 않아요 (경로 문자 막기)', async () => {
     const server = await fakeServer({ systemMessage: '화면' });
     try {
@@ -466,7 +500,7 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
     const file = join(home, '.claude', 'haribo', `t1-s1-${preview.id}.json`);
     expect(existsSync(file)).toBe(false);
 
-    // ③ 파일이 없는 저장(지금 T1, 안내문 2·3번)은 그대로 둬요 (PR A)
+    // 서버에 못 붙으면 ③ 파일이 없는 저장도 막지 않아요 (notify.error.no-block-retry)
     expect(await runHook(scriptPath, 'before-save', save())).toEqual({
       code: 0,
       stdout: '',
