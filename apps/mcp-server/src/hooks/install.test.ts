@@ -145,14 +145,13 @@ describe('mergeHooks: T1 결정 사항 확인 (BDT-108)', () => {
     ]);
   });
 
-  it('이 저장소 .claude/settings.json의 지금 T1 hooks(Bash)는 지우지 않아요', () => {
+  it('같은 도구에 건 다른 hooks는 지우지 않아요', () => {
     const bash = {
       matcher: 'mcp__haribo__save_standard',
       hooks: [
         {
           type: 'command' as const,
-          command:
-            'node "$CLAUDE_PROJECT_DIR/apps/detect/src/t1/hook-guard.ts"',
+          command: 'node "$CLAUDE_PROJECT_DIR/scripts/my-guard.ts"',
         },
       ],
     };

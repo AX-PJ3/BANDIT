@@ -6,7 +6,7 @@ import { defineTool } from '../../lib/define-tool.ts';
  * T1 결정 사항 확인 화면을 띄우는 도구예요 (BDT-108).
  * 화면은 도구 직후 hook(`hooks/t1-hooks.ts`)이 이 입력으로 만들어요. 도구는 입력만 검사하고 `{ ok: true }`를 돌려줘요.
  * 저장하지 않고(저장은 save_standard만), 결정 사항을 읽어 돌려주지도 않아요 (wiki.mcp.five-tools v2).
- * 입력 검사는 `apps/detect/src/t1/conflicts.ts`·`notice.ts`·`preview.ts`의 손 검사를 zod로 옮겼어요.
+ * 입력 검사는 예전 Bash 명령(`apps/detect/src/t1/conflicts.ts` 등, BDT-108에서 지움)의 손 검사를 zod로 옮겼어요.
  */
 
 const filled = z.string().trim().min(1);

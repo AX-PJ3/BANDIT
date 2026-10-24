@@ -56,8 +56,8 @@
 - `supabase/migrations` DB 표·함수·권한, `supabase/tests` DB 규칙 검사 (SQL)
 - `apps/cli` `sil` 명령어. `src/commands/`에 파일 하나씩, `index.ts` 배열에 등록
 - `apps/web` 웹 앱(PWA, Vite, D50). 화면은 `src/screens/`, 화면↔데이터 약속은 `src/api/types.ts`, 설치 정보와 서비스 워커는 `public/`
-- `apps/detect` 바뀐 기준 찾기 (`@sil/detect`, 경하님 SIL-66). 에이전트 경로 T1의 Bash 명령과 hooks는 `src/t1/`. PR 경로는 아직 없음
-- `packages/t1` T1 화면 모양·문구·저장 값(`@sil/t1`, 경하님 BDT-108). `apps/detect`와 MCP 서버가 가져다 써요
+- `apps/detect` 바뀐 기준 찾기 (`@sil/detect`, 경하님 SIL-66). PR 경로는 `src/pr/`. 에이전트 경로 T1은 `packages/t1`과 MCP 서버(`show_standard_check`, `hooks/t1-hooks.ts`)로 옮겼다 (BDT-108)
+- `packages/t1` T1 화면 모양·문구·저장 값(`@sil/t1`, 경하님 BDT-108). MCP 서버가 가져다 써요
 
 ## 코드 규칙
 

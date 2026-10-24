@@ -3,7 +3,7 @@ import type { Standard, StandardVersion } from '@sil/core';
 /**
  * T1 "결정 사항 변경 확인" 문구. 착수 안내 3절 T1에서 시작해 FigJam "T1 결정 사항 등록"(10/13)에 맞췄어요.
  * 부건님과 정하는 문구라 여기에만 둬요.
- * 에이전트는 CLAUDE.md "팀 위키 규칙"을 따라 이 파일을 읽고 그대로 보여 줘요.
+ * MCP 서버 hooks(`apps/mcp-server/src/hooks/t1-hooks.ts`)가 화면을 만들고, 물을 질문을 이 글자 그대로 Claude에게 넘겨요.
  * 화면·도구 문구에서는 "기준" 대신 "결정 사항"이라고 써요 (copy.term.standard).
  * {자리}에는 get_standard로 읽은 값과 바꿀 값을 넣어요.
  */
@@ -30,7 +30,7 @@ export const T1_COPY = {
     typedReply: '예 또는 아니요로 골라 주세요.',
   },
   /**
-   * 다른 결정 사항 화면. hook(`hook-conflicts.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 show_conflicts, 10/14).
+   * 다른 결정 사항 화면. hook(`after-t1`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 show_conflicts, 10/14).
    * 머리표와 첫 줄 이름은 T1이 어떻게 시작됐는지(`T1Trigger`)에 따라 달라요: 에이전트가 알아챈 작업 / 사람이 직접 한 요청.
    * 구분은 바꾸려는 결정 사항이면 변경, 바꾸면 함께 어긋나는 다른 결정 사항이면 어긋남이에요.
    * "충돌"은 용어집에서 동시 수정을 뜻해서 "달라요"를 써요 (10/13)
@@ -70,8 +70,8 @@ export const T1_COPY = {
   reasonPrompt:
     '이 결정 사항을 바꾸는 이유를 작성해 주세요. 작성해 주신 내용을 기반으로 정리해 드릴게요.',
   /**
-   * ③ 등록될 모습. 본문은 hook(`hook-preview.ts`)이 `screens.ts`의 모양으로 띄우고, 그 뒤 AskUserQuestion으로 물어요.
-   * 부건님 프로토타입 "T1 결정 사항 등록"(10/14)과 같아요. 이슈 표는 `preview.ts`가 팀 DB에서 읽은 받는 이슈로 채워요
+   * ③ 등록될 모습. 본문은 hook(`after-t1`)이 `screens.ts`의 모양으로 띄우고, 그 뒤 AskUserQuestion으로 물어요.
+   * 부건님 프로토타입 "T1 결정 사항 등록"(10/14)과 같아요. 이슈 표는 서버가 팀 DB에서 읽은 받는 이슈로 채워요
    */
   preview: {
     header: '결정 사항 등록',
@@ -86,7 +86,7 @@ export const T1_COPY = {
     noTargets: '연결된 이슈가 없어서 알림을 받는 사람은 없어요.',
     register: { label: '등록하기', description: '결정 사항을 저장해요' },
     /**
-     * 받는 이슈가 있을 때의 등록하기. `preview.ts` 출력의 "알림 받는 이슈"가 1개 이상이면 이것을, 아니면 `register`를 써요 (프로토타입 10/13)
+     * 받는 이슈가 있을 때의 등록하기. 받는 이슈가 1개 이상이면 hook이 이것을, 아니면 `register`를 넘겨요 (프로토타입 10/13)
      */
     registerWithIssues: {
       label: '등록하기',
@@ -127,7 +127,7 @@ export const T1_COPY = {
     revertAsk: '기존 결정 사항을 되돌리는 작업이에요. 그대로 진행할까요?',
   },
   /**
-   * 예외 안내(10/14 확정, 결정기록 4-2). hook(`hook-notice.ts`)이 `screens.ts`의 모양으로 띄워요.
+   * 예외 안내(10/14 확정, 결정기록 4-2). hook(`after-t1`)이 `screens.ts`의 모양으로 띄워요.
    * 막대 색: 조사 실패·완전히 같음은 빨강, 뜻이 같음·저장하는 사이 바뀜은 노랑, 뜻이 같음 → 아니요는 기본 글자색
    */
   notices: {
@@ -167,8 +167,8 @@ export const T1_COPY = {
     no: { label: '아니요', description: '등록하지 않아요' },
   },
   /**
-   * ④ 등록 완료. 저장 직후 hook(`hook-saved.ts`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 10/14).
-   * 받는 이슈 수는 ③에서 `preview.ts`가 읽어 둔 값이에요. 못 읽었으면 그 줄을 빼요
+   * ④ 등록 완료. 저장 직후 hook(`after-save`)이 `screens.ts`의 모양으로 띄워요 (프로토타입 10/14).
+   * 받는 이슈 수는 저장 직후 서버가 다시 읽어요. 못 읽었으면 그 줄을 빼요
    */
   saved: {
     head: '✓ 결정 사항을 등록했어요.',
