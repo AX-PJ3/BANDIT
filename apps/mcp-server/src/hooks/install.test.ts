@@ -6,6 +6,7 @@ import {
   readdirSync,
   readFileSync,
   rmSync,
+  utimesSync,
   writeFileSync,
   existsSync,
 } from 'node:fs';
@@ -385,6 +386,40 @@ describe('팀원 PC 스크립트: T1 ③ 값 파일 (BDT-108)', () => {
       await runHook(scriptPath, 'after-save', save());
       expect(server.bodies.at(-1)?.body.t1_preview).toEqual(preview);
       expect(existsSync(file)).toBe(false);
+    } finally {
+      await server.close();
+    }
+  });
+
+  it('새 세션을 켤 때 하루 넘은 ③ 파일만 지워요 (취소·Esc로 남은 파일)', async () => {
+    const server = await fakeServer();
+    try {
+      const home = tempHome();
+      const { scriptPath, configPath } = installHooks({
+        home,
+        hooksUrl: server.hooksUrl,
+        user: '경하',
+        scriptSource: SCRIPT,
+      });
+      const dir = join(home, '.claude', 'haribo');
+      const oldFile = join(dir, `t1-old-${preview.id}.json`);
+      const newFile = join(dir, `t1-new-${preview.id}.json`);
+      writeFileSync(oldFile, JSON.stringify(preview));
+      writeFileSync(newFile, JSON.stringify(preview));
+      const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+      utimesSync(oldFile, twoDaysAgo, twoDaysAgo);
+      utimesSync(configPath, twoDaysAgo, twoDaysAgo);
+
+      // 정리는 세션을 켤 때만 해요
+      await runHook(scriptPath, 'prompt-submit', { session_id: 's1' });
+      expect(existsSync(oldFile)).toBe(true);
+
+      await runHook(scriptPath, 'session-start', { session_id: 's1' });
+      expect(existsSync(oldFile)).toBe(false);
+      expect(existsSync(newFile)).toBe(true);
+      // ③ 파일이 아닌 것은 오래돼도 그대로 둬요
+      expect(existsSync(configPath)).toBe(true);
+      expect(existsSync(scriptPath)).toBe(true);
     } finally {
       await server.close();
     }

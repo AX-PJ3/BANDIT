@@ -15,8 +15,15 @@
  * - T1: ③ 등록될 모습 직후(after-t1) 보여 준 값을 같은 폴더에 "세션 번호 + 결정 사항 ID" 파일로 남기고,
  *   저장 직전·직후(before-save, after-save)에 그 값을 t1_preview로 붙여 보내요. 저장이 끝나면 지워요.
  *   서버는 쉬었다 깨어나면 메모리가 비어서 ③ 값을 내 PC에 둬요 (BDT-108 10/23).
+ *   ③에서 취소하면 파일이 남아서, 새 세션을 켤 때(session-start) 하루 넘은 파일을 지워요.
  */
-import { readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 
 const EVENTS = [
   'session-start',
@@ -50,6 +57,24 @@ function previewFile(sessionId, id) {
   if (typeof id !== 'string' || !/^[a-z]+\.[a-z0-9-]+\.[a-z0-9-]+$/.test(id))
     return null;
   return new URL(`./t1-${sessionId}-${id}.json`, import.meta.url);
+}
+
+/** 남은 ③ 파일을 지우는 나이. 같은 날 다른 창에서 쓰는 중인 파일은 건드리지 않아요 */
+const PREVIEW_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
+/** ③에서 취소·Esc로 끝나 남은 파일 중 하루 넘은 것을 지워요. 못 지우면 그냥 넘어가요 */
+function removeOldPreviews() {
+  const dir = new URL('./', import.meta.url);
+  try {
+    for (const name of readdirSync(dir)) {
+      if (!/^t1-.+\.json$/.test(name)) continue;
+      const file = new URL(name, dir);
+      if (Date.now() - statSync(file).mtimeMs > PREVIEW_MAX_AGE_MS)
+        rmSync(file, { force: true });
+    }
+  } catch {
+    // 정리는 다음 세션에 다시 해요
+  }
 }
 
 /** 이번 저장에 붙인 ③ 값. 없으면 ③을 거치지 않은 저장이에요 */
@@ -145,6 +170,7 @@ async function readStdin() {
 
 async function main() {
   if (!EVENTS.includes(event)) return '';
+  if (event === 'session-start') removeOldPreviews();
   const input = await readStdin();
   let config;
   try {
