@@ -123,6 +123,23 @@ describe('after-t1: ② 다른 결정 사항', () => {
     expect(result.context).toContain('설명하는 글을 쓰지 마세요');
   });
 
+  it('작업 중에 알아챘으면 아니요 뒤 요청 값이 코드에 있을 때 되돌리라고 넘겨요 (detect.ask.rollback-if-applied)', async () => {
+    const result = await afterT1({
+      screen: 'conflicts',
+      conflicts: {
+        trigger: 'agent',
+        request: '앱 알림 제목을 32자로 자르기',
+        conflicts: [CHANGE],
+      },
+    });
+    expect(result.context).toContain(T1_COPY.rolledBack);
+    expect(result.context).toContain('코드의 지금 값을 직접 읽어');
+    // 아직 요청 값이 아니면 고치지 않아요
+    expect(result.context).toContain(
+      `아무것도 고치지 않고 "${T1_COPY.notChanged}"`,
+    );
+  });
+
   it('직접 요청이면 묻지 않고 이유로 가요. 되돌림이면 직접 요청이어도 먼저 물어요', async () => {
     const conflicts = {
       trigger: 'direct',
@@ -151,6 +168,9 @@ describe('after-t1: ② 다른 결정 사항', () => {
     expect(revert.context).toContain(
       `"question":"${T1_COPY.direct.revertAsk}"`,
     );
+    // 직접 요청의 아니요는 별도 이슈라 되돌리라고 넘기지 않아요
+    expect(revert.context).not.toContain(T1_COPY.rolledBack);
+    expect(revert.context).toContain(T1_COPY.notChanged);
   });
 
   it('입력이 도구 모양과 다르면 아무것도 하지 않아요 (도구가 이미 거절해요)', async () => {
