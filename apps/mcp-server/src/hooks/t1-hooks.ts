@@ -97,6 +97,12 @@ function askJson(
 
 const reasonStep = `예면 이유를 정해요. 사람이 대화에서 한 말로 알 수 있으면 한 문장으로 정리하고, 알 수 없으면 "${T1_COPY.reasonPrompt}"를 글로 물어요(지어내지 않아요). 그다음 ${toolName('show_standard_check')}(screen: "preview")로 ③을 보여 줘요.`;
 
+/**
+ * 작업 중에 알아챘을 때 아니요 뒤 할 일. 요청 값이 이미 코드에 있으면 기존 값으로 되돌려요
+ * (detect.ask.rollback-if-applied). 비교는 도구가 아니라 에이전트가 코드를 읽어 직접 해요 (SIL-86)
+ */
+const agentDeclinedStep = `아니요면 저장하지 않아요. 요청 값이 코드에 이미 들어갔는지 코드의 지금 값을 직접 읽어 확인해요. 요청 값과 같으면 그곳을 기존 결정 사항 값으로 되돌리고 "${T1_COPY.rolledBack}"를 {requested}·{current}만 채워 글자 그대로 보여 준 뒤 멈추고 기다려요. 아직 요청 값이 아니면 아무것도 고치지 않고 "${T1_COPY.notChanged}"를 보여 준 뒤 멈추고 기다려요. 되돌리는 것 말고는 지금 값대로도 코드를 쓰지 않아요.`;
+
 /** ② 다른 결정 사항 뒤 할 일 (예전 CLAUDE.md T1 2~4, 8) */
 function conflictsContext(input: T1ConflictsInput): string {
   const { ask, direct, notChanged } = T1_COPY;
@@ -110,7 +116,10 @@ function conflictsContext(input: T1ConflictsInput): string {
     SHOWN,
     `AskUserQuestion으로 이 질문을 글자 그대로 물어요(질문에 화면 내용을 다시 적지 않아요): ${askJson(question, ask.header, [ask.yes, ask.no])}`,
     `선택지 대신 글로 답하면 "${ask.typedReply}"를 쓰고 같은 질문을 다시 물어요.`,
-    `아니요면 저장하지 않고 "${notChanged}"를 보여 준 뒤 멈추고 기다려요. 지금 값대로도 코드를 쓰지 않아요.`,
+    // 직접 요청(되돌림)의 아니요는 별도 이슈라 그대로 둬요 (BDT-95 하지 않는 것)
+    input.trigger === 'agent'
+      ? agentDeclinedStep
+      : `아니요면 저장하지 않고 "${notChanged}"를 보여 준 뒤 멈추고 기다려요. 지금 값대로도 코드를 쓰지 않아요.`,
     reasonStep,
   ].join('\n');
 }

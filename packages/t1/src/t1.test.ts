@@ -94,6 +94,7 @@ describe('T1 문구', () => {
     }
     const messages = [
       T1_COPY.notChanged,
+      T1_COPY.rolledBack,
       T1_COPY.reasonPrompt,
       T1_COPY.cancelled.withTask,
       T1_COPY.cancelled.noTask,
