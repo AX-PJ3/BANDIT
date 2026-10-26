@@ -68,10 +68,11 @@ export const T1_COPY = {
   notChanged: '기존 결정 사항을 그대로 유지할게요. 다른 작업을 시작해 주세요.',
   /**
    * 아니요를 골랐는데 요청 값이 이미 코드에 들어가 있을 때. 기존 값으로 되돌린 뒤 notChanged 대신 보여 주고 멈춰요
-   * (detect.ask.rollback-if-applied, BDT-95). {requested}는 요청 값, {current}는 기존 결정 사항 값이에요
+   * (detect.ask.rollback-if-applied, BDT-95). {requested}는 요청 값, {current}는 기존 결정 사항 값이에요.
+   * 값마다 받침이 달라 조사는 괄호 밖 "값"에 붙여요 (데모 10/26: "6500를")
    */
   rolledBack:
-    '코드에 이미 들어간 {requested}를 기존 결정 사항 값 {current}로 되돌렸어요. 다른 작업을 시작해 주세요.',
+    '코드에 이미 들어간 값({requested})을 기존 결정 사항 값({current})으로 되돌렸어요. 다른 작업을 시작해 주세요.',
   /** 대화에서 이유를 유추할 수 없을 때 글로 묻기. 답을 한 문장으로 정리해 ③에 넣어요 */
   reasonPrompt:
     '이 결정 사항을 바꾸는 이유를 작성해 주세요. 작성해 주신 내용을 기반으로 정리해 드릴게요.',
