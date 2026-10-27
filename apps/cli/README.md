@@ -4,15 +4,15 @@
 
 ## 지금 있는 명령
 
-| 명령                                 | 하는 일                                                                             |
-| ------------------------------------ | ----------------------------------------------------------------------------------- |
-| `pnpm sil doctor` (= `pnpm onboard`) | 개발 환경 확인. Node 버전, .env, DB 상태, Claude Code와 MCP 등록 여부               |
-| `pnpm sil import`                    | team-wiki/ 파일의 기준과 이슈를 DB에 넣기 (기본은 미리 보기, `--apply`로 저장)      |
-| `pnpm sil deprecate <ID> --reason …` | 사람이 기준을 폐기 (지우지 않고 상태만, 대체 기준 남김). CHANGELOG 줄을 보여 줌     |
-| `pnpm sil changelog`                 | DB 기록으로 CHANGELOG 줄 만들기. `--append team-wiki/CHANGELOG.md`로 없는 줄만 더함 |
-| `pnpm sil export`                    | 응답 기록 14칸 CSV + Metric Review 숫자("N건 중 M건")                               |
-| `pnpm sil backup`                    | 표 전체를 JSON으로 남김 (매일 백업 workflow가 씀)                                   |
-| `pnpm sil scope-check`               | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 확인                                |
+| 명령                                 | 하는 일                                                                                       |
+| ------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `pnpm sil doctor` (= `pnpm onboard`) | 개발 환경 확인. Node 버전, .env, DB 상태, Claude Code와 MCP 등록 여부                         |
+| `pnpm sil import`                    | team-wiki/ 파일의 기준과 이슈를 DB에 넣기 (기본은 미리 보기, `--apply`로 저장)                |
+| `pnpm sil deprecate <ID> --reason …` | 사람이 기준을 폐기 (지우지 않고 상태만, 대체 기준 남김). CHANGELOG 줄을 보여 줌               |
+| `pnpm sil changelog`                 | DB 기록으로 CHANGELOG 줄 만들기. `--append team-wiki/CHANGELOG.md`로 없는 줄만 더함           |
+| `pnpm sil export`                    | 응답 기록 14칸 CSV + Metric Review 숫자("N건 중 M건")                                         |
+| `pnpm sil backup`                    | 표 7개를 백업 파일 하나로 남김. `--encrypt`면 공개 키로 잠근 파일만 (매일 백업 workflow가 씀) |
+| `pnpm sil scope-check`               | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 확인                                          |
 
 ## 들어올 명령
 
