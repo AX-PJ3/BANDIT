@@ -18,7 +18,7 @@
 | `src/data/standards.ts`     | 위키 읽기(목록, 기준 하나와 버전 기록)·쓰기(저장, 되돌리기, 폐기), 이슈 저장, 충돌 보류         | `@sil/core/data`, `@sil/core/node`          |
 | `src/data/notify.ts`        | 이슈 목록, 확인할 변경 목록, 답 저장·취소, 응답 기록, "관계있다" 답                             | `@sil/core/data`, `@sil/core/node`          |
 | `src/node/changelog.ts`     | DB 기록으로 CHANGELOG 줄 만들기 (`sil changelog`)                                               | `@sil/core/node`                            |
-| `src/node/backup.ts`        | 표 7개를 어긋나지 않게 읽어 백업 파일 하나로 만들기 (`sil backup`, 매일 백업)                   | `@sil/core/node`                            |
+| `src/node/backup.ts`        | 표 7개를 어긋나지 않게 읽기, 되살리기 SQL 만들기 (`sil backup`, `sil restore`, 매일 백업)       | `@sil/core/node`                            |
 | `src/node/backup-crypto.ts` | 백업을 공개 키로 잠그고 개인 키로 열기, 열쇠 만들기 (`sil backup-key`)                          | `@sil/core/node`                            |
 | `src/node/scope-check.ts`   | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 (`sil scope-check`)                             | `@sil/core/node`                            |
 | `src/node/wiki-import.ts`   | team-wiki/ 마크다운과 이슈 CSV 읽기, DB와 비교 (`sil import`가 써요)                            | `@sil/core/node`                            |

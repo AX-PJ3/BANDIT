@@ -1,6 +1,13 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it } from 'vitest';
-import { BACKUP_TABLES, takeBackup } from './backup.ts';
+import {
+  BACKUP_TABLES,
+  buildRestoreSql,
+  countBackupRows,
+  parseBackupBundle,
+  takeBackup,
+  type BackupBundle,
+} from './backup.ts';
 import { setDbForTesting } from '../data/client.ts';
 import { createFakeDb } from './fake-db.ts';
 
@@ -78,5 +85,78 @@ describe('BACKUP_TABLES', () => {
     expect([...tables].sort()).toEqual(
       BACKUP_TABLES.map(({ name }) => name).sort(),
     );
+  });
+});
+
+function bundleWith(
+  tables: Partial<Record<string, Record<string, unknown>[]>>,
+): BackupBundle {
+  return parseBackupBundle({
+    format: 'sil-backup',
+    version: 1,
+    takenAt: '2026-10-27T03:00:00.000Z',
+    source: 'test.supabase.co',
+    commit: null,
+    attempts: 2,
+    tables: Object.fromEntries(
+      BACKUP_TABLES.map(({ name }) => {
+        const rows = tables[name] ?? [];
+        return [name, { columns: Object.keys(rows[0] ?? {}), rows }];
+      }),
+    ),
+  });
+}
+
+describe('buildRestoreSql', () => {
+  it('앞 표를 가리키는 순서대로 넣고, 줄이 없는 표는 건너뛰어요', () => {
+    const sql = buildRestoreSql(
+      bundleWith({
+        standards: [{ id: 'app.notify.title-length' }],
+        standard_versions: [{ standard_id: 'app.notify.title-length' }],
+        answers: [{ id: 'a1' }],
+      }),
+    );
+    const inserted = [...sql.matchAll(/^insert into public\.(\w+)/gm)].map(
+      (match) => match[1],
+    );
+    expect(inserted).toEqual(['standards', 'standard_versions', 'answers']);
+    expect(sql.startsWith("set client_encoding = 'UTF8';")).toBe(true);
+    expect(sql).toContain('begin;');
+    expect(sql).toContain('commit;');
+    expect(sql).toContain('if v_count <> 1 then');
+  });
+
+  it('값에 어떤 글자가 들어 있어도 SQL 따옴표가 깨지지 않아요', () => {
+    const tricky = `'; drop table public.standards; -- $sil_$ $$ \\ 한글`;
+    const sql = buildRestoreSql(bundleWith({ issues: [{ title: tricky }] }));
+    const insert = sql.split('\n').find((line) => line.startsWith('insert'))!;
+    const tag = /(\$sil_[0-9a-f]+\$)/.exec(insert)![1]!;
+    // 따옴표가 정확히 한 쌍이고, 데이터 안에는 그 따옴표가 없어요
+    expect(insert.split(tag)).toHaveLength(3);
+    expect(insert.split(tag)[1]).toBe(JSON.stringify([{ title: tricky }]));
+  });
+
+  it('칸 이름이 이상한 백업 파일은 받지 않아요', () => {
+    expect(() => bundleWith({ issues: [{ 'title; drop': '값' }] })).toThrow(
+      /모양이 맞지 않아요/,
+    );
+  });
+
+  it('주석에 들어가는 칸에 줄 바꿈을 끼운 파일은 받지 않고, 받더라도 주석 밖으로 나가지 않아요', () => {
+    const crafted = {
+      ...bundleWith({}),
+      source: 'x.supabase.co\ndrop table public.standards;',
+    };
+    expect(() => parseBackupBundle(crafted)).toThrow(/모양이 맞지 않아요/);
+    const sql = buildRestoreSql(crafted);
+    expect(sql.split('\n').some((line) => line.startsWith('drop table'))).toBe(
+      false,
+    );
+  });
+
+  it('countBackupRows는 표마다 줄 수를 세요', () => {
+    expect(
+      countBackupRows(bundleWith({ issues: [{ key: '#1' }, { key: '#2' }] })),
+    ).toMatchObject({ issues: 2, standards: 0 });
   });
 });

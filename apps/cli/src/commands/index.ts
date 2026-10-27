@@ -5,6 +5,7 @@ import { registerDeprecate } from './deprecate.ts';
 import { registerDoctor } from './doctor.ts';
 import { registerExport } from './export.ts';
 import { registerImport } from './import.ts';
+import { registerRestore } from './restore.ts';
 import { registerScopeCheck } from './scope-check.ts';
 
 /**
@@ -22,5 +23,6 @@ export const commands: Array<(program: Command) => void> = [
   registerChangelog,
   registerExport,
   registerBackup,
+  registerRestore,
   registerScopeCheck,
 ];
