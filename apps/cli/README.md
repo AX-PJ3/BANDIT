@@ -13,6 +13,7 @@
 | `pnpm sil export`                    | 응답 기록 14칸 CSV + Metric Review 숫자("N건 중 M건")                                         |
 | `pnpm sil backup`                    | 표 7개를 백업 파일 하나로 남김. `--encrypt`면 공개 키로 잠근 파일만 (매일 백업 workflow가 씀) |
 | `pnpm sil restore <파일>`            | 백업을 빈 DB에 되살리는 SQL 만들기 (잠근 파일은 `--key`, 줄 수만 보기는 `--check`)            |
+| `pnpm sil backup-key <이름>`         | 백업을 잠그고 여는 열쇠 한 쌍 만들기 (공개 키는 저장소, 개인 키는 내 컴퓨터)                  |
 | `pnpm sil scope-check`               | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 확인                                          |
 
 ## 들어올 명령

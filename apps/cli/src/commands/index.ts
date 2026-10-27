@@ -1,5 +1,6 @@
 import type { Command } from 'commander';
 import { registerBackup } from './backup.ts';
+import { registerBackupKey } from './backup-key.ts';
 import { registerChangelog } from './changelog.ts';
 import { registerDeprecate } from './deprecate.ts';
 import { registerDoctor } from './doctor.ts';
@@ -24,5 +25,6 @@ export const commands: Array<(program: Command) => void> = [
   registerExport,
   registerBackup,
   registerRestore,
+  registerBackupKey,
   registerScopeCheck,
 ];
