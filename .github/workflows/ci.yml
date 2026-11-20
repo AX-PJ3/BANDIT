@@ -1,0 +1,47 @@
+# PR 검사 (work.review.self-merge, BDT-112)
+#
+# 리뷰 승인 없이 본인이 머지하는 대신, main으로 가는 PR마다 이 검사를 돌려요.
+# main 보호 규칙(protect-main)이 이 검사(check)를 통과해야 머지되게 막아요.
+#
+# - pnpm check: 타입, 린트, 포맷, 테스트
+# - pnpm mcp:check: MCP 서버를 이 실행 안에서 임시 토큰으로 켜서 401·도구 목록·ping을 확인해요.
+#   "서버가 안 켜지는 PR"이 main에 들어가 배포되지 않게 해요.
+#
+# 비밀 값을 쓰지 않아요. DB 주소가 없으니 DB를 읽는 단계는 건너뛰어요.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  # main 머지 뒤에도 한 번 더 돌려서 합친 결과가 깨지지 않았는지 봐요
+  push:
+    branches: [main]
+
+# 최소 권한: 코드 받기(읽기)만
+permissions:
+  contents: read
+
+# 같은 PR에 새로 push하면 앞의 검사는 멈춰요
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # 외부 액션은 커밋으로 고정해요 (detect.yml과 같은 v6.0.10)
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: 타입, 린트, 포맷, 테스트
+        run: pnpm check
+      - name: MCP 서버가 켜지고 답하는지
+        run: pnpm mcp:check
