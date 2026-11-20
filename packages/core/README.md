@@ -4,26 +4,27 @@
 
 ## 무엇이 있나요
 
-| 위치                      | 내용                                                                                            | 가져오는 법                                 |
-| ------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
-| `src/types/`              | 표 타입: 기준, 기준 버전, 충돌, 이슈, 확인할 변경, 답, 응답 기록 + 위키 불러오기 결과           | `import type { Standard } from '@sil/core'` |
-| `src/rules.ts`            | 팀 위키 형식 규칙: 기준 ID 모양, 문장 경고(`check_wiki.py`와 같음), 확인할 변경 상태, 출처 이름 | `@sil/core`                                 |
-| `src/changelog.ts`        | CHANGELOG 한 줄 만들기 (`data.changelog.format`)                                                | `@sil/core`                                 |
-| `src/errors.ts`           | 팀 공통 에러 (`SilError`, `DbNotConfiguredError`, `NotImplementedError`)                        | `@sil/core`                                 |
-| `src/fixtures/`           | 쿠폰 예시 데이터 (10/13 통합 확인 시나리오), 나에게 온 변경 예시(`inbox.ts`, 웹 앱 예시 데이터) | `@sil/core`                                 |
-| `src/node/env.ts`         | `.env` 읽기와 검사                                                                              | `@sil/core/node`                            |
-| `src/node/logger.ts`      | 로그 (항상 stderr)                                                                              | `@sil/core/node`                            |
-| `src/data/client.ts`      | Supabase 연결 (공용 키), DB 에러 → 우리 에러. 브라우저와 Node 모두 (D50)                        | `@sil/core/data`, `@sil/core/node`          |
-| `src/node/db.ts`          | Node에서 `.env`로 연결하고 DB 실패를 로그로 남겨요                                              | `@sil/core/node`                            |
-| `src/data/standards.ts`   | 위키 읽기(목록, 기준 하나와 버전 기록)·쓰기(저장, 되돌리기, 폐기), 이슈 저장, 충돌 보류         | `@sil/core/data`, `@sil/core/node`          |
-| `src/data/notify.ts`      | 이슈 목록, 확인할 변경 목록, 답 저장·취소, 응답 기록, "관계있다" 답                             | `@sil/core/data`, `@sil/core/node`          |
-| `src/node/changelog.ts`   | DB 기록으로 CHANGELOG 줄 만들기 (`sil changelog`)                                               | `@sil/core/node`                            |
-| `src/node/backup.ts`      | 표 전체 읽기 (`sil backup`, 매일 백업)                                                          | `@sil/core/node`                            |
-| `src/node/scope-check.ts` | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 (`sil scope-check`)                             | `@sil/core/node`                            |
-| `src/node/wiki-import.ts` | team-wiki/ 마크다운과 이슈 CSV 읽기, DB와 비교 (`sil import`가 써요)                            | `@sil/core/node`                            |
-| `src/node/wiki-search.ts` | 목차 만들기, 키워드·영역·코드 경로로 찾기 (DB를 부르지 않는 순수 함수)                          | `@sil/core/node`                            |
-| `src/node/fake-db.ts`     | **테스트 전용** 가짜 Supabase 클라이언트                                                        | `@sil/core/testing`                         |
-| `src/node/run-command.ts` | 다른 프로그램 실행 (Windows `.cmd` 처리 포함)                                                   | `@sil/core/node`                            |
+| 위치                        | 내용                                                                                            | 가져오는 법                                 |
+| --------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------- |
+| `src/types/`                | 표 타입: 기준, 기준 버전, 충돌, 이슈, 확인할 변경, 답, 응답 기록 + 위키 불러오기 결과           | `import type { Standard } from '@sil/core'` |
+| `src/rules.ts`              | 팀 위키 형식 규칙: 기준 ID 모양, 문장 경고(`check_wiki.py`와 같음), 확인할 변경 상태, 출처 이름 | `@sil/core`                                 |
+| `src/changelog.ts`          | CHANGELOG 한 줄 만들기 (`data.changelog.format`)                                                | `@sil/core`                                 |
+| `src/errors.ts`             | 팀 공통 에러 (`SilError`, `DbNotConfiguredError`, `NotImplementedError`)                        | `@sil/core`                                 |
+| `src/fixtures/`             | 쿠폰 예시 데이터 (10/13 통합 확인 시나리오), 나에게 온 변경 예시(`inbox.ts`, 웹 앱 예시 데이터) | `@sil/core`                                 |
+| `src/node/env.ts`           | `.env` 읽기와 검사                                                                              | `@sil/core/node`                            |
+| `src/node/logger.ts`        | 로그 (항상 stderr)                                                                              | `@sil/core/node`                            |
+| `src/data/client.ts`        | Supabase 연결 (공용 키), DB 에러 → 우리 에러. 브라우저와 Node 모두 (D50)                        | `@sil/core/data`, `@sil/core/node`          |
+| `src/node/db.ts`            | Node에서 `.env`로 연결하고 DB 실패를 로그로 남겨요                                              | `@sil/core/node`                            |
+| `src/data/standards.ts`     | 위키 읽기(목록, 기준 하나와 버전 기록)·쓰기(저장, 되돌리기, 폐기), 이슈 저장, 충돌 보류         | `@sil/core/data`, `@sil/core/node`          |
+| `src/data/notify.ts`        | 이슈 목록, 확인할 변경 목록, 답 저장·취소, 응답 기록, "관계있다" 답                             | `@sil/core/data`, `@sil/core/node`          |
+| `src/node/changelog.ts`     | DB 기록으로 CHANGELOG 줄 만들기 (`sil changelog`)                                               | `@sil/core/node`                            |
+| `src/node/backup.ts`        | 표 7개를 어긋나지 않게 읽기, 되살리기 SQL 만들기 (`sil backup`, `sil restore`, 매일 백업)       | `@sil/core/node`                            |
+| `src/node/backup-crypto.ts` | 백업을 공개 키로 잠그고 개인 키로 열기, 열쇠 만들기 (`sil backup-key`)                          | `@sil/core/node`                            |
+| `src/node/scope-check.ts`   | 위키 적용 범위의 코드 경로가 실제 파일과 맞는지 (`sil scope-check`)                             | `@sil/core/node`                            |
+| `src/node/wiki-import.ts`   | team-wiki/ 마크다운과 이슈 CSV 읽기, DB와 비교 (`sil import`가 써요)                            | `@sil/core/node`                            |
+| `src/node/wiki-search.ts`   | 목차 만들기, 키워드·영역·코드 경로로 찾기 (DB를 부르지 않는 순수 함수)                          | `@sil/core/node`                            |
+| `src/node/fake-db.ts`       | **테스트 전용** 가짜 Supabase 클라이언트                                                        | `@sil/core/testing`                         |
+| `src/node/run-command.ts`   | 다른 프로그램 실행 (Windows `.cmd` 처리 포함)                                                   | `@sil/core/node`                            |
 
 ## 왜 입구가 셋인가요 (`@sil/core`, `@sil/core/data`, `@sil/core/node`)
 

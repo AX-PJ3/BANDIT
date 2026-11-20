@@ -8,6 +8,7 @@ export * from './db.ts';
 export * from '../data/index.ts';
 export * from './changelog.ts';
 export * from './backup.ts';
+export * from './backup-crypto.ts';
 export * from './wiki-search.ts';
 export * from './wiki-import.ts';
 export * from './scope-check.ts';

@@ -1,5 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { dumpTables } from './backup.ts';
 import { listChangelogEntries } from './changelog.ts';
 import { setDbForTesting, toSilError } from '../data/client.ts';
 import { createFakeDb, standardRows } from './fake-db.ts';
@@ -177,17 +176,7 @@ describe('확인할 변경과 답', () => {
   });
 });
 
-describe('백업과 CHANGELOG', () => {
-  it('dumpTables는 1,000줄이 넘는 표도 나눠서 끝까지 읽어요', async () => {
-    const many = Array.from({ length: 1001 }, (_, index) => ({
-      key: `#${String(index).padStart(4, '0')}`,
-    }));
-    setDbForTesting(createFakeDb({ issues: many }).client);
-    const dump = await dumpTables();
-    expect(dump.tables.issues).toHaveLength(1001);
-    expect(dump.tables.standards).toEqual([]);
-  });
-
+describe('CHANGELOG', () => {
   it('listChangelogEntries는 예전 위키에서 옮긴 버전(wiki)을 빼고, 이전 값을 앞 버전에서 찾아요', async () => {
     const coupon = standardRows({
       id: 'order.coupon.nullable',

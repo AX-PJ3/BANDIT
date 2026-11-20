@@ -24,6 +24,8 @@ CLAUDE.local.md
 cloudrun-env.yaml
 *.pem
 *.key
+# 백업 공개 키만은 올려요 (sil backup-key). 개인 키(.key.pem)는 위 *.pem으로 막혀요
+!apps/cli/backup-keys/*.pub.pem
 *.p12
 *.pfx
 id_rsa*

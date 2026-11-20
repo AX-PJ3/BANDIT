@@ -1,0 +1,92 @@
+# 팀 DB 매일 백업 (wiki.backup.daily, apps/cli/src/commands/backup.ts)
+#
+# 매일 03:00(한국 시각)에 팀 DB의 표 7개를 공용 키로 읽기만 해서 백업 파일 하나로 만들어요.
+# Supabase 무료 플랜에는 자동 백업이 없어서 우리가 직접 남겨요.
+#
+# - 이 저장소는 공개라 아티팩트를 누구나 받을 수 있어요. 그래서 apps/cli/backup-keys/의 공개 키로 잠근 파일만 올려요.
+#   여는 개인 키는 받는 사람만 갖고 있고, 이 workflow에는 없어요.
+# - 잠근 파일은 7일 동안 보관해요. 늘 최근 7번 치가 남아요 (Actions → backup → 실행 → Artifacts, 또는 gh run download).
+# - 같은 실행 안에서 빈 Postgres에 마이그레이션을 올리고 백업을 넣어 봐요. 표마다 줄 수가 같아야 통과예요 (되살리기 시험).
+#   이 시험이 실패해도 백업은 이미 올라가 있어요. 실패하면 팀 DB와 마이그레이션이 어긋났는지 먼저 봐요.
+#
+# 넣어야 하는 값: Secrets SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY (detect.yml과 같은 값, 새 비밀 값 없음)
+# 되살리는 법: docs/백업과-되살리기.md
+name: backup
+
+on:
+  schedule:
+    # 18:00 UTC = 다음 날 03:00 한국 시각. GitHub 사정으로 조금 늦게 돌 수 있어요
+    - cron: '0 18 * * *'
+  # 시험용 수동 실행 (Actions → backup → Run workflow)
+  workflow_dispatch:
+
+# 최소 권한: 코드 받기(읽기)만
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      # 되살리기 시험용 빈 Postgres. 이 실행 안에서만 쓰고 지워져요 (Supabase와 같은 17)
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      # 외부 액션은 커밋으로 고정해요 (detect.yml과 같은 v6.0.10)
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      # 패키지는 DB 키를 받기 전에 깔아요
+      - run: pnpm install --frozen-lockfile
+
+      - name: 백업 받기 (공용 키로 읽기만)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: node apps/cli/bin/sil.mjs backup --encrypt --out backup-out --plain-copy "$RUNNER_TEMP/plain.json"
+
+      - name: 잠근 백업 올리기 (7일 보관)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sil-backup-${{ github.run_number }}
+          path: backup-out/*.json.enc
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: 되살리기 시험 (빈 Postgres → 마이그레이션 → 백업 넣기 → 줄 수 비교)
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: postgres
+        run: |
+          psql -v ON_ERROR_STOP=1 -q -f supabase/plain-postgres.sql
+          for file in supabase/migrations/*.sql; do
+            psql -v ON_ERROR_STOP=1 -q -f "$file" > /dev/null
+          done
+          node apps/cli/bin/sil.mjs restore "$RUNNER_TEMP/plain.json" --sql "$RUNNER_TEMP/restore.sql"
+          psql -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/restore.sql"
+
+      # 잠그지 않은 파일은 실행이 끝나면 어차피 사라지지만, 남기지 않게 바로 지워요
+      - name: 잠그지 않은 파일 지우기
+        if: always()
+        run: rm -f "$RUNNER_TEMP/plain.json" "$RUNNER_TEMP/restore.sql"
